@@ -75,7 +75,7 @@ int main()
 
 ![](assets/img/2.9.png)
 
-然后请用 Visual Studio Code 打开 `main.c` 文件, 然后你就可以进行编译运行了：
+然后请用 Visual Studio Code 打开 `main.c` 文件, 然后你就可以进行编译运行了(编译运行时一定要选PainterEngine Debug或PainterEngine Release,不要选默认编译选项,如果不小心选错了重新覆盖.vscode即可)：
 
 ![](assets/img/2.10.png)
 
