@@ -11,6 +11,8 @@ PainterEngine 是一个由 C 语言编写的跨平台图形引擎, 支持 Window
 
 *任何关于PainterEngine问题您都可以在issue中直接提问。
 
+[![Stargazers over time](https://starchart.cc/matrixcascade/PainterEngine.svg?variant=adaptive)](https://starchart.cc/matrixcascade/PainterEngine)
+
 ## 30 秒速览 PainterEngine
 
 将 PainterEngine 引入到您的 C/C++ 项目中, 仅仅需要 `#include "PainterEngine.h"`.
