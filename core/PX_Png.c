@@ -287,8 +287,6 @@ px_int PX_PngGetSize(px_byte* ppngbuffer,px_int in_size)
 	px_int width, height;
 	PX_PNG_FORMAT format;
 	px_byte* pchunk;
-	px_byte* compressed = 0;
-
 	px_int compressed_size = 0;
 
 
@@ -297,7 +295,6 @@ px_int PX_PngGetSize(px_byte* ppngbuffer,px_int in_size)
 	do
 	{
 		px_int chunk_length;
-		px_byte* pdata;
 		pchunk = ppngbuffer + 33;
 		while (pchunk < ppngbuffer + in_size)
 		{
@@ -305,8 +302,6 @@ px_int PX_PngGetSize(px_byte* ppngbuffer,px_int in_size)
 			if (!PX_PngChunkCRCVerify(pchunk)) return PX_FALSE;
 			chunk_length = PX_PNG_MAKE_DWORD_PTR(pchunk);
 			if ((px_int)(pchunk - ppngbuffer + 12 + chunk_length) > in_size) return PX_FALSE;
-			pdata = pchunk + 8;
-
 			switch (PX_PNG_MAKE_DWORD_PTR(pchunk + 4))
 			{
 			case PX_PNG_CHUNK_IDAT:
@@ -351,7 +346,6 @@ px_bool PX_PngToXBuffer(px_memorypool * mp,px_byte* ppngbuffer, px_int size,px_s
 	do
 	{
 		px_int chunk_length;
-		px_byte* pdata;
 		pchunk = ppngbuffer + 33;
 		while (pchunk < ppngbuffer + size)
 		{
@@ -359,8 +353,6 @@ px_bool PX_PngToXBuffer(px_memorypool * mp,px_byte* ppngbuffer, px_int size,px_s
 			if (!PX_PngChunkCRCVerify(pchunk)) return PX_FALSE;
 			chunk_length = PX_PNG_MAKE_DWORD_PTR(pchunk);
 			if ((px_int)(pchunk - ppngbuffer + 12 + chunk_length) > size) return PX_FALSE;
-			pdata = pchunk + 8;
-
 			switch (PX_PNG_MAKE_DWORD_PTR(pchunk+4))
 			{
 			case PX_PNG_CHUNK_IDAT:

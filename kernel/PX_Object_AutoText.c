@@ -3,7 +3,7 @@ PX_OBJECT_RENDER_FUNCTION(PX_Object_AutoTextRender)
 {
 	px_int x_draw_oft, y_draw_oft, cursor, fsize;
 	PX_Object_AutoText* pAt = PX_ObjectGetDesc(PX_Object_AutoText, pObject);
-	const px_char* Text = pAt->text.buffer;
+	const px_char* Text = PX_StringGetText(&pAt->text);
 	px_float objx, objy, objHeight, objWidth;
 	px_float h = 0;
 	px_rect rect;
@@ -182,7 +182,7 @@ const px_char* PX_Object_AutoTextGetText(PX_Object* pObject)
 	{
 		return 0;
 	}
-	return pAt->text.buffer;
+	return PX_StringGetText(&pAt->text);
 }
 
 

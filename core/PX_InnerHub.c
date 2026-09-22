@@ -25,14 +25,14 @@ px_void PX_InnerHubClear(PX_InnerHub* hub)
 }
 px_int PX_InnerHubGetReadSize(PX_InnerHub* hub)
 {
-	return PX_MemoryGetUsedSize(&hub->io);
+	return PX_MemoryGetSize(&hub->io);
 }
 
 px_int PX_InnerHubRead(PX_InnerHub* hub, px_void* data, px_int size)
 {
-	if (size>PX_MemoryGetUsedSize(&hub->io))
+	if (size>PX_MemoryGetSize(&hub->io))
 	{
-		size = PX_MemoryGetUsedSize(&hub->io);
+		size = PX_MemoryGetSize(&hub->io);
 	}
 	PX_memcpy(data, hub->io.buffer, size);
 	PX_MemoryRemove(&hub->io, 0, size-1);
@@ -46,14 +46,14 @@ px_int PX_InnerHubWrite(PX_InnerHub* hub, px_void* data, px_int size)
 
 px_int PX_InnerHub1GetReadSize(PX_InnerHub* hub)
 {
-	return PX_MemoryGetUsedSize(&hub->p1);
+	return PX_MemoryGetSize(&hub->p1);
 }
 
 px_bool PX_InnerHub1Read(PX_InnerHub* hub, px_void* data, px_int size)
 {
-	if (size > PX_MemoryGetUsedSize(&hub->p1))
+	if (size > PX_MemoryGetSize(&hub->p1))
 	{
-		size = PX_MemoryGetUsedSize(&hub->p1);
+		size = PX_MemoryGetSize(&hub->p1);
 	}
 	PX_memcpy(data, hub->p1.buffer, size);
 	PX_MemoryRemove(&hub->p1, 0, size - 1);
@@ -66,14 +66,14 @@ px_bool PX_InnerHub1Write(PX_InnerHub* hub, px_void* data, px_int size)
 
 px_int PX_InnerHub2GetReadSize(PX_InnerHub* hub)
 {
-	return PX_MemoryGetUsedSize(&hub->p2);
+	return PX_MemoryGetSize(&hub->p2);
 }
 
 px_bool PX_InnerHub2Read(PX_InnerHub* hub, px_void* data, px_int size)
 {
-	if (size > PX_MemoryGetUsedSize(&hub->p2))
+	if (size > PX_MemoryGetSize(&hub->p2))
 	{
-		size = PX_MemoryGetUsedSize(&hub->p2);
+		size = PX_MemoryGetSize(&hub->p2);
 	}
 	PX_memcpy(data, hub->p2.buffer, size);
 	PX_MemoryRemove(&hub->p2, 0, size - 1);

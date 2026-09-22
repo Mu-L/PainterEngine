@@ -3,7 +3,7 @@
 #define PX_SYNTAX_FUNCTION_H
 #include "PX_Syntax.h"
 
-// define_function --- function_return_type(abi type)
+// function_block --- function_return_type(abi type)
 //				  |
 //				   --- function_name(identifier abi)
 //				  |
@@ -15,7 +15,7 @@
 //                |
 //                 --- check_param_count(int)
 //				  |
-//				   --- define_function(abi define_function)
+//				   --- function_block(abi function_block)
 
 px_bool PX_Syntax_load_function(PX_Syntax* pSyntax);
 #endif // !PX_SYNTAX_FUNCTION_H

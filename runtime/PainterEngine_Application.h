@@ -17,6 +17,8 @@
 #include "../platform/modules/px_udp.h"
 #include "../platform/modules/px_keyboard.h"
 extern px_char PX_APPLICATION_NAME[];
+extern px_int PainterEngine_argc;
+extern px_char** PainterEngine_argv;
 	typedef struct
 	{
 		px_color backgroundColor;
@@ -94,6 +96,8 @@ extern px_char PX_APPLICATION_NAME[];
 	px_void PX_ApplicationRender(PX_Application* App, px_dword elapsed);
 	px_void PX_ApplicationPostEvent(PX_Application* App, PX_Object_Event e);
 
+	px_int PainterEngine_GetArgc();
+	px_char** PainterEngine_GetArgv();
 	
 
 

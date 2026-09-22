@@ -305,7 +305,7 @@ px_bool PX_LexerSetName(px_lexer* lexer, const px_char name[])
 
 const px_char* PX_LexerGetName(px_lexer* lexer)
 {
-	return lexer->LexerName.buffer;
+	return PX_StringGetText(&lexer->LexerName);
 }
 
 
@@ -365,7 +365,6 @@ px_bool PX_LexerSortTextMap(px_lexer *lexer,const px_char *SourceText,px_bool bi
 {
 	px_char *chrst,*chred;
 
-	px_int sourceLines=1;
 	px_int w_Offset = 0,r_Offset=0;
 
 	px_int lastNewLineStamp = 0;
@@ -595,7 +594,7 @@ PX_LEXER_LEXEME_TYPE PX_LexerGetNextLexeme(px_lexer *lexer)
 			lexer->lexeme_begin = lexer->SourceOffset;
 			lexer->lexeme_end = lexer->SourceOffset;
 			lexer->Symbol = '\0';
-			PX_StringCatChar(&lexer->CurLexeme, '\0');
+			PX_StringCatCharFast(&lexer->CurLexeme, '\0');
 			lexer->CurrentLexemeFlag = PX_LEXER_LEXEME_TYPE_END;
 			return PX_LEXER_LEXEME_TYPE_END;
 		}
@@ -627,7 +626,7 @@ PX_LEXER_LEXEME_TYPE PX_LexerGetNextLexeme(px_lexer *lexer)
 					lexer->lexeme_end = lexer->SourceOffset;
 					break;
 				}
-				PX_StringCatChar(&lexer->CurLexeme, lexer->Sources[lexer->SourceOffset]);
+				PX_StringCatCharFast(&lexer->CurLexeme, lexer->Sources[lexer->SourceOffset]);
 				
 				lexer->SourceOffset++;
 			}
@@ -668,12 +667,12 @@ PX_LEXER_LEXEME_TYPE PX_LexerGetNextLexeme(px_lexer *lexer)
 				
 				if (PX_LexerIsContainerTransfer(lexer, chrst, lexer->Sources[lexer->SourceOffset]) && PX_memequ(&lexer->Sources[lexer->SourceOffset + 1], chrst, PX_strlen(chrst)))
 				{
-					PX_StringCatChar(&lexer->CurLexeme, lexer->Sources[lexer->SourceOffset++]);
-					PX_StringCatChar(&lexer->CurLexeme, lexer->Sources[lexer->SourceOffset++]);
+					PX_StringCatCharFast(&lexer->CurLexeme, lexer->Sources[lexer->SourceOffset++]);
+					PX_StringCatCharFast(&lexer->CurLexeme, lexer->Sources[lexer->SourceOffset++]);
 				}
 				else
 				{
-					PX_StringCatChar(&lexer->CurLexeme, lexer->Sources[lexer->SourceOffset]);
+					PX_StringCatCharFast(&lexer->CurLexeme, lexer->Sources[lexer->SourceOffset]);
 					lexer->SourceOffset++;
 				}
 			}
@@ -691,7 +690,7 @@ PX_LEXER_LEXEME_TYPE PX_LexerGetNextLexeme(px_lexer *lexer)
 			lexer->lexeme_begin = lexer->SourceOffset;
 			lexer->lexeme_end = lexer->SourceOffset;
 			lexer->Symbol = lexer->Sources[lexer->SourceOffset];
-			PX_StringCatChar(&lexer->CurLexeme, lexer->Sources[lexer->SourceOffset]);
+			PX_StringCatCharFast(&lexer->CurLexeme, lexer->Sources[lexer->SourceOffset]);
 			lexer->SourceOffset++;
 			//printf("<Spacer>\n");
 			lexer->CurrentLexemeFlag = PX_LEXER_LEXEME_TYPE_SPACER;
@@ -703,7 +702,7 @@ PX_LEXER_LEXEME_TYPE PX_LexerGetNextLexeme(px_lexer *lexer)
 			lexer->lexeme_begin = lexer->SourceOffset;
 			lexer->lexeme_end = lexer->SourceOffset;
 			lexer->Symbol = lexer->Sources[lexer->SourceOffset];
-			PX_StringCatChar(&lexer->CurLexeme, lexer->Sources[lexer->SourceOffset]);
+			PX_StringCatCharFast(&lexer->CurLexeme, lexer->Sources[lexer->SourceOffset]);
 			lexer->SourceOffset++;
 			//printf("<New line>\n");
 			lexer->CurrentLexemeFlag = PX_LEXER_LEXEME_TYPE_NEWLINE;
@@ -724,7 +723,7 @@ PX_LEXER_LEXEME_TYPE PX_LexerGetNextLexeme(px_lexer *lexer)
 				}
 			}
 
-			PX_StringCatChar(&lexer->CurLexeme, lexer->Sources[lexer->SourceOffset]);
+			PX_StringCatCharFast(&lexer->CurLexeme, lexer->Sources[lexer->SourceOffset]);
 			//printf("<Delimiter> %c\n",lexer->Sources[lexer->SourceOffset]);
 			lexer->SourceOffset++;
 			lexer->CurrentLexemeFlag = PX_LEXER_LEXEME_TYPE_DELIMITER;
@@ -757,7 +756,7 @@ PX_LEXER_LEXEME_TYPE PX_LexerGetNextLexeme(px_lexer *lexer)
 			if ( PX_LexerIsContainerStart(lexer, &lexer->Sources[lexer->SourceOffset]))
 				break;
 
-			PX_StringCatChar(&lexer->CurLexeme, lexer->Sources[lexer->SourceOffset]);
+			PX_StringCatCharFast(&lexer->CurLexeme, lexer->Sources[lexer->SourceOffset]);
 			lexer->lexeme_end = lexer->SourceOffset;
 	
 			lexer->SourceOffset++;
@@ -813,7 +812,7 @@ PX_LEXER_LEXEME_TYPE PX_LexerGetNextLexeme(px_lexer *lexer)
 				if (match)
 				{
 					lexer->lexeme_end = lexer->SourceOffset;
-					PX_StringCatChar(&lexer->CurLexeme, lexer->Sources[lexer->SourceOffset++]);
+					PX_StringCatCharFast(&lexer->CurLexeme, lexer->Sources[lexer->SourceOffset++]);
 					while (PX_TRUE)
 					{
 						if (PX_LexerIsSourcsEnd(lexer))
@@ -833,7 +832,7 @@ PX_LEXER_LEXEME_TYPE PX_LexerGetNextLexeme(px_lexer *lexer)
 						if (PX_LexerIsContainerStart(lexer, &lexer->Sources[lexer->SourceOffset]))
 							break;
 						lexer->lexeme_end = lexer->SourceOffset;
-						PX_StringCatChar(&lexer->CurLexeme, lexer->Sources[lexer->SourceOffset++]);
+						PX_StringCatCharFast(&lexer->CurLexeme, lexer->Sources[lexer->SourceOffset++]);
 					}
 						
 				}
@@ -842,12 +841,14 @@ PX_LEXER_LEXEME_TYPE PX_LexerGetNextLexeme(px_lexer *lexer)
 		//printf("<Token> %s\n",m_CurLexeme);
 		if (lexer->lexemeTokenCase == PX_LEXER_LEXEME_CASE_UPPER)
 		{
-			PX_strupr(lexer->CurLexeme.buffer);
+			PX_strupr(PX_StringBeginRWBuffer(&lexer->CurLexeme));
+			PX_StringEndRWBuffer(&lexer->CurLexeme);
 		}
 
 		if (lexer->lexemeTokenCase == PX_LEXER_LEXEME_CASE_LOWER)
 		{
-			PX_strlwr(lexer->CurLexeme.buffer);
+			PX_strlwr(PX_StringBeginRWBuffer(&lexer->CurLexeme));
+			PX_StringEndRWBuffer(&lexer->CurLexeme);
 		}
 		lexer->CurrentLexemeFlag = PX_LEXER_LEXEME_TYPE_TOKEN;
 		return PX_LEXER_LEXEME_TYPE_TOKEN;
@@ -874,7 +875,7 @@ px_bool PX_LexerReadString(px_lexer *lexer,px_string *str,px_uint size)
 		{
 			return PX_FALSE;
 		}
-		PX_StringCatChar(str,lexer->Sources[lexer->SourceOffset++]);
+		PX_StringCatCharFast(str,lexer->Sources[lexer->SourceOffset++]);
 		size--;
 	}
 	return PX_TRUE;
@@ -1132,7 +1133,7 @@ px_void PX_LexerSetNumericMatch(px_lexer *lexer,px_bool b)
 
 const px_char* PX_LexerGetLexeme(px_lexer* lexer)
 {
-	return lexer->CurLexeme.buffer;
+	return PX_StringGetText(&lexer->CurLexeme);
 }
 
 PX_LEXER_LEXEME_TYPE PX_LexerGetLexemeType(px_lexer* lexer)
@@ -1147,8 +1148,8 @@ px_void PX_LexerReset(px_lexer* lexer)
 
 px_char PX_LexerGetDelimiter(px_lexer* lexer)
 {
-	PX_ASSERTIF(!lexer->CurLexeme.buffer);
-	return lexer->CurLexeme.buffer[0];
+	PX_ASSERTIF(!PX_StringGetText(&lexer->CurLexeme));
+	return PX_StringGetText(&lexer->CurLexeme)[0];
 }
 
 

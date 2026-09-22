@@ -298,3 +298,68 @@ px_bool PX_SocketIsConnecting(PX_Socket* pSocket)
 {
 	return pSocket->isConnecting;
 }
+
+// Requires -sASYNCIFY in emscripten link flags
+EM_ASYNC_JS(int, js_ws_request, (const char* url, const void* sbuf, int slen, void** rbuf, int* rlen), {
+	const ws = new WebSocket(UTF8ToString(url), ['binary']);
+	ws.binaryType = 'arraybuffer';
+	let done = false;
+	return new Promise(resolve => {
+		const fin = (ptr, sz) => {
+			if (done) return; done = true;
+			HEAP32[rbuf >> 2] = ptr;
+			HEAP32[rlen >> 2] = sz;
+			resolve(ptr ? 0 : -1);
+		};
+		const timer = setTimeout(() => { ws.close(); fin(0, 0); }, 10000);
+		ws.onopen = () => ws.send(HEAPU8.buffer.slice(sbuf, sbuf + slen));
+		ws.onmessage = evt => {
+			clearTimeout(timer); ws.close();
+			const b = new Uint8Array(evt.data);
+			const p = _malloc(b.length);
+			if (!p) { fin(0, 0); return; }
+			HEAPU8.set(b, p);
+			fin(p, b.length);
+		};
+		ws.onclose = () => { clearTimeout(timer); fin(0, 0); };
+		ws.onerror = () => ws.close();
+	});
+});
+
+px_bool PX_SocketRequest(PX_Socket* pSocket, const px_byte* data, px_dword send_data_size, px_memory* response)
+{
+	px_char url[256];
+	px_void* send_buf;
+	px_byte* recv_buf = PX_NULL;
+	px_int recv_size = 0;
+	px_dword payload_size;
+
+	if (PX_strstr(pSocket->host, "://") == PX_NULL)
+		PX_sprintf2(url, sizeof(url), "ws://%1:%2", PX_STRINGFORMAT_STRING(pSocket->host), PX_STRINGFORMAT_INT(pSocket->port));
+	else
+		PX_sprintf2(url, sizeof(url), "%1:%2", PX_STRINGFORMAT_STRING(pSocket->host), PX_STRINGFORMAT_INT(pSocket->port));
+
+	PX_MemoryClear(response);
+	send_buf = malloc(send_data_size + sizeof(px_dword));
+	if (!send_buf) return PX_FALSE;
+	px_memcpy(send_buf, &send_data_size, sizeof(px_dword));
+	px_memcpy((px_byte*)send_buf + sizeof(px_dword), data, send_data_size);
+
+	if (js_ws_request(url, send_buf, send_data_size + sizeof(px_dword), (px_void**)&recv_buf, &recv_size) != 0)
+	{
+		free(send_buf);
+		return PX_FALSE;
+	}
+	free(send_buf);
+
+	if (recv_size < (px_int)sizeof(px_dword)) { free(recv_buf); return PX_FALSE; }
+	payload_size = *(px_dword*)recv_buf;
+	if (recv_size - (px_int)sizeof(px_dword) < (px_int)payload_size) { free(recv_buf); return PX_FALSE; }
+	if (!PX_MemoryCat(response, recv_buf + sizeof(px_dword), payload_size))
+	{
+		free(recv_buf);
+		return PX_FALSE;
+	}
+	free(recv_buf);
+	return PX_TRUE;
+}

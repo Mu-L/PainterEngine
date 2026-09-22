@@ -34,5 +34,6 @@ typedef enum
 
 
 px_bool PX_Syntax_load_ir(PX_Syntax* pSyntax);
+
 px_int PX_Syntax_Disassemble(const px_byte* payload, px_int reserved_size, px_char out_asm[32]);
 #endif // !PX_SYNTAX_IR_H

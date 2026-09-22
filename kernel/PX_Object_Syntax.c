@@ -80,42 +80,38 @@ px_void PX_Object_Syntax_Refresh_Message(PX_Object* pObject)
 {
 	PX_Object_Syntax* pDesc = PX_ObjectGetDesc0(PX_Object_Syntax, pObject);
 	px_string* pstr = PX_Syntax_GetMessage(pDesc->psyntax);
-	if (PX_StringLen(pstr) != pDesc->reg_target_syntax_message_offset)
+	px_int index = 0;
+	px_char content[256] = { 0 };
+	px_int content_i = 0;
+	while (PX_TRUE)
 	{
-		px_char content[128] = { 0 };
-		px_int index = pDesc->reg_target_syntax_message_offset;
-		px_int content_i = 0;
-		if (pDesc->reg_target_syntax_message_offset>PX_StringLen(pstr))
+		if (index >= PX_StringLen(pstr))
 		{
-			PX_Object_PrinterClear(pDesc->printer);
+			if (content_i > 0)
+				PX_Object_PrinterPrintText(pDesc->printer, content);
+			break;
 		}
-		while (PX_TRUE)
+		if (PX_StringGetText(pstr)[index] == '\n')
 		{
-			if (index >= PX_StringLen(pstr))
-			{
-				break;
-			}
-			if (pstr->buffer[index] == '\n')
-			{
-				pDesc->reg_target_syntax_message_offset = index + 1;
-				index = pDesc->reg_target_syntax_message_offset;
-				content_i = 0;
+			if (content_i > 0)
 				PX_Object_PrinterPrintText(pDesc->printer, content);
-			}
-			else if (content_i >= sizeof(content) - 1)
+			content_i = 0;
+			content[content_i] = '\0';
+			index++;
+		}
+		else
+		{
+			content[content_i++] = PX_StringGetText(pstr)[index++];
+			content[content_i] = '\0';
+			if (content_i >= sizeof(content) - 1)
 			{
-				pDesc->reg_target_syntax_message_offset = index;
-				index = pDesc->reg_target_syntax_message_offset;
-				content_i = 0;
 				PX_Object_PrinterPrintText(pDesc->printer, content);
-			}
-			else
-			{
-				content[content_i++] = pstr->buffer[index++];
+				content_i = 0;
 				content[content_i] = '\0';
 			}
 		}
 	}
+	PX_Syntax_MessageClear(pDesc->psyntax);
 }
 
 PX_OBJECT_EVENT_FUNCTION(PX_Object_Syntax_OnTabButtonExecute)
@@ -132,9 +128,9 @@ PX_OBJECT_EVENT_FUNCTION(PX_Object_Syntax_OnTabButtonExecute)
 			PX_SyntaxLexer_Source* psrc;
 
 			// save current page scroll state
-			if (pDesc->current_view_source_index >= 0 && PX_VectorCheckIndex(&pDesc->pages_memory, pDesc->current_view_source_index))
+			if (pDesc->current_view_source_index >= 0 && PX_VectorCheckIndex(&pDesc->pages_state, pDesc->current_view_source_index))
 			{
-				PX_Object_Syntax_pagememory* pcurpage = PX_VECTORAT(PX_Object_Syntax_pagememory, &pDesc->pages_memory, pDesc->current_view_source_index);
+				PX_Object_Syntax_pagememory* pcurpage = PX_VECTORAT(PX_Object_Syntax_pagememory, &pDesc->pages_state, pDesc->current_view_source_index);
 				PX_ASSERTIFX(!pcurpage, "current_view_source_index is valid but pagememory is null");
 				pcurpage->row_offset = PX_Object_Code_GetScrollOffsetYRow(pDesc->source_code_viewer);
 				pcurpage->x_offset = PX_Object_Code_GetScrollOffsetX(pDesc->source_code_viewer);
@@ -143,14 +139,15 @@ PX_OBJECT_EVENT_FUNCTION(PX_Object_Syntax_OnTabButtonExecute)
 			pDesc->current_view_source_index = i;
 
 			// ensure pages_memory is large enough
-			if (pDesc->current_view_source_index >= pDesc->pages_memory.size)
-				PX_VectorResize(&pDesc->pages_memory, pDesc->current_view_source_index + 1);
+			if (pDesc->current_view_source_index >= pDesc->pages_state.size)
+				if(!PX_VectorResize(&pDesc->pages_state, pDesc->current_view_source_index + 1)) return;
+				
 
 			psrc = PX_Syntax_GetSourceByIndex(pDesc->psyntax, pDesc->current_view_source_index);
 			PX_Object_Code_SetSource(pDesc->source_code_viewer, psrc);
 
 			// restore scroll state for new page
-			pagememory = PX_VECTORAT(PX_Object_Syntax_pagememory, &pDesc->pages_memory, pDesc->current_view_source_index);
+			pagememory = PX_VECTORAT(PX_Object_Syntax_pagememory, &pDesc->pages_state, pDesc->current_view_source_index);
 			PX_Object_Code_SetScrollOffset(pDesc->source_code_viewer, pagememory->row_offset, pagememory->x_offset);
 			return;
 		}
@@ -161,10 +158,10 @@ PX_OBJECT_EVENT_FUNCTION(PX_Object_Syntax_OnTreeExecute)
 {
 	PX_Object* pIDEObject = (PX_Object*)ptr;
 	PX_Object_Syntax* pDesc = PX_ObjectGetDesc0(PX_Object_Syntax, pIDEObject);
-	PX_Object_TreeNode* pNode =	PX_Object_TreeGetCurrentSelectNode(pDesc->tree_root_abi);
+	PX_Object_TreeNode* pNode =	PX_Object_TreeGetCurrentSelectNode(pDesc->ui_tree);
 	if (pNode)
 	{
-		PX_Object_TextViewerSetText(pDesc->textviewer_out, pNode->content.buffer);
+		PX_Object_TextViewerSetText(pDesc->textviewer_out, PX_StringGetText(&pNode->content));
 	}
 	else
 	{
@@ -216,7 +213,7 @@ static px_bool PX_Object_Syntax_Refresh_SyntaxAst(PX_Object* pObject)
 	if (pDesc->psyntax)
 	{
 		px_int i;
-		PX_Object_ListClear(pDesc->list_info);
+		PX_Object_ListClear(pDesc->ui_list);
 		for (i = 0; i < pDesc->list_contents.size; i++)
 		{
 			px_char* p = *PX_VECTORAT(px_char*, &pDesc->list_contents, i);
@@ -224,54 +221,58 @@ static px_bool PX_Object_Syntax_Refresh_SyntaxAst(PX_Object* pObject)
 		}
 		PX_VectorClear(&pDesc->list_contents);
 
-		for (i = 0; i < pDesc->psyntax->reg_ast_stack.size; i++)
+		for (i = pDesc->psyntax->reg_ast_stack.size>=64?pDesc->psyntax->reg_ast_stack.size-64:0; i < pDesc->psyntax->reg_ast_stack.size; i++)
 		{
 			px_char content[64] = { 0 },*pnewcontent;
 			PX_Syntax_ast* past = PX_VECTORAT(PX_Syntax_ast, &pDesc->psyntax->reg_ast_stack, i);
-			PX_Syntax_pebnf* ppebnf = PX_Syntax_GetPebnfByIndex(pDesc->psyntax, past->pebnf_index);
-			if (ppebnf)
+			if (past->pebnf_index!=-1)
 			{
-				PX_strcat_s(content, sizeof(content), "*");
-			}
-
-			if (past->pbnfnode)
-			{
-				switch (past->pbnfnode->type)
+				PX_Syntax_pebnf* ppebnf = PX_Syntax_GetPebnfByIndex(pDesc->psyntax, past->pebnf_index);
+				PX_ASSERTIFX(!ppebnf, "Error:unknown pebnf");
+				if (ppebnf)
 				{
-				case PX_SYNTAX_AST_TYPE_CONSTANT:
-					PX_strcat_s(content, sizeof(content), "const:");
-					break;
-				case PX_SYNTAX_AST_TYPE_CONTINUOUS:
-					PX_strcat_s(content, sizeof(content), "_:");
-					break;
-				case PX_SYNTAX_AST_TYPE_FUNCTION:
-					PX_strcat_s(content, sizeof(content), "func:");
-					break;
-				case PX_SYNTAX_AST_TYPE_LINKER:
-					PX_strcat_s(content, sizeof(content), "linker:");
-					break;
-				case PX_SYNTAX_AST_TYPE_RECURSION:
-					PX_strcat_s(content, sizeof(content), "...:");
-					break;
-				default:
-					PX_strcat_s(content, sizeof(content), "unknow:");
-					break;
+					PX_sprintf1(content, sizeof(content), "*%1", PX_STRINGFORMAT_STRING(PX_StringGetText(&ppebnf->mnenonic)));
 				}
-
-				PX_strcat_s(content, sizeof(content), "[");
-				PX_strcat_s(content, sizeof(content), past->pbnfnode->constant.buffer);
-				PX_strcat_s(content, sizeof(content), "] ");
 			}
+			else
+			{
+				if (past->pbnfnode)
+				{
+					switch (past->pbnfnode->type)
+					{
+					case PX_SYNTAX_AST_TYPE_CONSTANT:
+						PX_strcat_s(content, sizeof(content), "const:");
+						break;
+					case PX_SYNTAX_AST_TYPE_CONTINUOUS:
+						PX_strcat_s(content, sizeof(content), "_:");
+						break;
+					case PX_SYNTAX_AST_TYPE_FUNCTION:
+						PX_strcat_s(content, sizeof(content), "func:");
+						break;
+					case PX_SYNTAX_AST_TYPE_LINKER:
+						PX_strcat_s(content, sizeof(content), "linker:");
+						break;
+					case PX_SYNTAX_AST_TYPE_RECURSION:
+						PX_strcat_s(content, sizeof(content), "...:");
+						break;
+					case PX_SYNTAX_AST_TYPE_LOOP:
+						PX_strcat_s(content, sizeof(content), "---:");
+						break;
+					default:
+						PX_strcat_s(content, sizeof(content), "unknow:");
+						break;
+					}
 
-			PX_strcat_s(content, sizeof(content), "ret:");
-			PX_strcat_s(content, sizeof(content), PX_itos(past->call_abistack_count, 10).data);
-			PX_strcat_s(content, sizeof(content), " ");
-			
+					PX_strcat_s(content, sizeof(content), "[");
+					PX_strcat_s(content, sizeof(content), PX_StringGetText(&past->pbnfnode->constant));
+					PX_strcat_s(content, sizeof(content), "] ");
+				}
+			}
 			pnewcontent = MP_Malloc(pDesc->mp, sizeof(content));
 			PX_memcpy(pnewcontent, content, sizeof(content));
-			PX_Object_ListAdd(pDesc->list_info, pnewcontent);
+			PX_Object_ListAdd(pDesc->ui_list, pnewcontent);
 		}
-		PX_Object_ListMoveToBottom(pDesc->list_info);
+		PX_Object_ListMoveToBottom(pDesc->ui_list);
 	}
 
 	return PX_TRUE;
@@ -294,7 +295,7 @@ static px_bool PX_Object_Syntax_Refresh_SyntaxAbi(PX_Object* pObject)
 	}
 	pabis = (px_abi*)pDesc->psyntax->reg_abi_stack.data;
 	count = pDesc->psyntax->reg_abi_stack.size;
-	PX_Object_TreeClear(pDesc->tree_root_abi);
+	PX_Object_TreeClear(pDesc->ui_tree);
 	if (count <= 0)
 	{
 		return PX_TRUE;
@@ -313,7 +314,7 @@ static px_bool PX_Object_Syntax_Refresh_SyntaxAbi(PX_Object* pObject)
 		PX_strcat(content, pname);
 		PX_strcat(content, "]");
 
-		PX_Object_TreeAddAbi(pDesc->tree_root_abi, content, &pabis[i]);
+		PX_Object_TreeAddAbi(pDesc->ui_tree, content, &pabis[i]);
 	}
 
 	return PX_TRUE;
@@ -377,19 +378,46 @@ PX_OBJECT_UPDATE_FUNCTION(PX_Object_Syntax_Update)
 	}
 	case PX_OBJECT_SYNTAX_STATE_STEP:
 	{
+		
 		while (run_circles--)
 		{
-			PX_SYNTAX_AST_RETURN ast_return = PX_Syntax_ExecuteNext(pDesc->psyntax);
-			px_int current_source_index = PX_Syntax_GetCurrentSourceIndex(pDesc->psyntax);
+			PX_SYNTAX_AST_RETURN ast_return;
+			px_int current_source_index;
+			px_int ast_break_index;
+			
+			ast_break_index = PX_Object_ListGetCurrentSelectIndex(pDesc->ui_list);
+			if (ast_break_index != -1)
+			{
+				if (pDesc->psyntax)
+				{
+					if (pDesc->psyntax->reg_ast_stack.size-1!= ast_break_index)
+					{
+						pDesc->last_ast_break_enable = PX_TRUE;
+					}
+					if (pDesc->last_ast_break_enable&&pDesc->psyntax->reg_ast_stack.size - 1 == ast_break_index)
+					{
+						pDesc->state = PX_OBJECT_SYNTAX_STATE_PAUSE;
+						pDesc->last_ast_break_enable = PX_FALSE;
+						run_circles = 0;
+						break;
+					}
+				}
+			}
+			else
+			{
+				pDesc->last_ast_break_enable = PX_FALSE;
+			}
 
+			ast_return = PX_Syntax_ExecuteNext(pDesc->psyntax);
+			current_source_index = PX_Syntax_GetCurrentSourceIndex(pDesc->psyntax);
 			if (current_source_index != -1)
 			{
 				if (pDesc->current_view_source_index != current_source_index)
 				{
 					// save current page scroll state
-					if (pDesc->current_view_source_index >= 0 && PX_VectorCheckIndex(&pDesc->pages_memory, pDesc->current_view_source_index))
+					if (pDesc->current_view_source_index >= 0 && PX_VectorCheckIndex(&pDesc->pages_state, pDesc->current_view_source_index))
 					{
-						PX_Object_Syntax_pagememory* pcurpage = PX_VECTORAT(PX_Object_Syntax_pagememory, &pDesc->pages_memory, pDesc->current_view_source_index);
+						PX_Object_Syntax_pagememory* pcurpage = PX_VECTORAT(PX_Object_Syntax_pagememory, &pDesc->pages_state, pDesc->current_view_source_index);
 						pcurpage->row_offset = PX_Object_Code_GetScrollOffsetYRow(pDesc->source_code_viewer);
 						pcurpage->x_offset = PX_Object_Code_GetScrollOffsetX(pDesc->source_code_viewer);
 					}
@@ -397,11 +425,11 @@ PX_OBJECT_UPDATE_FUNCTION(PX_Object_Syntax_Update)
 					pDesc->current_view_source_index = current_source_index;
 
 					// ensure pages_memory is large enough
-					if (pDesc->current_view_source_index >= pDesc->pages_memory.size)
+					if (pDesc->current_view_source_index >= pDesc->pages_state.size)
 					{
 						PX_Object_Syntax_pagememory* pnewpage;
-						PX_VectorResize(&pDesc->pages_memory, pDesc->current_view_source_index + 1);
-						pnewpage = PX_VECTORLAST(PX_Object_Syntax_pagememory, &pDesc->pages_memory);
+						PX_VectorResize(&pDesc->pages_state, pDesc->current_view_source_index + 1);
+						pnewpage = PX_VECTORLAST(PX_Object_Syntax_pagememory, &pDesc->pages_state);
 						pnewpage->row_offset = 0;
 						pnewpage->x_offset = 0;
 					}
@@ -436,12 +464,13 @@ PX_OBJECT_UPDATE_FUNCTION(PX_Object_Syntax_Update)
 			{
 				px_int current_row = PX_Syntax_GetCurrentLine(pDesc->psyntax);
 
-				if (pDesc->reg_last_break_row_index != current_row && current_row != -1)
+				if (pDesc->reg_last_break_source_index!= current_source_index ||(pDesc->reg_last_break_row_index != current_row && current_row != -1))
 				{
 					PX_SyntaxLexer_Source* pSource = PX_Syntax_GetSourceByIndex(pDesc->psyntax, current_source_index);
 					PX_SyntaxLexer_LineMap* pRow = &pSource->line_begin_cell_index_map[current_row];
 					if (pRow->bdebugbreak)
 					{
+						pDesc->reg_last_break_source_index = current_source_index;
 						pDesc->reg_last_break_row_index = current_row;
 						pDesc->state = PX_OBJECT_SYNTAX_STATE_PAUSE;
 						run_circles = 0;
@@ -450,13 +479,14 @@ PX_OBJECT_UPDATE_FUNCTION(PX_Object_Syntax_Update)
 				}
 
 			}
+			
 		}
 		if(pDesc->struct_update_delay==0)
 			pDesc->struct_update_delay = 100;
 
 	
 		if (PX_Syntax_GetCurrentSourceIndex(pDesc->psyntax) == pDesc->current_view_source_index)
-			PX_Object_Code_SetCursorLineAndView(pDesc->source_code_viewer, PX_Syntax_GetCurrentLine(pDesc->psyntax));
+			PX_Object_Code_SetCurrentLexerIndex(pDesc->source_code_viewer, PX_Syntax_GetCurrentLexerOffset(pDesc->psyntax));
 		
 	}
 	break;
@@ -498,24 +528,24 @@ PX_OBJECT_RENDER_FUNCTION(PX_Object_Syntax_Render)
 	pDesc->controller_panel->x = pDesc->area_tab->Width+32;
 	pDesc->controller_panel->y = 0;
 
-	pDesc->list_info->x = 0;
-	pDesc->list_info->y = pDesc->area_tab->Height;
-	pDesc->list_info->Width = region.width / 4;
-	pDesc->list_info->Height = (region.height - (px_int)pDesc->area_tab->Height)/2;
+	pDesc->ui_list->x = 0;
+	pDesc->ui_list->y = pDesc->area_tab->Height;
+	pDesc->ui_list->Width = region.width / 4;
+	pDesc->ui_list->Height = (region.height - (px_int)pDesc->area_tab->Height)/2;
 
-	pDesc->tree_root_abi->x = 0;
-	pDesc->tree_root_abi->y = pDesc->area_tab->Height + pDesc->list_info->Height;
-	pDesc->tree_root_abi->Width = region.width / 4;
-	pDesc->tree_root_abi->Height = (region.height - (px_int)pDesc->area_tab->Height) / 2;
+	pDesc->ui_tree->x = 0;
+	pDesc->ui_tree->y = pDesc->area_tab->Height + pDesc->ui_list->Height;
+	pDesc->ui_tree->Width = region.width / 4;
+	pDesc->ui_tree->Height = (region.height - (px_int)pDesc->area_tab->Height) / 2;
 
-	pDesc->source_code_viewer->x = pDesc->tree_root_abi->Width;
+	pDesc->source_code_viewer->x = pDesc->ui_tree->Width;
 	pDesc->source_code_viewer->y = pDesc->area_tab->Height;
 	pDesc->source_code_viewer->Width = (px_float)content_panel_width + 20;
 	pDesc->source_code_viewer->Height = (px_float)content_panel_height + 20;
 
 	pDesc->textviewer_out->x = pDesc->source_code_viewer->x + pDesc->source_code_viewer->Width;
-	pDesc->textviewer_out->y = pDesc->list_info->y;
-	pDesc->textviewer_out->Width = region.width - pDesc->source_code_viewer->Width - pDesc->tree_root_abi->Width;
+	pDesc->textviewer_out->y = pDesc->ui_list->y;
+	pDesc->textviewer_out->Width = region.width - pDesc->source_code_viewer->Width - pDesc->ui_tree->Width;
 	pDesc->textviewer_out->Height = (px_float)content_panel_height + 20;
 
 	if (pDesc->psyntax)
@@ -527,9 +557,9 @@ PX_OBJECT_RENDER_FUNCTION(PX_Object_Syntax_Render)
 		}
 	}
 
-	pDesc->printer->Width = region.width - pDesc->tree_root_abi->Width;
+	pDesc->printer->Width = region.width - pDesc->ui_tree->Width;
 	pDesc->printer->Height = (region.height - 32) / 4;
-	pDesc->printer->x = pDesc->tree_root_abi->Width;
+	pDesc->printer->x = pDesc->ui_tree->Width;
 	pDesc->printer->y = pDesc->source_code_viewer->y + pDesc->source_code_viewer->Height;
 }
 
@@ -572,8 +602,8 @@ PX_SYNTAX_FUNCTION(PX_Syntax_ide_local)
 {
 	PX_Object* pObject = (PX_Object*)userptr;
 	PX_Object_Syntax* pDesc = PX_ObjectGetDesc0(PX_Object_Syntax, pObject);
-	px_abi* plastsecond = PX_Syntax_GetAbiSecondLast(pSyntax);
-	px_abi* plast = PX_Syntax_GetAbiLast(pSyntax);
+	px_abi* plastsecond = PX_Syntax_GetSecondLastAbi(pSyntax);
+	px_abi* plast = PX_Syntax_GetLastAbi(pSyntax);
 	PX_Syntax_PopAbi(pSyntax);
 	PX_Syntax_PopAbi(pSyntax);
 	return PX_TRUE;
@@ -589,11 +619,21 @@ PX_SYNTAX_FUNCTION(PX_Syntax_ide_local)
 PX_OBJECT_RENDER_FUNCTION(PX_Object_Syntax_List_Item_Render)
 {
 	px_char* pcontent = (px_char*)PX_Object_ListItemGetData(pObject);
-	PX_FontModuleDrawText(psurface, PX_NULL, (px_int)pObject->x+2, (px_int)pObject->y+2, PX_ALIGN_LEFTTOP, pcontent, PX_COLOR_BLACK);
+	px_int index = PX_Object_ListItemGetIndex(pObject);
+	PX_Object* pSyntaxObject = (PX_Object*)pObject->User_ptr;
+	PX_Object_Syntax* pDesc = PX_ObjectGetDesc0(PX_Object_Syntax, pSyntaxObject);
+	if (index==PX_Object_ListGetCurrentSelectIndex(pDesc->ui_list))
+	{
+		PX_GeoDrawSolidCircle(psurface, (px_int)pObject->x + 10, (px_int)pObject->y + 10, 5, PX_COLOR_RED);
+		PX_FontModuleDrawText(psurface, PX_NULL, (px_int)pObject->x + 16, (px_int)pObject->y + 2, PX_ALIGN_LEFTTOP, pcontent, PX_COLOR_RED);
+	}
+	else
+		PX_FontModuleDrawText(psurface, PX_NULL, (px_int)pObject->x+2, (px_int)pObject->y+2, PX_ALIGN_LEFTTOP, pcontent, PX_COLOR_BLACK);
 }
 
 PX_OBJECT_LIST_ITEM_CREATE_FUNCTION(PX_Object_Syntax_ListCreate)
 {
+	ItemObject->User_ptr = userptr;
 	PX_ObjectSetRenderFunction(ItemObject, PX_Object_Syntax_List_Item_Render, 0);
 	return PX_TRUE;
 }
@@ -609,6 +649,10 @@ PX_OBJECT_EVENT_FUNCTION(PX_Object_Syntax_OnBreakpointTrigger)
 	return;
 }
 
+PX_OBJECT_EVENT_FUNCTION(PX_Object_Syntax_OnListTrigger)
+{
+
+}
 
 px_void PX_Object_Syntax_Clear(PX_Object* pObject)
 {
@@ -621,8 +665,8 @@ px_void PX_Object_Syntax_Clear(PX_Object* pObject)
 	pDesc->current_view_source_index = -1;
 	PX_Object_Code_SetSource(pDesc->source_code_viewer, PX_NULL);
 
-	PX_Object_TreeClear(pDesc->tree_root_abi);
-	PX_Object_ListClear(pDesc->list_info);
+	PX_Object_TreeClear(pDesc->ui_tree);
+	PX_Object_ListClear(pDesc->ui_list);
 	for (i = 0; i < pDesc->list_contents.size; i++)
 	{
 		px_char* p = *PX_VECTORAT(px_char*, &pDesc->list_contents, i);
@@ -639,7 +683,7 @@ PX_OBJECT_FREE_FUNCTION(PX_Object_Syntax_Free)
 		PX_Object_Syntax_Clear(pObject);
 		PX_VectorFree(&pDesc->tab_buttons);
 		PX_VectorFree(&pDesc->list_contents);
-		PX_VectorFree(&pDesc->pages_memory);
+		PX_VectorFree(&pDesc->pages_state);
 		PX_TextureFree(&pDesc->texture_pause);
 		PX_TextureFree(&pDesc->texture_run);
 		PX_TextureFree(&pDesc->texture_step);
@@ -661,16 +705,17 @@ PX_Object* PX_Object_Syntax_Create(px_memorypool* mp, PX_Object* Parent, px_int 
 	pDesc->fm = fm;
 	pDesc->mp = mp;
 	pDesc->current_view_source_index = -1;
+	pDesc->reg_last_break_source_index = -1;
 	pDesc->reg_last_break_row_index = -1;
 	pDesc->area_tab = PX_Object_ScrollAreaCreate(mp, pObject, 0, 0, Width/2, 32);
 	PX_Object_ScrollAreaSetHSliderBarHeight(pDesc->area_tab, 8);
 	PX_VectorInitialize(mp, &pDesc->tab_buttons, sizeof(PX_Object*), 0);
-	PX_VectorInitialize(mp, &pDesc->pages_memory, sizeof(PX_Object_Syntax_pagememory), 32);
+	PX_VectorInitialize(mp, &pDesc->pages_state, sizeof(PX_Object_Syntax_pagememory), 32);
 	PX_VectorInitialize(mp, &pDesc->list_contents, sizeof(px_char *), 32);
 
-	pDesc->list_info = PX_Object_ListCreate(mp, pObject, 0, (px_int)pDesc->area_tab->Height, Width / 4, (Height - (px_int)pDesc->area_tab->Height)/2, 20, PX_Object_Syntax_ListCreate, pObject);
-	pDesc->tree_root_abi = PX_Object_TreeCreate(mp, pObject, 0, (px_int)(pDesc->area_tab->Height+ pDesc->list_info->Height), Width / 4, (Height - (px_int)pDesc->area_tab->Height) / 2, 20 ,fm);
-	PX_ObjectRegisterEvent(pDesc->tree_root_abi, PX_OBJECT_EVENT_EXECUTE, PX_Object_Syntax_OnTreeExecute, pObject);
+	pDesc->ui_list = PX_Object_ListCreate(mp, pObject, 0, (px_int)pDesc->area_tab->Height, Width / 4, (Height - (px_int)pDesc->area_tab->Height)/2, 20, PX_Object_Syntax_ListCreate, pObject);
+	pDesc->ui_tree = PX_Object_TreeCreate(mp, pObject, 0, (px_int)(pDesc->area_tab->Height+ pDesc->ui_list->Height), Width / 4, (Height - (px_int)pDesc->area_tab->Height) / 2, 20 ,fm);
+	PX_ObjectRegisterEvent(pDesc->ui_tree, PX_OBJECT_EVENT_EXECUTE, PX_Object_Syntax_OnTreeExecute, pObject);
 
 	pDesc->printer = PX_Object_PrinterCreate(mp, pObject, 0, 0, Width / 4 * 3, Height, fm);
 	pDesc->source_code_viewer = PX_Object_Code_Create(mp, pObject, 0, 0, Width * 3 / 4, Height * 3 / 4, fm);

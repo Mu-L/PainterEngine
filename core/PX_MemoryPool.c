@@ -178,7 +178,6 @@ MemoryNode *PX_AllocFromFreq(px_memorypool *MP,px_uint Size)
 
 px_memorypool MP_Create( px_void *MemoryAddr,px_uint MemorySize )
 {
-	px_uint Index=0;
 	px_memorypool MP = {0};
 #if defined(PX_DEBUG_MODE) && defined(PX_MEMORYPOOL_DEBUG_CHECK)
 	px_int DEBUG_i;
@@ -569,7 +568,6 @@ px_void MP_Free(px_memorypool *MP, px_void *pAddress )
 			itNode=PX_MemoryPool_GetFreeTable(MP,i);
 			if (FreeNode.StartAddr>=itNode->StartAddr&&FreeNode.StartAddr<=itNode->EndAddr)
 			{
-				px_qword offset = (px_qword)((px_uchar*)FreeNode.StartAddr - (px_uchar*)MP->StartAddr);
 				PX_ASSERTX("double free error");
 				goto _END;
 			}

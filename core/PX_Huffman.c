@@ -50,7 +50,6 @@ static px_dword PX_HuffmanGetCode(px_dword symbol, const px_dword* code_table, c
 
 static px_dword PX_HuffmanGetSymbol(px_uint32* bitpointer, const px_byte* bitstream, px_huffman_node tree[], px_uint tree_size)
 {
-	px_dword value = 0;
 	px_dword cursor = 0;
 	while (PX_TRUE)
 	{
@@ -259,7 +258,6 @@ static px_void PX_HuffmanBuildDymanicTable(px_dword *symbol_counter,px_uint symb
 	
 
 	px_uint sortCursor;
-	px_uint max_code;
 	
 
 	PX_memset(nodes,0,sizeof(nodes));
@@ -304,7 +302,6 @@ static px_void PX_HuffmanBuildDymanicTable(px_dword *symbol_counter,px_uint symb
 	{
 		sortCursor--;
 	}
-	max_code=(sortCursor+1)*2-1;
 
 
 	while (sortCursor>0)

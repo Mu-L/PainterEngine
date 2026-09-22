@@ -4,7 +4,6 @@ px_uint PX_WaveGetPCMSize(px_byte *buffer,px_int size)
 {
 	px_int offset=0,pcmSize;
 	PX_WAVE_DATA_BLOCK *pBlock;
-	PX_WAVE_RIFF_HEADER *pHeader=(PX_WAVE_RIFF_HEADER *)buffer;
 	PX_WAVE_FMT_BLOCK  *pfmt_block;
 	if (!PX_WaveVerify(buffer,size))
 	{
@@ -40,7 +39,6 @@ px_byte* PX_WaveGetPCMDataPtr(px_int index,px_byte *data,px_int datasize)
 		if (pcmSize!=0)
 		{
 			PX_WAVE_DATA_BLOCK *pBlock;
-			PX_WAVE_RIFF_HEADER *pHeader=(PX_WAVE_RIFF_HEADER *)data;
 			PX_WAVE_FMT_BLOCK  *pfmt_block;
 
 			pfmt_block=(PX_WAVE_FMT_BLOCK  *)(data+sizeof(PX_WAVE_RIFF_HEADER));

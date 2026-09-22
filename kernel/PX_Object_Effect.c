@@ -166,10 +166,10 @@ px_bool PX_Object_MatrixEffectCharUpdate(PX_Object_MatrixEffect *effect,px_uint 
 	
 	while (elpased)
 	{
-		if (elpased>effect->ATOM_OPRAND_TIME)
+		if (elpased>effect->ATOM_OPERAND_TIME)
 		{
-			atom_op_time=effect->ATOM_OPRAND_TIME;
-			elpased-=effect->ATOM_OPRAND_TIME;
+			atom_op_time=effect->ATOM_OPERAND_TIME;
+			elpased-=effect->ATOM_OPERAND_TIME;
 		}
 		else
 		{
@@ -449,7 +449,7 @@ px_bool PX_Object_MatrixEffectCreate(px_memorypool* mp, PX_Object* parent, px_su
 
 	pDesc->SWITCH_DURATION = 20;
 	pDesc->ALPHA_DEC_SPEED = 500;
-	pDesc->ATOM_OPRAND_TIME = 25;
+	pDesc->ATOM_OPERAND_TIME = 25;
 	pDesc->EXISTING_FLAG_TIMES = 12;
 	pDesc->NONE_FLAG_TIMES = 6;
 	pDesc->ADVANCE_TIME = 50;

@@ -349,7 +349,6 @@ px_bool PX_DelaunaryPointsBuild(px_memorypool *mp,px_point2D pt[],px_int count,p
 	//Concave update
 	do 
 	{
-		px_bool done=PX_FALSE;
 		px_int index;
 		px_vector sortTriangles;
 		PX_VectorInitialize(mp,&sortTriangles,sizeof(PX_Delaunay_Triangle *),1);

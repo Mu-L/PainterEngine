@@ -45,7 +45,7 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_unsigned_int)
 			PX_Syntax_Terminate(pSyntax, "ast:error:Numeric too long");
 			return PX_FALSE;
 		}
-		if (!(pnewabi = PX_Syntax_NewAbi(pSyntax, "const_int", pSyntax->reg_lifetime)))
+		if (!(pnewabi = PX_Syntax_NewAbi(pSyntax, "const_int")))
 		{
 			PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_int Memory Error1");
 			return PX_FALSE;
@@ -80,7 +80,11 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_unsigned_int)
 			return PX_FALSE;
 		}
 
-		PX_Syntax_NewMapToken(pSyntax, begin_source_index, begin, end_source_index, end, PX_COLOR(255, 255, 255, 255),"ix.const");
+		if(!PX_Syntax_NewStaticMapToken(pSyntax, begin_source_index, begin, end_source_index, end, PX_COLOR(255, 255, 255, 255),"ix.const"))
+		{
+			PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_unsigned_float Memory Error6");
+			return PX_FALSE;
+		}
 
 		PX_Syntax_Message(pSyntax, "const_int:");
 		PX_Syntax_Message(pSyntax, build_number);
@@ -90,6 +94,10 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_unsigned_int)
 
 	//xxxexxx
 	len = PX_strlen(plexeme);
+	if (len>=32-1)
+	{
+		return PX_FALSE;
+	}
 	for (i = 0; i < len; i++)
 	{
 		if (plexeme[i] == 'e'|| plexeme[i] == 'E')
@@ -131,7 +139,7 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_unsigned_int)
 				PX_strcat_s(build_number, sizeof(build_number), "0");
 			}
 
-			if (!(pnewabi = PX_Syntax_NewAbi(pSyntax, "const_int", pSyntax->reg_lifetime)))
+			if (!(pnewabi = PX_Syntax_NewAbi(pSyntax, "const_int")))
 			{
 				PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_int Memory Error6");
 				return PX_FALSE;
@@ -164,7 +172,11 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_unsigned_int)
 				PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_int Memory Error10");
 				return PX_FALSE;
 			}
-			PX_Syntax_NewMapToken(pSyntax, begin_source_index, begin, end_source_index, end, PX_COLOR(255, 255, 255, 255), "ix.const");
+			if(!PX_Syntax_NewStaticMapToken(pSyntax, begin_source_index, begin, end_source_index, end, PX_COLOR(255, 255, 255, 255), "ix.const"))
+			{
+				PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_unsigned_float Memory Error6");
+				return PX_FALSE;
+			}
 			PX_Syntax_Message(pSyntax, "const_int:");
 			PX_Syntax_Message(pSyntax, build_number);
 			PX_Syntax_Message(pSyntax, "\n");
@@ -177,7 +189,7 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_unsigned_int)
 	if (plexeme[0] == '0' && (plexeme[1] == 'x' || plexeme[1] == 'X'))
 	{
 		px_dword value;
-		if (!(pnewabi = PX_Syntax_NewAbi(pSyntax, "const_int", pSyntax->reg_lifetime)))
+		if (!(pnewabi = PX_Syntax_NewAbi(pSyntax, "const_int")))
 		{
 			PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_int Memory Error11");
 			return PX_FALSE;
@@ -218,7 +230,11 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_unsigned_int)
 			return PX_FALSE;
 		}
 
-		PX_Syntax_NewMapToken(pSyntax, begin_source_index, begin, end_source_index, end, PX_COLOR(255, 255, 255, 255), "ix.const");
+		if(!PX_Syntax_NewStaticMapToken(pSyntax, begin_source_index, begin, end_source_index, end, PX_COLOR(255, 255, 255, 255), "ix.const"))
+		{
+			PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_unsigned_float Memory Error6");
+			return PX_FALSE;
+		}
 
 		PX_Syntax_Message(pSyntax, "const_uint:");
 		PX_Syntax_Message(pSyntax, build_number);
@@ -250,7 +266,7 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_unsigned_int)
 			return PX_FALSE;
 		}
 		build_number[PX_strlen(build_number) - 1] = '\0';
-		if (!(pnewabi = PX_Syntax_NewAbi(pSyntax, "const_int", pSyntax->reg_lifetime)))
+		if (!(pnewabi = PX_Syntax_NewAbi(pSyntax, "const_int")))
 		{
 			PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_int Memory Error16");
 			return PX_FALSE;
@@ -295,7 +311,11 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_unsigned_int)
 			return PX_FALSE;
 		}
 
-		PX_Syntax_NewMapToken(pSyntax, begin_source_index, begin, end_source_index, end, PX_COLOR(255, 255, 255, 255), "ix.const");
+		if(!PX_Syntax_NewStaticMapToken(pSyntax, begin_source_index, begin, end_source_index, end, PX_COLOR(255, 255, 255, 255), "ix.const"))
+		{
+			PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_unsigned_float Memory Error6");
+			return PX_FALSE;
+		}
 		
 		PX_Syntax_Message(pSyntax, "const_uint:");
 		PX_Syntax_Message(pSyntax, build_number);
@@ -310,7 +330,7 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_unsigned_int)
 
 PX_SYNTAX_FUNCTION(PX_Syntax_Parse_neg_int)
 {
-	px_abi* plastabi = PX_Syntax_GetAbiLast(pSyntax);
+	px_abi* plastabi = PX_Syntax_GetLastAbi(pSyntax);
 	if (!PX_AbiInsert_string(plastabi, "value", 0, "-"))
 	{
 		PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_neg_int Memory Error");

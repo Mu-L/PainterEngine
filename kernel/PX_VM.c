@@ -863,7 +863,7 @@ PX_VM_RUNRETURN PX_VMRunThread(PX_VM *Ins,px_int tick)
 					PX_VM_Error(Ins,"MOV crash.");
 					goto _ERROR;
 				}
-				if(!PX_StringCat(&pVar->_string,cVar._string.buffer)) 
+				if(!PX_StringCat(&pVar->_string,PX_StringGetText(&cVar._string))) 
 				{
 					PX_VM_Error(Ins,"MOV crash.");
 					goto _ERROR;
@@ -1411,7 +1411,7 @@ PX_VM_RUNRETURN PX_VMRunThread(PX_VM *Ins,px_int tick)
 			}
 			PX_VariableFree(pVar);
 			pVar->type=PX_VARIABLE_TYPE_INT;
-			pVar->_int=PX_strlen(cVar._string.buffer);
+			pVar->_int=PX_strlen(PX_StringGetText(&cVar._string));
 			pT->IP+=(4+2*4);
 		}
 		break;
@@ -1427,11 +1427,11 @@ PX_VM_RUNRETURN PX_VMRunThread(PX_VM *Ins,px_int tick)
 			}
 			if (cVar.type==PX_VARIABLE_TYPE_STRING)
 			{
-				if(!PX_StringCat(&pVar->_string,cVar._string.buffer)) goto _ERROR;
+				if(!PX_StringCat(&pVar->_string,PX_StringGetText(&cVar._string))) goto _ERROR;
 			}
 			else if (cVar.type==PX_VARIABLE_TYPE_INT)
 			{
-				if(!PX_StringCatChar(&pVar->_string,(px_char)cVar._int)) goto _ERROR;
+				if(!PX_StringCatCharFast(&pVar->_string,(px_char)cVar._int)) goto _ERROR;
 			}
 			else
 			{
@@ -1462,7 +1462,7 @@ PX_VM_RUNRETURN PX_VMRunThread(PX_VM *Ins,px_int tick)
 				PX_VM_Error(Ins,"strrep parameters error.");
 				goto _ERROR;
 			}
-			PX_StringReplace(&pVar->_string,cVar._string.buffer,sVar._string.buffer);
+			PX_StringReplace(&pVar->_string,PX_StringGetText(&cVar._string),PX_StringGetText(&sVar._string));
 			pT->IP+=(4+3*4);
 		}
 		break;
@@ -1488,8 +1488,8 @@ PX_VM_RUNRETURN PX_VMRunThread(PX_VM *Ins,px_int tick)
 
 			pVar->type=PX_VARIABLE_TYPE_INT;
 
-			if(sVar._int<PX_strlen(cVar._string.buffer))
-				pVar->_int=(px_uchar)cVar._string.buffer[sVar._int];
+			if(sVar._int<PX_strlen(PX_StringGetText(&cVar._string)))
+				pVar->_int=(px_uchar)PX_StringGetText(&cVar._string)[sVar._int];
 			pT->IP+=(4+3*4);
 		}
 		break;
@@ -1508,7 +1508,7 @@ PX_VM_RUNRETURN PX_VMRunThread(PX_VM *Ins,px_int tick)
 			}
 
 			pVar->type=PX_VARIABLE_TYPE_INT;
-			pVar->_int=PX_atoi(cVar._string.buffer);
+			pVar->_int=PX_atoi(PX_StringGetText(&cVar._string));
 			pT->IP+=(4+2*4);
 		}
 		break;
@@ -1526,7 +1526,7 @@ PX_VM_RUNRETURN PX_VMRunThread(PX_VM *Ins,px_int tick)
 			}
 
 			pVar->type=PX_VARIABLE_TYPE_FLOAT;
-			pVar->_int=(px_int)PX_atof(cVar._string.buffer);
+			pVar->_int=(px_int)PX_atof(PX_StringGetText(&cVar._string));
 			pT->IP+=(4+2*4);
 		}
 		break;
@@ -1586,7 +1586,7 @@ PX_VM_RUNRETURN PX_VMRunThread(PX_VM *Ins,px_int tick)
 			if (pVar->type==PX_VARIABLE_TYPE_STRING)
 			{
 				PX_MemoryInitialize(Ins->mp,&cVar._memory);
-				if(!PX_MemoryCat(&cVar._memory,pVar->_string.buffer,pVar->_string.bufferlen)) goto _ERROR;
+				if(!PX_MemoryCat(&cVar._memory,PX_StringGetText(&pVar->_string),pVar->_string.bufferlen)) goto _ERROR;
 				PX_StringFree(&pVar->_string);
 				pVar->type=PX_VARIABLE_TYPE_MEMORY;
 				pVar->_memory=cVar._memory;
@@ -1635,16 +1635,18 @@ PX_VM_RUNRETURN PX_VMRunThread(PX_VM *Ins,px_int tick)
 					i<<=1;
 				}
 
-				PX_StringInitAlloc(Ins->mp,&newString,i);
-				PX_memset(newString.buffer,0,i);
-				PX_strcat(newString.buffer,pVar->_string.buffer);
+				PX_StringInitialize(Ins->mp,&newString);
+				if(!PX_StringCopy(&newString, &pVar->_string)) goto _ERROR;
 				PX_StringFree(&pVar->_string);
 				pVar->_string=newString;
 			}
 
 			if(tVar.type==PX_VARIABLE_TYPE_INT)
-				pVar->_string.buffer[sVar._int]=(px_char)tVar._int;
-			else 
+			{
+				PX_StringBeginRWBuffer(&pVar->_string)[sVar._int]=(px_char)tVar._int;
+				PX_StringEndRWBuffer(&pVar->_string);
+			}
+			else
 				goto _ERROR;
 
 			pT->IP+=(4+3*4);
@@ -1665,10 +1667,10 @@ PX_VM_RUNRETURN PX_VMRunThread(PX_VM *Ins,px_int tick)
 				goto _ERROR;
 			}
 			pVar->_int=-1;
-			pchar=PX_strstr(sVar._string.buffer,tVar._string.buffer);
+			pchar=PX_strstr(PX_StringGetText(&sVar._string),PX_StringGetText(&tVar._string));
 			if (pchar)
 			{
-				pVar->_int=(px_uint)(pchar-sVar._string.buffer);
+				pVar->_int=(px_uint)(pchar-PX_StringGetText(&sVar._string));
 			}
 			pT->IP+=(4+3*4);
 		}
@@ -1706,7 +1708,7 @@ PX_VM_RUNRETURN PX_VMRunThread(PX_VM *Ins,px_int tick)
 			}
 
 			pVar->type=PX_VARIABLE_TYPE_INT;
-			pVar->_int=cVar._string.buffer[0];
+			pVar->_int=PX_StringGetText(&cVar._string)[0];
 			pT->IP+=(4+2*4);
 		}
 		break;
@@ -1919,7 +1921,7 @@ PX_VM_RUNRETURN PX_VMRunThread(PX_VM *Ins,px_int tick)
 						goto _ERROR;
 					}
 					if(PX_strlen((px_char *)pVar->_memory.buffer)==pVar->_memory.usedsize-1)
-					PX_StringCatChar(&cVar._string,lastchar);
+						PX_StringCatCharFast(&cVar._string,lastchar);
 
 					PX_MemoryFree(&pVar->_memory);
 					pVar->type=PX_VARIABLE_TYPE_STRING;
@@ -2063,7 +2065,7 @@ PX_VM_RUNRETURN PX_VMRunThread(PX_VM *Ins,px_int tick)
 				else
 				{
 					if(cVar.type==PX_VARIABLE_TYPE_STRING)
-						if (PX_strequ(cVar._string.buffer,sVar._string.buffer))
+						if (PX_strequ(PX_StringGetText(&cVar._string),PX_StringGetText(&sVar._string)))
 						{
 							if (tVar._int<0||tVar._int>Ins->binsize)
 							{
@@ -2122,7 +2124,7 @@ PX_VM_RUNRETURN PX_VMRunThread(PX_VM *Ins,px_int tick)
 				else
 				{
 						if(cVar.type==PX_VARIABLE_TYPE_STRING)
-							if (!PX_strequ(cVar._string.buffer,sVar._string.buffer))
+							if (!PX_strequ(PX_StringGetText(&cVar._string),PX_StringGetText(&sVar._string)))
 							{
 								if (tVar._int<0||tVar._int>Ins->binsize)
 								{
@@ -2408,7 +2410,7 @@ PX_VM_RUNRETURN PX_VMRunThread(PX_VM *Ins,px_int tick)
 				else
 				{
 					if(sVar.type==PX_VARIABLE_TYPE_STRING)
-						if (PX_strequ(sVar._string.buffer,tVar._string.buffer))
+						if (PX_strequ(PX_StringGetText(&sVar._string),PX_StringGetText(&tVar._string)))
 						{
 							pVar->_int=1;
 							pT->IP+=(4+3*4);
@@ -2476,7 +2478,7 @@ PX_VM_RUNRETURN PX_VMRunThread(PX_VM *Ins,px_int tick)
 				else
 				{
 					if(sVar.type==PX_VARIABLE_TYPE_STRING)
-						if (PX_strequ(sVar._string.buffer,tVar._string.buffer))
+						if (PX_strequ(PX_StringGetText(&sVar._string),PX_StringGetText(&tVar._string)))
 						{
 							pVar->_int=0;
 							pT->IP+=(4+3*4);
@@ -2743,7 +2745,7 @@ PX_VM_RUNRETURN PX_VMRunThread(PX_VM *Ins,px_int tick)
 			if (cVar.type==PX_VARIABLE_TYPE_STRING)
 			{
 				if(!PX_StringInitialize(Ins->mp,&pVar->_string)) goto _ERROR;
-				if(!PX_StringCat(&pVar->_string,cVar._string.buffer)) goto _ERROR;
+				if(!PX_StringCat(&pVar->_string,PX_StringGetText(&cVar._string))) goto _ERROR;
 				pVar->type=cVar.type;
 			}
 			else if (cVar.type==PX_VARIABLE_TYPE_MEMORY)
@@ -3459,7 +3461,7 @@ px_void PX_VM_RET(PX_VM *Ins,px_variable cVar)
 	if (cVar.type==PX_VARIABLE_TYPE_STRING)
 	{
 		PX_StringInitialize(Ins->mp,&pVar->_string);
-		PX_StringCat(&pVar->_string,cVar._string.buffer);
+		PX_StringCat(&pVar->_string,PX_StringGetText(&cVar._string));
 		pVar->type=cVar.type;
 	}
 	else if (cVar.type==PX_VARIABLE_TYPE_MEMORY)
@@ -3564,7 +3566,7 @@ px_void PX_VM_PUSH(PX_VM *Ins,px_variable cVar)
 	if (cVar.type==PX_VARIABLE_TYPE_STRING)
 	{
 		PX_StringInitialize(Ins->mp,&pVar->_string);
-		PX_StringCat(&pVar->_string,cVar._string.buffer);
+		PX_StringCat(&pVar->_string,PX_StringGetText(&cVar._string));
 		pVar->type=cVar.type;
 	}
 	else if (cVar.type==PX_VARIABLE_TYPE_MEMORY)
@@ -4875,7 +4877,7 @@ PX_VM_HOST_FUNCTION(PX_VM_abiget_int)
 	}
 
 	PX_AbiCreate_StaticReader(&rabi, pVar->_memory.buffer, pVar->_memory.usedsize);
-	pint = PX_AbiGet_int(&rabi, PX_VM_HOSTPARAM(Ins, 1)._string.buffer);
+	pint = PX_AbiGet_int(&rabi, PX_StringGetText(&PX_VM_HOSTPARAM(Ins, 1)._string));
 	if (!pint)
 	{
 		PX_VM_RET_int(Ins, -1);
@@ -4912,7 +4914,7 @@ PX_VM_HOST_FUNCTION(PX_VM_abiget_float)
 		return PX_FALSE;
 	}
 	PX_AbiCreate_StaticReader(&rabi, pVar->_memory.buffer, pVar->_memory.usedsize);
-	pint = PX_AbiGet_float(&rabi, PX_VM_HOSTPARAM(Ins, 1)._string.buffer);
+	pint = PX_AbiGet_float(&rabi, PX_StringGetText(&PX_VM_HOSTPARAM(Ins, 1)._string));
 	if (!pint)
 	{
 		PX_VM_RET_float(Ins, -1);
@@ -4949,7 +4951,7 @@ PX_VM_HOST_FUNCTION(PX_VM_abiget_string)
 		return PX_FALSE;
 	}
 	PX_AbiCreate_StaticReader(&rabi, pVar->_memory.buffer, pVar->_memory.usedsize);
-	pint = PX_AbiGet_string(&rabi, PX_VM_HOSTPARAM(Ins, 1)._string.buffer);
+	pint = PX_AbiGet_string(&rabi, PX_StringGetText(&PX_VM_HOSTPARAM(Ins, 1)._string));
 	if (!pint)
 	{
 		PX_VM_RET_String(Ins, "");
@@ -4987,7 +4989,7 @@ PX_VM_HOST_FUNCTION(PX_VM_abiget_data)
 		return PX_FALSE;
 	}
 	PX_AbiCreate_StaticReader(&rabi, pVar->_memory.buffer, pVar->_memory.usedsize);
-	pint = PX_AbiGet_data(&rabi, PX_VM_HOSTPARAM(Ins, 1)._string.buffer,&size);
+	pint = PX_AbiGet_data(&rabi, PX_StringGetText(&PX_VM_HOSTPARAM(Ins, 1)._string),&size);
 	if (!pint)
 	{
 		PX_VM_RET_memory(Ins, 0,0);
@@ -5027,7 +5029,7 @@ PX_VM_HOST_FUNCTION(PX_VM_abiset_int)
 		return PX_FALSE;
 	}
 	PX_AbiCreate_MemoryWriter(&wabi, &pVar->_memory);
-	if (!PX_AbiSet_int(&wabi, PX_VM_HOSTPARAM(Ins, 1)._string.buffer, PX_VM_HOSTPARAM(Ins, 2)._int))
+	if (!PX_AbiSet_int(&wabi, PX_StringGetText(&PX_VM_HOSTPARAM(Ins, 1)._string), PX_VM_HOSTPARAM(Ins, 2)._int))
 	{
 		return PX_FALSE;
 	}
@@ -5063,7 +5065,7 @@ PX_VM_HOST_FUNCTION(PX_VM_abiset_float)
 		return PX_FALSE;
 	}
 	PX_AbiCreate_MemoryWriter(&wabi, &pVar->_memory);
-	if (!PX_AbiSet_float(&wabi, PX_VM_HOSTPARAM(Ins, 1)._string.buffer, PX_VM_HOSTPARAM(Ins, 2)._float))
+	if (!PX_AbiSet_float(&wabi, PX_StringGetText(&PX_VM_HOSTPARAM(Ins, 1)._string), PX_VM_HOSTPARAM(Ins, 2)._float))
 	{
 		return PX_FALSE;
 	}
@@ -5099,7 +5101,7 @@ PX_VM_HOST_FUNCTION(PX_VM_abiset_string)
 		return PX_FALSE;
 	}
 	PX_AbiCreate_MemoryWriter(&wabi, &pVar->_memory);
-	if (!PX_AbiSet_string(&wabi, PX_VM_HOSTPARAM(Ins, 1)._string.buffer, PX_VM_HOSTPARAM(Ins, 2)._string.buffer))
+	if (!PX_AbiSet_string(&wabi, PX_StringGetText(&PX_VM_HOSTPARAM(Ins, 1)._string), PX_StringGetText(&PX_VM_HOSTPARAM(Ins, 2)._string)))
 	{
 		return PX_FALSE;
 	}
@@ -5145,7 +5147,7 @@ PX_VM_HOST_FUNCTION(PX_VM_abiset_data)
 		return PX_FALSE;
 	}
 	PX_AbiCreate_MemoryWriter(&wabi, &pVar->_memory);
-	if (!PX_AbiSet_data(&wabi, PX_VM_HOSTPARAM(Ins, 1)._string.buffer, pVar2->_memory.buffer, pVar2->_memory.usedsize))
+	if (!PX_AbiSet_data(&wabi, PX_StringGetText(&PX_VM_HOSTPARAM(Ins, 1)._string), pVar2->_memory.buffer, pVar2->_memory.usedsize))
 	{
 		return PX_FALSE;
 	}

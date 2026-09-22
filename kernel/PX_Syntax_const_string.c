@@ -25,7 +25,11 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_const_string)
 		return PX_FALSE;
 	}
 	begin = PX_Syntax_GetCurrentLexemeBegin(pSyntax);
-	PX_StringInitialize(pSyntax->mp, &str);
+	if(!PX_StringInitialize(pSyntax->mp, &str))
+	{
+		PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_const_string Memory Error1");
+		return PX_FALSE;
+	}
 
 	while (PX_TRUE)
 	{
@@ -76,23 +80,29 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_const_string)
 				}
 				PX_HexStringToBuffer(hex,(px_byte *) & nextchar);
 			}
+			break;
 			default:
 				PX_Syntax_Terminate(pSyntax, "ast:error:unexpected escape character");
 				PX_StringFree(&str);
 				return PX_FALSE;
 			}
 		}
-		PX_StringCatChar(&str, nextchar);
+		if(!PX_StringCatChar(&str, nextchar))
+		{
+			PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_const_string Memory Error2");
+			PX_StringFree(&str);
+			return PX_FALSE;
+		}
 	}
 
-	pnewabi = PX_Syntax_NewAbi(pSyntax, "const_string", pSyntax->reg_lifetime);
+	pnewabi = PX_Syntax_NewAbi(pSyntax, "const_string");
 	if (!pnewabi)
 	{
 		PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_const_string Memory Error1");
 		PX_StringFree(&str);
 		return PX_FALSE;
 	}
-	if (!PX_AbiSet_string(pnewabi, "value", str.buffer))
+	if (!PX_AbiSet_string(pnewabi, "value", PX_StringGetText(&str)))
 	{
 		PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_const_string Memory Error2");
 		PX_StringFree(&str);
@@ -122,7 +132,7 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_const_string)
 
 	PX_StringFree(&str);
 
-if (!PX_Syntax_NewMapToken(pSyntax, begin_source_index, begin, end_source_index, end, PX_COLOR(255, 236, 166, 120), "array.ix.u.8"))
+if (!PX_Syntax_NewStaticMapToken(pSyntax, begin_source_index, begin, end_source_index, end, PX_COLOR(255, 236, 166, 120), "array.ix.u.8"))
 	{
 		PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_const_string Memory Error5");
 		return PX_FALSE;

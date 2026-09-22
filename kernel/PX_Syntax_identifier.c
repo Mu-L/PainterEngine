@@ -20,7 +20,7 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_identifier)
 		return PX_FALSE;
 	}
 
-	pnewabi = PX_Syntax_NewAbi(pSyntax, "identifier", pSyntax->reg_lifetime);
+	pnewabi = PX_Syntax_NewAbi(pSyntax, "identifier");
 	if (!pnewabi)
 	{
 		PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_identifier Memory Error1");
@@ -59,7 +59,9 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_identifier)
 
 px_bool PX_Syntax_load_identifier(PX_Syntax* pSyntax)
 {
-	PX_Syntax_Parse_PEBNF(pSyntax, "identifier= keyword",0, PX_Syntax_Parse_identifier_notkeyword, 0);
-	PX_Syntax_Parse_PEBNF(pSyntax, "identifier= *",0, PX_Syntax_Parse_identifier, 0);
+	if(!PX_Syntax_Parse_PEBNF(pSyntax, "identifier= keyword",0, PX_Syntax_Parse_identifier_notkeyword, 0))
+		return PX_FALSE;
+	if(!PX_Syntax_Parse_PEBNF(pSyntax, "identifier= *",0, PX_Syntax_Parse_identifier, 0))
+		return PX_FALSE;
 	return PX_TRUE;
 }

@@ -21,7 +21,7 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_unsigned_float)
 	end_source_index = PX_Syntax_GetCurrentLexemeEndSourceIndex(pSyntax);
 	if (begin_source_index != end_source_index)
 	{
-		PX_Syntax_Terminate(pSyntax, "runtime:error:cross source define is not allowed");
+		PX_Syntax_Terminate(pSyntax, "ast:error:cross source numeric literal is not allowed");
 		return PX_FALSE;
 	}
 	///xxxe-xxx
@@ -70,6 +70,11 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_unsigned_float)
 			PX_Syntax_Terminate(pSyntax, "ast:error:Numeric too long");
 			return PX_FALSE;
 		}
+		if (!PX_strIsNumeric(build_number1))
+		{
+			return PX_FALSE;
+		}
+
 		if (PX_strlen(build_number) >= 12)
 		{
 			//numeric too long
@@ -102,7 +107,7 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_unsigned_float)
 			}
 		}
 
-		if(!(pnewabi=PX_Syntax_NewAbi(pSyntax, "const_float",pSyntax->reg_lifetime)))
+		if(!(pnewabi=PX_Syntax_NewAbi(pSyntax, "const_float")))
 		{
 			PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_unsigned_float Memory Error1");
 			return PX_FALSE;
@@ -131,7 +136,11 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_unsigned_float)
 			return PX_FALSE;
 		}
 		
-		PX_Syntax_NewMapToken(pSyntax, begin_source_index, begin, end_source_index, end, PX_COLOR(255, 255, 255, 255), "fx:const");
+		if (!PX_Syntax_NewStaticMapToken(pSyntax, begin_source_index, begin, end_source_index, end, PX_COLOR(255, 255, 255, 255), "fx.const"))
+		{
+			PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_unsigned_float Memory Error7");
+			return PX_FALSE;
+		}
 		
 		PX_Syntax_Message(pSyntax, "const_float:");
 		PX_Syntax_Message(pSyntax, build_number);
@@ -139,13 +148,12 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_unsigned_float)
 		return PX_TRUE;
 	}
 
-
 	if (!PX_strIsInteger(plexeme))
 	{
 		return PX_FALSE;
 	}
 	PX_strcat_s(build_number, sizeof(build_number), plexeme);
-	if (PX_strlen(build_number)==sizeof(build_number)-1)
+	if (PX_strlen(build_number)>=sizeof(build_number)-1)
 	{
 		PX_Syntax_Terminate(pSyntax, "ast:error:Numeric too long");
 		return PX_FALSE;
@@ -179,7 +187,7 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_unsigned_float)
 			return PX_FALSE;
 		}
 		end = PX_Syntax_GetCurrentLexemeEnd(pSyntax);
-		if (!(pnewabi = PX_Syntax_NewAbi(pSyntax, "const_float", pSyntax->reg_lifetime)))
+		if (!(pnewabi = PX_Syntax_NewAbi(pSyntax, "const_float")))
 		{
 			PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_unsigned_float Memory Error5");
 			return PX_FALSE;
@@ -208,7 +216,7 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_unsigned_float)
 			return PX_FALSE;
 		}
 
-		if (!PX_Syntax_NewMapToken(pSyntax, begin_source_index,begin, end_source_index,end,PX_COLOR_WHITE,"fx:const"))
+		if (!PX_Syntax_NewStaticMapToken(pSyntax, begin_source_index,begin, end_source_index,end,PX_COLOR_WHITE,"fx.const"))
 		{
 			PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_unsigned_float Memory Error9");
 			return PX_FALSE;
@@ -226,7 +234,6 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_unsigned_float)
 	{
 		px_char build_number1[32] = { 0 };
 		PX_strcat_s(build_number1, sizeof(build_number1), plexeme);
-		build_number1[len - 1] = 0;
 		if (!PX_strIsInteger(build_number1))
 		{
 			return PX_FALSE;
@@ -239,7 +246,7 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_unsigned_float)
 			return PX_FALSE;
 		}
 		end = PX_Syntax_GetCurrentLexemeEnd(pSyntax);
-		if (!(pnewabi = PX_Syntax_NewAbi(pSyntax, "const_float", pSyntax->reg_lifetime)))
+		if (!(pnewabi = PX_Syntax_NewAbi(pSyntax, "const_float")))
 		{
 			PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_unsigned_float Memory Error10");
 			return PX_FALSE;
@@ -268,7 +275,7 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_unsigned_float)
 			return PX_FALSE;
 		}
 
-		if (!PX_Syntax_NewMapToken(pSyntax, begin_source_index, begin, end_source_index, end, PX_COLOR_WHITE, "fx:const"))
+		if (!PX_Syntax_NewStaticMapToken(pSyntax, begin_source_index, begin, end_source_index, end, PX_COLOR_WHITE, "fx.const"))
 		{
 			PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_unsigned_float Memory Error14");
 			return PX_FALSE;
@@ -290,7 +297,7 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_unsigned_float)
 			return PX_FALSE;
 		}
 		end = PX_Syntax_GetCurrentLexemeEnd(pSyntax);
-		if (!(pnewabi = PX_Syntax_NewAbi(pSyntax, "const_float", pSyntax->reg_lifetime)))
+		if (!(pnewabi = PX_Syntax_NewAbi(pSyntax, "const_float")))
 		{
 			PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_unsigned_float Memory Error15");
 			return PX_FALSE;
@@ -319,7 +326,7 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_unsigned_float)
 			return PX_FALSE;
 		}
 
-		if (!PX_Syntax_NewMapToken(pSyntax, begin_source_index, begin, end_source_index, end, PX_COLOR_WHITE, "fx:const"))
+		if (!PX_Syntax_NewStaticMapToken(pSyntax, begin_source_index, begin, end_source_index, end, PX_COLOR_WHITE, "fx.const"))
 		{
 			PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_unsigned_float Memory Error20");
 			return PX_FALSE;
@@ -335,7 +342,7 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_unsigned_float)
 
 PX_SYNTAX_FUNCTION(PX_Syntax_Parse_neg_float)
 {
-	px_abi* plastabi = PX_Syntax_GetAbiLast(pSyntax);
+	px_abi* plastabi = PX_Syntax_GetLastAbi(pSyntax);
 	if (!PX_AbiInsert_string(plastabi,"value",0,"-"))
 	{
 		PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_neg_float Memory Error");

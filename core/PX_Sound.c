@@ -435,7 +435,6 @@ px_bool PX_SoundDataCreateFromWavFileData(PX_SoundData *sounddata,px_memorypool 
 		if (pcmSize!=0)
 		{
 			PX_WAVE_DATA_BLOCK *pBlock;
-			PX_WAVE_RIFF_HEADER *pHeader=(PX_WAVE_RIFF_HEADER *)data;
 			PX_WAVE_FMT_BLOCK  *pfmt_block;
 			sounddata->buffer=(px_byte *)MP_Malloc(mp,pcmSize);
 			sounddata->size=pcmSize;
@@ -495,7 +494,7 @@ px_void PX_SoundDataFree(PX_SoundData *sounddata)
 
 px_bool PX_SoundCircularWrite(PX_Sound* pSound, px_byte* pBuffer, px_int writeSize)
 {
-	px_int len1, len2;
+	px_int len1;
 
 	if (writeSize>pSound->data->size)
 	{
@@ -503,8 +502,6 @@ px_bool PX_SoundCircularWrite(PX_Sound* pSound, px_byte* pBuffer, px_int writeSi
 	}
 
 	len1 = pSound->data->size - pSound->woffset;
-	len2 = writeSize - len1;
-	
 	if (writeSize>len1)
 	{
 		PX_memcpy(pSound->data->buffer + pSound->woffset, pBuffer, len1);

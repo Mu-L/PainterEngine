@@ -298,7 +298,7 @@ void setCurrentDirectory()
 	SetCurrentDirectoryA(path);
 }
 
-	int main()
+int main(px_int argc, px_char* argv[])
 //	int WINAPI WinMain( __in HINSTANCE hInstance, __in_opt HINSTANCE hPrevInstance, __in LPSTR lpCmdLine, __in int nShowCmd )
 {
 	HANDLE hThread;
@@ -306,6 +306,10 @@ void setCurrentDirectory()
 	PX_MutexInitialize(&main_surface_mutex);
 	setCurrentDirectory();
 	PX_srand(time(NULL));
+	PainterEngine_argc = argc;
+	PainterEngine_argv = argv;
+	
+	
 	if(!PX_ApplicationInitialize(&App,PX_GetScreenWidth(),PX_GetScreenHeight()))return 0;
 	if(!PX_CreateWindow(App.runtime.surface_width,App.runtime.surface_height,App.runtime.window_width,App.runtime.window_height,PX_APPLICATION_NAME)) 
 	{

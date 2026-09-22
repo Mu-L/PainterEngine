@@ -79,7 +79,7 @@ px_bool PX_CDA_Initialize(px_memorypool* mp, px_memorypool* mp_static, PX_CDA* p
 
 	PX_MemoryInitialize(mp, &pCDA->payload);
 
-	if(!PX_CDA_LoadScript(pCDA, pscript->buffer))
+	if(!PX_CDA_LoadScript(pCDA, PX_StringGetText(pscript)))
 	{
 		MP_Free(mp, pCDA->pgrids);
 		PX_MapFree(&pCDA->objectClasses);
@@ -1145,7 +1145,7 @@ px_void PX_CDA_RenderGridInfos(px_surface* psurface, PX_CDA* pCDA, px_dword elap
 					PX_sprintf3(text, sizeof(text), "x:%1 y:%2\ntype:float\nvalue:%3", PX_STRINGFORMAT_INT(gridx), PX_STRINGFORMAT_INT(gridy), PX_STRINGFORMAT_FLOAT(pCDA->pgrids[index].var._float));
 					break;
 				case PX_VARIABLE_TYPE_STRING:
-					PX_sprintf3(text, sizeof(text), "x:%1 y:%2\ntype:string\nvalue:%3", PX_STRINGFORMAT_INT(gridx), PX_STRINGFORMAT_INT(gridy), PX_STRINGFORMAT_STRING(pCDA->pgrids[index].var._string.buffer));
+					PX_sprintf3(text, sizeof(text), "x:%1 y:%2\ntype:string\nvalue:%3", PX_STRINGFORMAT_INT(gridx), PX_STRINGFORMAT_INT(gridy), PX_STRINGFORMAT_STRING(PX_StringGetText(&pCDA->pgrids[index].var._string)));
 					break;
 				case PX_VARIABLE_TYPE_HANDLE:
 					PX_sprintf2(text, sizeof(text), "x:%1 y:%2\ntype:pointer\n", PX_STRINGFORMAT_INT(gridx), PX_STRINGFORMAT_INT(gridy));
@@ -1860,7 +1860,7 @@ PX_OBJECT_RENDER_FUNCTION(PX_CDA_Object_Render)
 		break;
 		case PX_OBJECT_CDA_DISPLAY_TYPE_STRING:
 		{
-			PX_FontModuleDrawText(psurface,pCDADesc->pObjectClass->fontmodule, center_x, center_y,pCDADesc->pObjectClass->render_align,pCDADesc->text.buffer,pCDADesc->pObjectClass->fontcolor);
+			PX_FontModuleDrawText(psurface,pCDADesc->pObjectClass->fontmodule, center_x, center_y,pCDADesc->pObjectClass->render_align,PX_StringGetText(&pCDADesc->text),pCDADesc->pObjectClass->fontcolor);
 		}
 		break;
 		case PX_OBJECT_CDA_DISPLAY_TYPE_GIF:

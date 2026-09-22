@@ -53,4 +53,5 @@
 #include "PX_Zip.h"
 #include "PX_QRCode.h"
 #include "PX_FSM.h"
+#include "PX_gltf.h"
 #endif

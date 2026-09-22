@@ -7,7 +7,7 @@ px_void PX_Object_TextViewerReRender(PX_Object* pObject)
 	xoffset = PX_Object_SliderBarGetValue(pDesc->hslider);
 	yoffset = PX_Object_SliderBarGetValue(pDesc->vslider);
 	PX_SurfaceClearAll(&pDesc->render_target, PX_COLOR(255, 255, 255, 255));
-	PX_FontModuleDrawText(&pDesc->render_target, pDesc->fontModule, -xoffset, -yoffset, PX_ALIGN_LEFTTOP, pDesc->text.buffer, pDesc->TextColor);
+	PX_FontModuleDrawText(&pDesc->render_target, pDesc->fontModule, -xoffset, -yoffset, PX_ALIGN_LEFTTOP, PX_StringGetText(&pDesc->text), pDesc->TextColor);
 }
 
 PX_OBJECT_EVENT_FUNCTION(PX_Object_TextViewOnWheel)
@@ -156,7 +156,7 @@ px_void PX_Object_TextViewerSetText(PX_Object *pObject,const px_char *Text)
 	}
 	PX_StringClear(&pDesc->text);
 	PX_StringCat(&pDesc->text,Text);
-	PX_FontModuleTextGetRenderWidthHeight(pDesc->fontModule, pDesc->text.buffer, &fwidth, &fheight);
+	PX_FontModuleTextGetRenderWidthHeight(pDesc->fontModule, PX_StringGetText(&pDesc->text), &fwidth, &fheight);
 	if(fwidth <= objrect.width - 20)
 	{
 		PX_Object_SliderBarSetRange(pDesc->hslider, 0, 0);
@@ -186,7 +186,7 @@ const px_char* PX_Object_TextViewerGetText(PX_Object* pObject)
 	{
 		return 0;
 	}
-	return pDesc->text.buffer;
+	return PX_StringGetText(&pDesc->text);
 }
 
 

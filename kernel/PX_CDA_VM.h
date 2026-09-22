@@ -131,7 +131,7 @@ px_bool PX_CDA_VM_SetObjectName(PX_VM* Ins, px_void* userptr)
 		PX_VM_RET(Ins, PX_Variable_int(0));
 		return PX_FALSE;
 	}
-	x = PX_VM_STACK(Ins, 1)._string.buffer;
+	x = PX_StringGetText(&PX_VM_STACK(Ins, 1)._string);
 
 	PX_ObjectSetId(handler, x);
 	return PX_TRUE;
@@ -290,7 +290,7 @@ px_bool PX_CDA_VM_CreateThread(PX_VM* Ins, px_void* userptr)
 		return PX_TRUE;
 	}
 
-	if (!PX_VMBeginThreadFunction(&pDesc->vm, PX_VMGetFreeThreadId(Ins), PX_VM_STACK(Ins, 0)._string.buffer, PX_NULL, 0))
+	if (!PX_VMBeginThreadFunction(&pDesc->vm, PX_VMGetFreeThreadId(Ins), PX_StringGetText(&PX_VM_STACK(Ins, 0)._string), PX_NULL, 0))
 	{
 		PX_VM_RET(Ins, PX_Variable_int(0));
 	}

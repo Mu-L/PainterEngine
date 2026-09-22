@@ -123,7 +123,7 @@ static px_void PX_Object_Code_RenderContent(PX_Object* pObject)
 		PX_SyntaxLexer_Cell* pcell = PX_NULL;
 		PX_SyntaxLexer_LineMap* prow = PX_NULL;
 
-		if (current_render_line_index >= pSource->line_count)
+		if (current_render_line_index < 0 || current_render_line_index >= pSource->line_count)
 			return;
 		if (render_y > pDesc->content_panel_surface.height)
 			return;
@@ -170,6 +170,20 @@ static px_void PX_Object_Code_RenderContent(PX_Object* pObject)
 					if (PX_isIntPointXYInRect(cursor_abs_x, cursor_abs_y, render_x, render_y, render_width, PX_OBJECT_CODE_RENDER_CELL_HEIGHT))
 						pDesc->cursor_abi_index = pcell->abi_index;
 				}
+
+				if (pDesc->pSource)
+				{
+					if (pDesc->current_lexer_index>=0&&pDesc->current_lexer_index<pDesc->pSource->source_length)
+					{
+						px_int current_cell_index = pDesc->pSource->source_index_map_to_cell_index[pDesc->current_lexer_index];
+						if (cell_index== current_cell_index)
+						{
+							PX_GeoDrawBorder(&pDesc->content_panel_surface, render_x, render_y, render_x+ render_width, render_y+PX_OBJECT_CODE_RENDER_CELL_HEIGHT,1, PX_COLOR_GREEN);
+						}
+					}
+
+				}
+				
 
 				if (pDesc->fm)
 					PX_FontModuleDrawCharacter(&pDesc->content_panel_surface, pDesc->fm, render_x, render_y, pcell->unicode, clr);
@@ -218,7 +232,7 @@ static px_void PX_Object_Code_RenderPrePanel(PX_Object* pObject)
 	{
 		px_int render_y_index = reader_y_idx - pDesc->row_offset;
 		px_int abs_line = reader_y_idx;
-		if (reader_y_idx >= pSource->line_count) break;
+		if (reader_y_idx < 0 || reader_y_idx >= pSource->line_count) break;
 		if (render_y_index * line_pitch > pDesc->content_panel_surface.height) break;
 
 		if (pSource->line_begin_cell_index_map[abs_line].bdebugbreak)
@@ -333,29 +347,58 @@ PX_OBJECT_RENDER_FUNCTION(PX_Object_Code_Render)
 			if (pabi)
 			{
 				px_int render_width, render_height;
-				px_char desc_content[256] = { 0 };
+				px_string desc_content;
 				const px_char* ptype = PX_AbiGet_string(pabi, "type");
 				const px_char* info = PX_AbiGet_string(pabi, "info");
 				const px_char* pregion = PX_AbiGet_string(pabi, "region");
 				const px_int* poffset = PX_AbiGet_int(pabi, "offset");
+				const px_char* runtime = PX_AbiGet_string(pabi, "runtime");
+				if (!PX_StringInitialize(pDesc->mp, &desc_content))
+					break;
+				if (runtime)
+				{
+					if (!PX_StringCat(&desc_content, "runtime:\n") || !PX_StringCat(&desc_content, runtime) || !PX_StringCat(&desc_content, "\n\n"))
+					{
+						PX_StringFree(&desc_content);
+						break;
+					}
+				}
+
 				if (pregion)
 				{
-					PX_strcat(desc_content, "[");
-					PX_strcat(desc_content, pregion);
-					PX_strcat(desc_content, "]");
+					if (!PX_StringCat(&desc_content, "[") ||
+						!PX_StringCat(&desc_content, pregion) ||
+						!PX_StringCat(&desc_content, "]"))
+					{
+						PX_StringFree(&desc_content);
+						break;
+					}
 				}
-				if (ptype) PX_strcat(desc_content, ptype);
+				if (ptype && !PX_StringCat(&desc_content, ptype))
+				{
+					PX_StringFree(&desc_content);
+					break;
+				}
 				if (poffset)
 				{
-					PX_strcat(desc_content, " offset:");
-					PX_strcat(desc_content, PX_itos(*poffset, 10).data);
+					if (!PX_StringCat(&desc_content, " offset:") ||
+						!PX_StringCat(&desc_content, PX_itos(*poffset, 10).data))
+					{
+						PX_StringFree(&desc_content);
+						break;
+					}
 				}
 				if (info)
 				{
-					PX_strcat(desc_content, "\n");
-					PX_strcat(desc_content, info);
+					if (!PX_StringCat(&desc_content, "\n") ||
+						!PX_StringCat(&desc_content, info))
+					{
+						PX_StringFree(&desc_content);
+						break;
+					}
 				}
-				PX_FontModuleTextGetRenderWidthHeight(pDesc->fm, desc_content, &render_width, &render_height);
+				
+				PX_FontModuleTextGetRenderWidthHeight(pDesc->fm, PX_StringGetText(&desc_content), &render_width, &render_height);
 				if (render_width && render_height)
 				{
 					px_int line_pitch = PX_OBJECT_CODE_LINE_PITCH;
@@ -367,8 +410,9 @@ PX_OBJECT_RENDER_FUNCTION(PX_Object_Code_Render)
 						render_x = psurface->width - render_width;
 					PX_GeoDrawRect(psurface, render_x, render_y, render_x + render_width, render_y + render_height, PX_COLOR(192, 64, 64, 64));
 					PX_GeoDrawBorder(psurface, render_x, render_y, render_x + render_width, render_y + render_height, 1, PX_COLOR_WHITE);
-					PX_FontModuleDrawText(psurface, pDesc->fm, render_x + 5, render_y + 5, PX_ALIGN_LEFTTOP, desc_content, PX_COLOR_WHITE);
+					PX_FontModuleDrawText(psurface, pDesc->fm, render_x + 5, render_y + 5, PX_ALIGN_LEFTTOP, PX_StringGetText(&desc_content), PX_COLOR_WHITE);
 				}
+				PX_StringFree(&desc_content);
 			}
 		}
 	} while (0);
@@ -400,22 +444,36 @@ PX_Object* PX_Object_Code_Create(px_memorypool* mp, PX_Object* Parent, px_int x,
 		return PX_NULL;
 	pDesc = PX_ObjectGetDesc0(PX_Object_Code, pObject);
 	if (!pDesc)
+	{
+		PX_ObjectDelete(pObject);
 		return PX_NULL;
+	}
 	pDesc->mp = mp;
 	pDesc->fm = fm;
 	pDesc->pSource = PX_NULL;
 	pDesc->row_offset = 0;
 	pDesc->x_offset = 0;
 	pDesc->cursor_abi_index = -1;
+	pDesc->current_lexer_index = -1;
 	pDesc->current_cursor_line = -1;
 	pDesc->content_rerender_flag = PX_FALSE;
 	pDesc->content_render_delay = 0;
 	pDesc->current_panel_max_row = 0;
 
 	pDesc->content_hslider_bar = PX_Object_SliderBarCreate(mp, pObject, 0, 0, Width, 20, PX_OBJECT_SLIDERBAR_TYPE_HORIZONTAL, PX_OBJECT_SLIDERBAR_STYLE_BOX);
+	if (!pDesc->content_hslider_bar)
+	{
+		PX_ObjectDelete(pObject);
+		return PX_NULL;
+	}
 	PX_ObjectRegisterEvent(pDesc->content_hslider_bar, PX_OBJECT_EVENT_VALUECHANGED, PX_Object_Code_HSliderBarValueChanged, pObject);
 
 	pDesc->content_vslider_bar = PX_Object_SliderBarCreate(mp, pObject, 0, 0, 20, Height, PX_OBJECT_SLIDERBAR_TYPE_VERTICAL, PX_OBJECT_SLIDERBAR_STYLE_BOX);
+	if (!pDesc->content_vslider_bar)
+	{
+		PX_ObjectDelete(pObject);
+		return PX_NULL;
+	}
 	PX_ObjectRegisterEvent(pDesc->content_vslider_bar, PX_OBJECT_EVENT_VALUECHANGED, PX_Object_Code_VSliderBarValueChanged, pObject);
 
 	PX_ObjectRegisterEvent(pObject, PX_OBJECT_EVENT_CURSORMOVE, PX_Object_Code_OnCursorMove, PX_NULL);
@@ -434,6 +492,7 @@ px_void PX_Object_Code_SetSource(PX_Object* pObject, PX_SyntaxLexer_Source* pSou
 	pDesc->row_offset = 0;
 	pDesc->x_offset = 0;
 	pDesc->content_rerender_flag = PX_TRUE;
+	PX_Object_Code_SetCurrentLexerIndex(pObject, -1);
 }
 
 px_void PX_Object_Code_SetCursorLine(PX_Object* pObject, px_int line)
@@ -474,6 +533,25 @@ px_int PX_Object_Code_GetCursorAbiIndex(PX_Object* pObject)
 	return pDesc->cursor_abi_index;
 }
 
+px_abi* PX_Object_Code_GetDescAbi(PX_Object* pObject, px_int abi_index)
+{
+	PX_Object_Code* pDesc = PX_ObjectGetDesc0(PX_Object_Code, pObject);
+	if (!pDesc) return PX_NULL;
+	if (!pDesc->pSource) return PX_NULL;
+	if (!PX_VectorCheckIndex(&pDesc->pSource->descriptor, abi_index)) return PX_NULL;
+	return PX_VECTORAT(px_abi, &pDesc->pSource->descriptor, abi_index);
+}
+
+px_abi* PX_Object_Code_GetCursorAbi(PX_Object* pObject)
+{
+	PX_Object_Code* pDesc = PX_ObjectGetDesc0(PX_Object_Code, pObject);
+	if (!pDesc) return PX_NULL;
+	if (pDesc->cursor_abi_index == -1) return PX_NULL;
+	if (!pDesc->pSource) return PX_NULL;
+	if (!PX_VectorCheckIndex(&pDesc->pSource->descriptor, pDesc->cursor_abi_index)) return PX_NULL;
+	return PX_VECTORAT(px_abi, &pDesc->pSource->descriptor, pDesc->cursor_abi_index);
+}
+
 px_int PX_Object_Code_GetCurrentCursorLine(PX_Object* pObject)
 {
 	PX_Object_Code* pDesc = PX_ObjectGetDesc0(PX_Object_Code, pObject);
@@ -499,6 +577,7 @@ px_void PX_Object_Code_SetScrollOffset(PX_Object* pObject, px_int row_offset, px
 {
 	PX_Object_Code* pDesc = PX_ObjectGetDesc0(PX_Object_Code, pObject);
 	if (!pDesc) return;
+	if (row_offset < 0) row_offset = 0;
 	pDesc->row_offset = row_offset;
 	pDesc->x_offset = x_offset;
 	pDesc->content_rerender_flag = PX_TRUE;
@@ -510,4 +589,31 @@ px_void PX_Object_Code_SetBorderColor(PX_Object* pObject, px_color color)
 	if (!pDesc) return;
 	pDesc->bordercolor = color;
 	
+}
+
+px_void PX_Object_Code_SetCurrentLexerIndex(PX_Object* pObject, px_int lexer_index)
+{
+	PX_Object_Code* pDesc = PX_ObjectGetDesc0(PX_Object_Code, pObject);
+	if (!pDesc) return;
+	if (pDesc->current_lexer_index != lexer_index)
+	{
+		pDesc->current_lexer_index = lexer_index;
+		pDesc->content_rerender_flag = PX_TRUE;
+	}
+	if (pDesc->pSource && lexer_index >= 0 && lexer_index < pDesc->pSource->source_length)
+	{
+		px_int line_index = pDesc->pSource->source_index_map_to_line_index[lexer_index];
+		PX_Object_Code_SetCursorLineAndView(pObject, line_index);
+	}
+	else
+	{
+		PX_Object_Code_SetCursorLineAndView(pObject, -1);
+	}
+}
+
+px_void PX_Object_Code_Refresh(PX_Object* pObject)
+{
+	PX_Object_Code* pDesc = PX_ObjectGetDesc0(PX_Object_Code, pObject);
+	if (!pDesc) return;
+	pDesc->content_rerender_flag = PX_TRUE;
 }

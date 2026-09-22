@@ -555,7 +555,7 @@ px_double64 __px_pow_dd(px_double64 x, px_double64 y)
 {
 	px_double64 z, ax, z_h, z_l, p_h, p_l;
 	px_double64 y1, t1, t2, r, s, t, u, v, w;
-	px_int32 i0, i1, i, j, k, yisint, n;
+	px_int32 i, j, k, yisint, n;
 	px_int32 hx, hy, ix, iy;
 	unsigned lx, ly;
 
@@ -592,7 +592,6 @@ px_double64 __px_pow_dd(px_double64 x, px_double64 y)
 		ivln2_l = 1.92596299112661746887e-08; /* 0x3E54AE0B, 0xF85DDF44 =1/ln2 tail*/
 
 
-	i0 = ((*(px_int32*)&one) >> 29) ^ 1; i1 = 1 - i0;
 	hx = *(1 + (px_int32*)&x); lx = *(px_int32*)&x;
 	hy = *(1 + (px_int32*)&y); ly = *(px_int32*)&y;
 	ix = hx & 0x7fffffff;  iy = hy & 0x7fffffff;
@@ -1552,6 +1551,25 @@ px_stringformat PX_STRINGFORMAT_STRING_ALIGN(const px_char *_s,px_int align)
 	return fmt;
 }
 
+px_stringformat PX_STRINGFORMAT_HEX(px_dword _i)
+{
+	px_stringformat fmt = { 0 };
+	fmt.type = PX_STRINGFORMAT_TYPE_HEX;
+	fmt._int = _i;
+	return fmt;
+	
+}
+
+px_stringformat PX_STRINGFORMAT_HEX_ALIGN(px_dword _i, px_int align)
+{
+	px_stringformat fmt = { 0 };
+	fmt.type = PX_STRINGFORMAT_TYPE_HEX;
+	fmt._int = _i;
+	fmt.align = align;
+	return fmt;
+	
+}
+
 px_int PX_sprintf8(px_char *_out_str,px_int str_size,const px_char fmt[], px_stringformat _1, px_stringformat _2, px_stringformat _3, px_stringformat _4,px_stringformat _5, px_stringformat _6, px_stringformat _7, px_stringformat _8)
 {
 	px_int radius=0;
@@ -1654,6 +1672,27 @@ px_int PX_sprintf8(px_char *_out_str,px_int str_size,const px_char fmt[], px_str
 				else
 				{
 					radius += PX_strlen(pstringfmt._pstring);
+				}
+			}
+			break;
+			case PX_STRINGFORMAT_TYPE_HEX:
+			{
+				PX_RETURN_STRING s = PX_itos(pstringfmt._int, 16);
+				if (pstringfmt.align)
+				{
+					px_int slen = PX_strlen(s.data);
+					if (slen < pstringfmt.align)
+					{
+						radius += pstringfmt.align;
+					}
+					else
+					{
+						radius += slen;
+					}
+				}
+				else
+				{
+					radius += PX_strlen(s.data);
 				}
 			}
 			break;
@@ -1782,6 +1821,36 @@ px_int PX_sprintf8(px_char *_out_str,px_int str_size,const px_char fmt[], px_str
 			if (radius + slen < str_size)
 			{
 				PX_strcat(_out_str, pstringfmt._pstring);
+				radius += slen;
+			}
+			else
+			{
+				return radius;
+			}
+			if (slen < pstringfmt.align)
+			{
+				px_int i;
+				for (i = 0; i < pstringfmt.align - slen; i++)
+				{
+					if (radius + 1 < str_size)
+					{
+						_out_str[radius] = ' ';
+						radius++;
+					}
+					else
+						return radius;
+				}
+			}
+		}
+		break;
+		case PX_STRINGFORMAT_TYPE_HEX:
+		{
+			px_int slen;
+			PX_RETURN_STRING s = PX_itos(pstringfmt._int, 16);
+			slen=PX_strlen(s.data);
+			if (radius + slen < str_size)
+			{
+				PX_strcat(_out_str, s.data);
 				radius += slen;
 			}
 			else
@@ -3896,7 +3965,6 @@ px_void PX_DCT(_IN px_double x[],_OUT px_double X[],px_int N)
 px_void PX_IDFT(_IN px_complex X[],_OUT px_complex x[],px_int N)
 {
 	px_int k,n;
-	px_float im=0;
 	px_complex ejw;
 	
 	if (x==X)
@@ -4111,7 +4179,6 @@ px_complex PX_FTResample(_IN px_complex X[], px_int N, px_float t_0_1)
 {
 	px_complex x = {0};
 	px_int n;
-	px_float im = 0;
 	px_complex ejw;
 	px_float k;
 
@@ -4742,7 +4809,6 @@ px_bool PX_strequ(const px_char *src,const px_char *dst)
 
 px_bool PX_strequ3(const px_char* src, const px_char* dst,px_int src_size)
 {
-	px_int ret = 0;
 	while (src_size)
 	{
 		if (*src!=*dst)
@@ -4847,6 +4913,26 @@ px_bool PX_strIsFloat(const px_char *str)
 px_bool PX_charIsNumeric(px_char chr)
 {
 	if (chr>=('0')&&chr<=('9'))
+	{
+		return PX_TRUE;
+	}
+	return PX_FALSE;
+}
+
+px_bool PX_charIsHexadecimal(px_char chr)
+{
+	if ((chr>='0'&&chr<='9')||(chr>='a'&&chr<='f')||(chr>='A'&&chr<='F'))
+	{
+		return PX_TRUE;
+	}
+	return PX_FALSE;
+}
+
+px_bool PX_charIsCommonlyCharacter(px_char chr)
+{
+	// printable ASCII: space(0x20) through tilde(0x7E)
+	// covers a-z, A-Z, 0-9, punctuation and common symbols
+	if ((px_uchar)chr>=0x20&&(px_uchar)chr<=0x7E)
 	{
 		return PX_TRUE;
 	}
@@ -5313,7 +5399,6 @@ px_void PX_FileGetPath(const px_char filefullName[],px_char _out[],px_int outSiz
 px_void PX_FileGetExt(const px_char filefullName[],px_char _out[],px_int outSize)
 {
 	px_int s;
-	px_bool bDot=PX_FALSE;
 	if (outSize==0)
 	{
 		return;
@@ -5330,7 +5415,6 @@ px_void PX_FileGetExt(const px_char filefullName[],px_char _out[],px_int outSize
 		if (filefullName[s]=='.')
 		{
 			s++;
-			bDot=PX_TRUE;
 			break;
 		}
 		s--;

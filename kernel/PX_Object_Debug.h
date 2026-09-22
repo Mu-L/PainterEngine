@@ -30,6 +30,8 @@
 #define PX_OBJECT_DEBUG_FSM_EVENT_CONNECTED 0x2000
 #define PX_OBJECT_DEBUG_FSM_EVENT_RESPONSE 0x2001
 #define PX_OBJECT_DEBUG_FSM_EVENT_DISCONNECT 0x2002
+
+#define PX_OBJECT_DEBUG_PAGE_SIZE 1024
 typedef enum
 {
 	PX_OBJECT_DEBUG_STATE_DISCONNECT,
@@ -37,6 +39,8 @@ typedef enum
 	PX_OBJECT_DEBUG_STATE_RESET_WAIT,
 	PX_OBJECT_DEBUG_STATE_UPLOADING,
 	PX_OBJECT_DEBUG_STATE_UPLOADING_WAIT,
+	PX_OBJECT_DEBUG_STATE_GET_CONFIG,
+	PX_OBJECT_DEBUG_STATE_GET_CONFIG_WAIT,
 	PX_OBJECT_DEBUG_STATE_QUERY_STATE,
 	PX_OBJECT_DEBUG_STATE_QUERY_STATE_WAIT,
 	PX_OBJECT_DEBUG_STATE_PAUSE,
@@ -50,6 +54,10 @@ typedef enum
 	PX_OBJECT_DEBUG_STATE_STEP_IR_QUERY_STATE,
 	PX_OBJECT_DEBUG_STATE_STEP_IR_QUERY_STATE_WAIT,
 	PX_OBJECT_DEBUG_STATE_RUNNING,
+	PX_OBJECT_DEBUG_STATE_READ_MEMORY,
+	PX_OBJECT_DEBUG_STATE_READ_MEMORY_WAIT,
+	PX_OBJECT_DEBUG_STATE_WRITE_MEMORY,
+	PX_OBJECT_DEBUG_STATE_WRITE_MEMORY_WAIT,
 	PX_OBJECT_DEBUG_STATE_ERROR
 }PX_OBJECT_DEBUG_STATE;
 
@@ -97,14 +105,44 @@ typedef struct
 
 typedef struct
 {
+	px_bool synchronized;
+	px_dword page_address;
+	px_byte buffer[PX_OBJECT_DEBUG_PAGE_SIZE];
+}PX_Object_Debug_CachePage;
+
+typedef struct
+{
+	px_string name;
+	px_string type;
+	px_string from;
+	px_dword address;
+	px_int size;
+	px_bool ready;
+}PX_Object_Debug_Monitor;
+
+typedef px_bool (*PX_Object_Debug_MonitorTypeParser)(PX_Object* pObject, const px_char name[], const px_char type[], const px_byte data[], px_int size,px_abi *pabi);
+#define PX_OBJECT_DEBUG_MONITORTYPEPARSER_FUNCTION(func_name) px_bool func_name(PX_Object* pObject,const px_char name[], const px_char type[], const px_byte data[], px_int size,px_abi *pabi)
+
+typedef struct
+{
+	px_string type;
+	PX_Object_Debug_MonitorTypeParser parser;
+}PX_Object_Debug_MonitorTypeParse;
+
+typedef struct
+{
 	px_memorypool* mp;
 	PX_FontModule* fm;
 	px_int  current_view_source_index; // current view source index
-	px_vector pages_memory; //PX_Object_Debug_pagememory
+	px_int  current_ir_view_source_index; // current IR view source index
+	px_vector pages_state; //PX_Object_Debug_pagememory
+	px_vector cache_pages; //PX_Object_Debug_CachePage
+	px_vector monitors; //PX_Object_Debug_Monitor
+	px_vector type_parsers; //PX_Object_Debug_MonitorTypeParse
 	px_vector list_contents;//px_char *
 	PX_Object* area_tab;
 	px_vector  tab_buttons;
-	PX_Object* tree_root_abi,*list_info;
+	PX_Object* ui_tree,*ui_list;
 	px_char list_info_content[16][64];//r0~r7,ip,sp,bp,flag,f4
 	PX_Object* controller_panel;
 	PX_Object* messagebox,*debugger_state_label,* vm_state_label;
@@ -116,12 +154,16 @@ typedef struct
 	px_dword struct_update_delay;
 	px_int last_run_circles;
 	px_int last_tab_index;
+	px_int last_cursor_abi_index;
 	px_vector sources,ir_sources; //PX_SyntaxLexer_Source (unpacked from debug info)
 	px_memory bin_map_to_source, bin_map_to_ir;
 	px_abi bin_packet_abi;
-	px_uint ip_breakpoint[32];
+	px_dword ip_breakpoint[32];
 	PX_Object_Debug_breakpoint breakpoints[32];
 	PX_Object_Debug_Register reg;
+	px_dword machine_text_size, machine_rdata_size, machine_rp, machine_gp, machine_thread_stack_size;
+	px_dword machine_address_start, machine_address_end;
+	
 	px_dword last_step_ip;
 	px_dword last_step_source_index;
 	px_dword last_step_cursor_line;
@@ -141,6 +183,9 @@ typedef struct
 
 PX_Object* PX_Object_Debug_Create(px_memorypool* mp, PX_Object* Parent, px_int x, px_int y, px_int Width, px_int Height, PX_FontModule* fm);
 px_void PX_Object_Debug_Response(PX_Object* pObject, const px_byte payload[], px_int size);
+
+px_bool PX_Object_Debug_RegisterTypeParser(PX_Object* pObject, const px_char type[], PX_Object_Debug_MonitorTypeParser parser);
+PX_Object_Debug_MonitorTypeParser PX_Object_Debug_GetTypeParser(PX_Object* pObject, const px_char type[]);
 
 px_bool PX_Object_Debug_PackDebugInfo(PX_Syntax* psource, PX_Syntax* pir, px_abi* packabi);
 px_bool PX_Object_Debug_UnPackDebugInfo(PX_Object* pObject, const px_byte packed_debug_info_abi[], px_int size);

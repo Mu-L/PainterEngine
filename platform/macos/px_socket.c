@@ -320,3 +320,89 @@ px_bool PX_SocketIsConnecting(PX_Socket* pSocket)
 {
 	return pSocket->isConnecting;
 }
+
+px_bool PX_SocketRequestEx(const px_char host[], px_word port, const px_byte* data, px_dword send_data_size, px_memory* response)
+{
+	PX_TCP NewTCP;
+	PX_TCP_ADDR addr;
+	if (!PX_TCPInitialize(&NewTCP, PX_TCP_IP_TYPE_IPV4))
+	{
+		return PX_FALSE;
+	}
+	addr.port = PX_htons(port);
+	if (PX_IsValidIPAddress(host))
+	{
+		addr.ipv4 = PX_inet_addr(host);
+	}
+	else
+	{
+		addr.ipv4 = PX_UDPGetHostByName(host, 0x08080808);
+		if (addr.ipv4 == 0)
+		{
+			goto _ERROR;
+		}
+	}
+	if (!PX_TCPConnect(&NewTCP, addr))
+	{
+		goto _ERROR;
+	}
+
+	//send data size and data
+	do
+	{
+		px_void* buffer = malloc(send_data_size + sizeof(px_dword));
+		px_dword datasize;
+		PX_MemoryClear(response);
+		if (!buffer)
+		{
+			goto _ERROR;
+		}
+		px_memcpy(buffer, &send_data_size, sizeof(px_dword));
+		px_memcpy((px_byte*)buffer + sizeof(px_dword), data, send_data_size);
+		if (!PX_TCPSend(&NewTCP, buffer, send_data_size + sizeof(px_dword)))
+		{
+			free(buffer);
+			goto _ERROR;
+		}
+		free(buffer);
+		//wait for response
+		//1.recv data size
+		if (PX_TCPReceived(&NewTCP, &datasize, sizeof(px_dword), -1) <= 0)
+		{
+			goto _ERROR;
+		}
+		//2.recv data
+		while (datasize)
+		{
+			px_int recvsize;
+			px_byte _4kbuffer[1024];
+			recvsize = PX_TCPReceived(&NewTCP, _4kbuffer, sizeof(_4kbuffer), -1);
+			if (recvsize <= 0)
+			{
+				goto _ERROR;
+			}
+			else if (recvsize <= datasize)
+			{
+				if (!PX_MemoryCat(response, _4kbuffer, recvsize))
+				{
+					goto _ERROR;
+				}
+				datasize -= recvsize;
+			}
+			else
+			{
+				goto _ERROR;
+			}
+		}
+	} while (0);
+	PX_TCPFree(&NewTCP);
+	return PX_TRUE;
+_ERROR:
+	PX_TCPFree(&NewTCP);
+	return PX_FALSE;
+}
+
+px_bool PX_SocketRequest(PX_Socket* pSocket, const px_byte* data, px_dword send_data_size, px_memory* response)
+{
+	return PX_SocketRequestEx(pSocket->host, pSocket->port, data, send_data_size, response);
+}

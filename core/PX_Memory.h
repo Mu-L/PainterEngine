@@ -27,15 +27,16 @@ px_void PX_MemoryRemove(px_memory *memory,px_int start,px_int end);
 px_void PX_MemoryFree(px_memory *memory);
 px_bool PX_MemoryCatByte(px_memory *memory,px_byte b);
 px_bool PX_MemoryCatRepeatByte(px_memory* memory, px_byte code, px_int size);
-px_byte *PX_MemoryData(px_memory *memory);
+px_byte *PX_MemoryGetData(px_memory *memory);
 px_bool PX_MemoryCatBit(px_memory* memory, px_bool b);
 px_bool PX_MemoryCatBits(px_memory* memory, px_byte data[],px_int bit_count);
 px_void PX_MemoryAlignBits(px_memory* memory);
 px_void PX_MemoryLeft(px_memory* memory, px_int trimsize);
-px_int PX_MemoryGetUsedSize(px_memory* memory);
+px_int PX_MemoryGetSize(px_memory* memory);
 px_int PX_MemoryGetAllocSize(px_memory* memory);
 px_void PX_MemoryTrimRight(px_memory* memory, px_int trimsize);
 px_void PX_MemoryTrimLeft(px_memory* memory, px_int trimsize);
+
 typedef struct  
 {
 	px_memorypool* mp;

@@ -24,9 +24,19 @@
 #include "PX_Syntax_declare_token_suffix.h"
 #include "PX_Syntax_declare_token_prefix.h"
 #include "PX_Syntax_function.h"
+#include "PX_Syntax_if.h"
+#include "PX_Syntax_while.h"
+#include "PX_Syntax_do_while.h"
+#include "PX_Syntax_for.h"
+#include "PX_Syntax_switch.h"
+#include "PX_Syntax_break_continue.h"
 #include "PX_Syntax_expr.h"
 #include "PX_Syntax_eof.h"
 #include "PX_Syntax_comment.h"
-
+#include "PX_Syntax_Scope.h"
+#include "PX_Syntax_block.h"
+#include "PX_Syntax_return.h"
+#include "PX_Syntax_goto.h"
+#include "PX_Syntax_typedef.h"
 px_bool PX_Syntax_load_sources(PX_Syntax* pSyntax);
 #endif

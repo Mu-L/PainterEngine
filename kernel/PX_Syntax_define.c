@@ -4,7 +4,7 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_define_new)
 {
 	px_abi* pnewabi;
 	px_int begin, end, begin_source_index, end_source_index;
-	pnewabi = PX_Syntax_NewAbi(pSyntax, "define", pSyntax->reg_lifetime);
+	pnewabi = PX_Syntax_NewAbi(pSyntax, "define");
 	if (!pnewabi)
 	{
 		PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_define_new Memory Error");
@@ -20,7 +20,11 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_define_new)
 	begin = PX_Syntax_GetCurrentLexemeBegin(pSyntax);
 	end = PX_Syntax_GetCurrentLexemeEnd(pSyntax);
 
-	PX_Syntax_NewMapToken(pSyntax, begin_source_index, begin, end_source_index, end, PX_COLOR(255, 211, 122, 255), "define");
+	if(!PX_Syntax_NewStaticMapToken(pSyntax, begin_source_index, begin, end_source_index, end, PX_COLOR(255, 211, 122, 255), "define"))
+	{
+		PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_define_new Memory Error2");
+		return PX_FALSE;
+	}
 
 	return PX_TRUE;
 }
@@ -28,7 +32,7 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_define_new)
 PX_SYNTAX_FUNCTION(PX_Syntax_Parse_define_parameters_begin)
 {
 	px_abi* pnewabi;
-	pnewabi = PX_Syntax_NewAbi(pSyntax, "define_parameters", pSyntax->reg_lifetime);
+	pnewabi = PX_Syntax_NewAbi(pSyntax, "define_parameters");
 	if (!pnewabi)
 	{
 		PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_define_parameters_begin Memory Error1");
@@ -45,8 +49,8 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_define_parameters_begin)
 
 PX_SYNTAX_FUNCTION(PX_Syntax_Parse_define_parameters_new)
 {
-	px_abi* plastabi = PX_Syntax_GetAbiLast(pSyntax);
-	px_abi* psecondlastabi = PX_Syntax_GetAbiSecondLast(pSyntax);
+	px_abi* plastabi = PX_Syntax_GetLastAbi(pSyntax);
+	px_abi* psecondlastabi = PX_Syntax_GetSecondLastAbi(pSyntax);
 	const px_char* pname;
 	px_int* pcount,count;
 	px_char content[32] = {0};
@@ -65,7 +69,11 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_define_parameters_new)
 		return PX_FALSE;
 	}
 	count = *pcount;
-	PX_AbiSet_int(psecondlastabi, "count", count + 1);
+	if(!PX_AbiSet_int(psecondlastabi, "count", count + 1))
+	{
+		PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_define_parameters_new Memory Error");
+		return PX_FALSE;
+	}
 	PX_sprintf1(content, sizeof(content), "identifier[%1]", PX_STRINGFORMAT_INT(count));
 
 	if(!PX_Syntax_MergeLast2AbiWithNameToSecondLast(pSyntax, content))
@@ -131,10 +139,10 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_define_identifier)
 		end_source_index = PX_Syntax_GetCurrentLexemeEndSourceIndex(pSyntax);
 		if (begin_source_index != end_source_index)
 		{
-			PX_Syntax_Terminate(pSyntax, "runtime:error:unsupport cross lexeme");
+			PX_Syntax_Terminate(pSyntax, "ast:error:unsupported cross-source define identifier");
 			return PX_FALSE;
 		}
-		pnewabi = PX_Syntax_NewAbi(pSyntax, "define_identifier", pSyntax->reg_lifetime);
+		pnewabi = PX_Syntax_NewAbi(pSyntax, "define_identifier");
 		if (!pnewabi)
 		{
 			PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_call_define_identifier Memory Error1");
@@ -146,7 +154,11 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_define_identifier)
 			return PX_FALSE;
 		}
 
-		PX_Syntax_NewMapToken(pSyntax, begin_source_index,begin, end_source_index, end, PX_COLOR(255, 32, 242, 132), "define_identifier");
+		if (!PX_Syntax_NewStaticMapToken(pSyntax, begin_source_index, begin, end_source_index, end, PX_COLOR(255, 32, 242, 132), "define_identifier"))
+		{
+			PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_call_define_identifier Memory Error3");
+			return PX_FALSE;
+		}
 
 	}
 
@@ -156,7 +168,7 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_define_identifier)
 PX_SYNTAX_FUNCTION(PX_Syntax_Parse_define_identifier_check)
 {
 	px_int i;
-	px_abi* plastabi = PX_Syntax_GetAbiLast(pSyntax);
+	px_abi* plastabi = PX_Syntax_GetLastAbi(pSyntax);
 	const px_char * pcurrent_define_name;
 	if (!plastabi)
 	{
@@ -192,8 +204,8 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_define_identifier_check)
 
 PX_SYNTAX_FUNCTION(PX_Syntax_Parse_define_parameters_merge)
 {
-	px_abi* plastabi = PX_Syntax_GetAbiLast(pSyntax);
-	px_abi* psencondlastabi = PX_Syntax_GetAbiSecondLast(pSyntax);
+	px_abi* plastabi = PX_Syntax_GetLastAbi(pSyntax);
+	px_abi* psencondlastabi = PX_Syntax_GetSecondLastAbi(pSyntax);
 	if (!plastabi)
 	{
 		return PX_FALSE;
@@ -226,7 +238,7 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_define_content)
 	px_int begin=-1, end=-1;
 	if (type == PX_SYNTAXLEXER_LEXEME_TYPE_END || type == PX_SYNTAXLEXER_LEXEME_TYPE_NEWLINE)
 	{
-		px_abi* plastabi = PX_Syntax_GetAbiLast(pSyntax);
+		px_abi* plastabi = PX_Syntax_GetLastAbi(pSyntax);
 		if (!PX_AbiSet_string(plastabi, "define_content", ""))
 		{
 			PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_define_content Memory Error1");
@@ -239,7 +251,7 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_define_content)
 		px_int paramcount, * pcount;
 		
 		const px_char* define_identifier ;
-		px_abi* plastdefineabi = PX_Syntax_GetAbiLast(pSyntax);
+		px_abi* plastdefineabi = PX_Syntax_GetLastAbi(pSyntax);
 		if (!PX_Syntax_CheckAbiName(plastdefineabi,"define"))
 		{
 			PX_ASSERTX("define not found");
@@ -249,7 +261,7 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_define_content)
 		define_identifier = PX_AbiGetValue_string(plastdefineabi, "define_identifier.value");
 		if (type != PX_SYNTAXLEXER_LEXEME_TYPE_SPACER)
 		{
-			PX_Syntax_Terminate(pSyntax, "Syntax Error:spacer expected");
+			PX_Syntax_Terminate(pSyntax, "ast:error:Syntax Error:spacer expected");
 			return PX_FALSE;
 		}
 		if (!PX_StringInitialize(pSyntax->mp, &str))
@@ -295,7 +307,7 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_define_content)
 					}
 					if (PX_strequ(pvalue, PX_Syntax_GetCurrentLexeme(pSyntax)))
 					{
-						if (!PX_StringCatChar(&str, '%') || !PX_StringCat(&str, PX_itos(i+1, 10).data))
+						if (!PX_StringCatCharFast(&str, '%') || !PX_StringCat(&str, PX_itos(i+1, 10).data))
 						{
 							PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_define_content Memory Error3");
 							return PX_FALSE;
@@ -350,7 +362,7 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_define_content)
 			}
 		}
 		
-		if (str.buffer[0])
+		if (PX_StringGetText(&str)[0])
 		{
 			px_int begin_source_index = PX_Syntax_GetCurrentLexemeBeginSourceIndex(pSyntax);
 			px_int end_source_index = PX_Syntax_GetCurrentLexemeEndSourceIndex(pSyntax);
@@ -359,10 +371,14 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_define_content)
 				PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_define_content Memory Error1");
 				return PX_FALSE;
 			}
-			PX_Syntax_NewMapToken(pSyntax, begin_source_index,begin, end_source_index, end, PX_COLOR(255, 162, 212, 166), "define_content");
+			if(!PX_Syntax_NewStaticMapToken(pSyntax, begin_source_index,begin, end_source_index, end, PX_COLOR(255, 162, 212, 166), "define_content"))
+			{
+				PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_define_content Memory Error2");
+				return PX_FALSE;
+			}
 		}
 
-		if (!PX_AbiSet_string(plastdefineabi, "format", str.buffer))
+		if (!PX_AbiSet_string(plastdefineabi, "format", PX_StringGetText(&str)))
 		{
 			PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_define_content Memory Error8");
 			PX_StringFree(&str);
@@ -406,14 +422,14 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_call_define_identifier)
 				px_abi* newabi;
 				if (begin_source_index== end_source_index)
 				{
-					if (!PX_Syntax_NewMapToken(pSyntax, begin_source_index, begin, end_source_index, end, PX_COLOR(255, 32, 242, 132), "call_define_identifier"))
+					if (!PX_Syntax_NewStaticMapToken(pSyntax, begin_source_index, begin, end_source_index, end, PX_COLOR(255, 32, 242, 132), "call_define_identifier"))
 					{
 						return PX_FALSE;
 					}
 				}
 				
 
-				if (PX_NULL== (newabi=PX_Syntax_NewAbi(pSyntax,"call_define_identifier",pSyntax->reg_lifetime)))
+				if (PX_NULL== (newabi=PX_Syntax_NewAbi(pSyntax,"call_define_identifier")))
 				{
 					return PX_FALSE;
 				}
@@ -508,7 +524,12 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_call_define)
 			switch (parameters_count)
 			{
 			case 0:
-				PX_StringAppend(&expand_source, pformat);
+				if(!PX_StringAppend(&expand_source, pformat))
+				{
+					PX_StringFree(&expand_source);
+					PX_Syntax_Terminate(pSyntax, "runtime:error:out of memory");
+					return PX_FALSE;
+				}
 				break;
 			case 1:
 				PX_StringFormat1(&expand_source, pformat, \
@@ -584,7 +605,7 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_call_define)
 				return PX_FALSE;
 			}
 
-			if (!PX_Syntax_AddSource(pSyntax, call_macro_id, expand_source.buffer))
+			if (!PX_Syntax_AddSource(pSyntax, call_macro_id, PX_StringGetText(&expand_source)))
 			{
 				PX_StringFree(&expand_source);
 				PX_Syntax_Terminate(pSyntax, "ast:error:expand add source error");
@@ -645,6 +666,7 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_expand_parameter)
 		}
 		else if (ch == '(')
 		{
+			if(!bstring)
 			bracket++;
 		}
 		else if (ch == '"')
@@ -653,29 +675,32 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_expand_parameter)
 		}
 		else if (ch == ')')
 		{
-			if (bracket == 0)
+			if (!bstring)
 			{
-				PX_SyntaxLexer_SetState(&pSyntax->reg_syntaxlexer, &lexerstate);
-				break;
+				if (bracket == 0)
+				{
+					PX_SyntaxLexer_SetState(&pSyntax->reg_syntaxlexer, &lexerstate);
+					break;
+				}
+				bracket--;
 			}
-			bracket--;
 		}
 
-		if (!PX_StringCatChar(&str, ch))
+		if (!PX_StringCatCharFast(&str, ch))
 		{
 			PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_expand_parameter Memory Error1");
 			PX_StringFree(&str);
 			return PX_FALSE;
 		}
 	}
-	newabi = PX_Syntax_NewAbi(pSyntax, "expand_parameter", pSyntax->reg_lifetime);
+	newabi = PX_Syntax_NewAbi(pSyntax, "expand_parameter");
 	if (!newabi)
 	{
 		PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_expand_parameter Memory Error2");
 		PX_StringFree(&str);
 		return PX_FALSE;
 	}
-	if (!PX_AbiSet_string(newabi, "value", str.buffer))
+	if (!PX_AbiSet_string(newabi, "value", PX_StringGetText(&str)))
 	{
 		PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_expand_parameter Memory Error3");
 		PX_StringFree(&str);
@@ -688,7 +713,7 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_expand_parameter)
 PX_SYNTAX_FUNCTION(PX_Syntax_Parse_expand_parameters_begin)
 {
 	px_abi* pnewabi;
-	pnewabi = PX_Syntax_NewAbi(pSyntax, "expand_parameters", pSyntax->reg_lifetime);
+	pnewabi = PX_Syntax_NewAbi(pSyntax, "expand_parameters");
 	if (!pnewabi)
 	{
 		PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_expand_parameters_begin Memory Error1");
@@ -705,8 +730,8 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_expand_parameters_begin)
 
 PX_SYNTAX_FUNCTION(PX_Syntax_Parse_expand_parameters_merge)
 {
-	px_abi* plastabi = PX_Syntax_GetAbiLast(pSyntax);
-	px_abi* psecondlastabi = PX_Syntax_GetAbiSecondLast(pSyntax);
+	px_abi* plastabi = PX_Syntax_GetLastAbi(pSyntax);
+	px_abi* psecondlastabi = PX_Syntax_GetSecondLastAbi(pSyntax);
 	const px_char* pname;
 	px_int* pcount, count;
 	px_char content[32] = { 0 };
@@ -725,7 +750,11 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_expand_parameters_merge)
 		return PX_FALSE;
 	}
 	count = *pcount;
-	PX_AbiSet_int(psecondlastabi, "count", count + 1);
+	if(!PX_AbiSet_int(psecondlastabi, "count", count + 1))
+	{
+		PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_expand_parameters_merge Memory Error");
+		return PX_FALSE;
+	}
 	PX_sprintf1(content, sizeof(content), "expand_parameter[%1]", PX_STRINGFORMAT_INT(count));
 
 	if (!PX_Syntax_MergeLast2AbiWithNameToSecondLast(pSyntax, content))

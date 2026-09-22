@@ -75,49 +75,51 @@ static px_void PX_ScriptAsmRegistInstr(PX_SCRIPT_ASM_COMPILER *compiler, const p
 static px_void PX_ScriptAsmStringConvert(px_string *str)
 {
 	px_int i,j;
-	for (i=0;i<PX_strlen(str->buffer);i++)
+	px_char *buf = PX_StringBeginRWBuffer(str);
+	for (i=0;i<PX_strlen(buf);i++)
 	{
-		if (str->buffer[i]=='\\')
+		if (buf[i]=='\\')
 		{
-			switch (str->buffer[i+1])
+			switch (buf[i+1])
 			{
 			case '\\':
-				for(j=i+1;str->buffer[j];j++)
-					str->buffer[j]=str->buffer[j+1];
-				str->buffer[j-1]=0;
+				for(j=i+1;buf[j];j++)
+					buf[j]=buf[j+1];
+				buf[j-1]=0;
 				break;
 			case 'r':
 			case 'R':
-				str->buffer[i]='\r';
-				for(j=i+1;str->buffer[j];j++)
-					str->buffer[j]=str->buffer[j+1];
-				str->buffer[j-1]=0;
+				buf[i]='\r';
+				for(j=i+1;buf[j];j++)
+					buf[j]=buf[j+1];
+				buf[j-1]=0;
 				break;
 			case 'n':
 			case 'N':
-				str->buffer[i]='\n';
-				for(j=i+1;str->buffer[j];j++)
-					str->buffer[j]=str->buffer[j+1];
-				str->buffer[j-1]=0;
+				buf[i]='\n';
+				for(j=i+1;buf[j];j++)
+					buf[j]=buf[j+1];
+				buf[j-1]=0;
 				break;
 			case 't':
 			case 'T':
-				str->buffer[i]='\t';
-				for(j=i+1;str->buffer[j];j++)
-					str->buffer[j]=str->buffer[j+1];
-				str->buffer[j-1]=0;
+				buf[i]='\t';
+				for(j=i+1;buf[j];j++)
+					buf[j]=buf[j+1];
+				buf[j-1]=0;
 				break;
 			case '"':
-				str->buffer[i]='"';
-				for(j=i+1;str->buffer[j];j++)
-					str->buffer[j]=str->buffer[j+1];
-				str->buffer[j-1]=0;
+				buf[i]='"';
+				for(j=i+1;buf[j];j++)
+					buf[j]=buf[j+1];
+				buf[j-1]=0;
 				break;
 			default:
 				break;
 			}
 		}
 	}
+	PX_StringEndRWBuffer(str);
 }
 
 
@@ -125,7 +127,7 @@ PX_LEXER_LEXEME_TYPE PX_ScriptAsmNexLexeme(px_lexer *lexer)
 {
 	PX_LEXER_LEXEME_TYPE type;
 	while (PX_LEXER_LEXEME_TYPE_SPACER==(type=PX_LexerGetNextLexeme(lexer)));
-	if (PX_strlen(lexer->CurLexeme.buffer)>__PX_SCRIPT_ASM_MNEMONIC_NAME_LEN-1)
+	if (PX_strlen(PX_StringGetText(&lexer->CurLexeme))>__PX_SCRIPT_ASM_MNEMONIC_NAME_LEN-1)
 	{
 		if(type!=PX_LEXER_LEXEME_TYPE_CONATINER)
 		{
@@ -180,7 +182,7 @@ px_int PX_ScriptAsmTokenType(PX_SCRIPT_ASM_COMPILER *compiler,px_char *token)
 		bfound=PX_FALSE;
 		for (i=0;i<compiler->assumeTable.size;i++)
 		{
-			if (PX_strequ(((PX_SCRIPT_ASM_ASSUME_NODE *)(PX_ListNodeAt(&compiler->assumeTable,i)->pdata))->name.buffer,token))
+			if (PX_strequ(PX_StringGetText(&((PX_SCRIPT_ASM_ASSUME_NODE *)(PX_ListNodeAt(&compiler->assumeTable,i)->pdata))->name),token))
 			{
 				token=((PX_SCRIPT_ASM_ASSUME_NODE *)(PX_ListNodeAt(&compiler->assumeTable,i)->pdata))->assume.buffer;
 				bfound=PX_TRUE;
@@ -320,7 +322,7 @@ static px_bool PX_ScriptASMMapAssume(PX_SCRIPT_ASM_COMPILER *compiler,px_string 
 		bfound=PX_FALSE;
 		for (i=0;i<compiler->assumeTable.size;i++)
 		{
-			if (PX_strequ(((PX_SCRIPT_ASM_ASSUME_NODE *)(PX_ListNodeAt(&compiler->assumeTable,i)->pdata))->name.buffer,mnenonic->buffer))
+			if (PX_strequ(PX_StringGetText(&((PX_SCRIPT_ASM_ASSUME_NODE *)(PX_ListNodeAt(&compiler->assumeTable,i)->pdata))->name),PX_StringGetText(mnenonic)))
 			{
 			
 				PX_StringCopy(mnenonic,&(((PX_SCRIPT_ASM_ASSUME_NODE *)PX_ListNodeAt(&compiler->assumeTable,i)->pdata)->assume));
@@ -353,7 +355,7 @@ static px_bool PX_ScriptAsmLocalType(PX_SCRIPT_ASM_COMPILER *compiler,px_char *T
 	
 	PX_ScriptASMMapAssume(compiler,&TempTokenString);
 
-	if (PX_memequ(TempTokenString.buffer,"GLOBAL[",sizeof("GLOBAL[")-1)&&TempTokenString.buffer[PX_strlen(TempTokenString.buffer)-1]==']')
+	if (PX_memequ(PX_StringGetText(&TempTokenString),"GLOBAL[",sizeof("GLOBAL[")-1)&&PX_StringGetText(&TempTokenString)[PX_strlen(PX_StringGetText(&TempTokenString))-1]==']')
 	{
 		PX_StringTrimLeft(&TempTokenString,PX_strlen("GLOBAL["));
 		PX_StringTrimRight(&TempTokenString,1);
@@ -369,7 +371,7 @@ static px_bool PX_ScriptAsmLocalType(PX_SCRIPT_ASM_COMPILER *compiler,px_char *T
 		return PX_TRUE;
 	}
 
-	if (PX_memequ(TempTokenString.buffer,"LOCAL[",sizeof("LOCAL[")-1)&&TempTokenString.buffer[PX_strlen(TempTokenString.buffer)-1]==']')
+	if (PX_memequ(PX_StringGetText(&TempTokenString),"LOCAL[",sizeof("LOCAL[")-1)&&PX_StringGetText(&TempTokenString)[PX_strlen(PX_StringGetText(&TempTokenString))-1]==']')
 	{
 		PX_StringTrimLeft(&TempTokenString,PX_strlen("LOCAL["));
 		PX_StringTrimRight(&TempTokenString,1);
@@ -386,7 +388,7 @@ static px_bool PX_ScriptAsmLocalType(PX_SCRIPT_ASM_COMPILER *compiler,px_char *T
 		return PX_TRUE;
 	}
 
-	if (TempTokenString.buffer[0]=='R'&&PX_strIsInt(TempTokenString.buffer+1))
+	if (PX_StringGetText(&TempTokenString)[0]=='R'&&PX_strIsInt(PX_StringGetText(&TempTokenString)+1))
 	{
 		*type=PX_SCRIPT_ASM_OPTYPE_LOCAL_REGREF;
 		*index=PX_ScriptAsm_atoi(TempTokenString.buffer+1);
@@ -417,7 +419,7 @@ static px_bool PX_ScriptAsmGlobalType(PX_SCRIPT_ASM_COMPILER *compiler,px_char *
 
 	PX_ScriptASMMapAssume(compiler,&TempTokenString);
 
-	if (PX_memequ(TempTokenString.buffer,"GLOBAL[",sizeof("GLOBAL[")-1)&&TempTokenString.buffer[PX_strlen(TempTokenString.buffer)-1]==']')
+	if (PX_memequ(PX_StringGetText(&TempTokenString),"GLOBAL[",sizeof("GLOBAL[")-1)&&PX_StringGetText(&TempTokenString)[PX_strlen(PX_StringGetText(&TempTokenString))-1]==']')
 	{
 		PX_StringTrimLeft(&TempTokenString,PX_strlen("GLOBAL["));
 		PX_StringTrimRight(&TempTokenString,1);
@@ -434,7 +436,7 @@ static px_bool PX_ScriptAsmGlobalType(PX_SCRIPT_ASM_COMPILER *compiler,px_char *
 		return PX_TRUE;
 	}
 
-	if (PX_memequ(TempTokenString.buffer,"LOCAL[",sizeof("LOCAL[")-1)&&TempTokenString.buffer[PX_strlen(TempTokenString.buffer)-1]==']')
+	if (PX_memequ(PX_StringGetText(&TempTokenString),"LOCAL[",sizeof("LOCAL[")-1)&&PX_StringGetText(&TempTokenString)[PX_strlen(PX_StringGetText(&TempTokenString))-1]==']')
 	{
 		PX_StringTrimLeft(&TempTokenString,PX_strlen("LOCAL["));
 		PX_StringTrimRight(&TempTokenString,1);
@@ -450,7 +452,7 @@ static px_bool PX_ScriptAsmGlobalType(PX_SCRIPT_ASM_COMPILER *compiler,px_char *
 		return PX_TRUE;
 	}
 
-	if (PX_memequ(TempTokenString.buffer,"BP+",sizeof("BP+")-1)&&PX_ScriptAsm_isInt(TempTokenString.buffer+sizeof("BP+")-1))
+	if (PX_memequ(PX_StringGetText(&TempTokenString),"BP+",sizeof("BP+")-1)&&PX_ScriptAsm_isInt(TempTokenString.buffer+sizeof("BP+")-1))
 	{
 		PX_StringTrimLeft(&TempTokenString,PX_strlen("BP+"));
 		
@@ -465,7 +467,7 @@ static px_bool PX_ScriptAsmGlobalType(PX_SCRIPT_ASM_COMPILER *compiler,px_char *
 		PX_StringFree(&TempTokenString);
 		return PX_TRUE;
 	}
-	else if (PX_strequ(TempTokenString.buffer,"BP"))
+	else if (PX_strequ(PX_StringGetText(&TempTokenString),"BP"))
 	{
 		*type=PX_SCRIPT_ASM_OPTYPE_GLOBAL_LOCALREF;
 		*index=0;
@@ -474,7 +476,7 @@ static px_bool PX_ScriptAsmGlobalType(PX_SCRIPT_ASM_COMPILER *compiler,px_char *
 	}
 
 
-	if (PX_memequ(TempTokenString.buffer,"SP+",sizeof("SP+")-1)&&PX_ScriptAsm_isInt(TempTokenString.buffer+sizeof("SP+")-1))
+	if (PX_memequ(PX_StringGetText(&TempTokenString),"SP+",sizeof("SP+")-1)&&PX_ScriptAsm_isInt(TempTokenString.buffer+sizeof("SP+")-1))
 	{
 		PX_StringTrimLeft(&TempTokenString,PX_strlen("SP+"));
 		PX_ScriptASMMapAssume(compiler,&TempTokenString);
@@ -488,7 +490,7 @@ static px_bool PX_ScriptAsmGlobalType(PX_SCRIPT_ASM_COMPILER *compiler,px_char *
 		PX_StringFree(&TempTokenString);
 		return PX_TRUE;
 	}
-	else if (PX_strequ(TempTokenString.buffer,"SP"))
+	else if (PX_strequ(PX_StringGetText(&TempTokenString),"SP"))
 	{
 		*type=PX_SCRIPT_ASM_OPTYPE_GLOBAL_SPREF;
 		*index=0;
@@ -497,7 +499,7 @@ static px_bool PX_ScriptAsmGlobalType(PX_SCRIPT_ASM_COMPILER *compiler,px_char *
 	}
 
 
-	if (TempTokenString.buffer[0]=='R'&&PX_strIsInt(TempTokenString.buffer+1))
+	if (PX_StringGetText(&TempTokenString)[0]=='R'&&PX_strIsInt(PX_StringGetText(&TempTokenString)+1))
 	{
 		*type=PX_SCRIPT_ASM_OPTYPE_GLOBAL_REGREF;
 		*index=PX_ScriptAsm_atoi(TempTokenString.buffer+1);
@@ -524,7 +526,7 @@ px_void PX_ScriptAsmUpdateAssumeTable(PX_SCRIPT_ASM_COMPILER *compiler,px_char *
 	PX_SCRIPT_ASM_ASSUME_NODE newNode;
 	for (i=0;i<compiler->assumeTable.size;i++)
 	{
-		if (PX_strequ(((PX_SCRIPT_ASM_ASSUME_NODE *)(PX_ListNodeAt(&compiler->assumeTable,i)->pdata))->name.buffer,name))
+		if (PX_strequ(PX_StringGetText(&((PX_SCRIPT_ASM_ASSUME_NODE *)(PX_ListNodeAt(&compiler->assumeTable,i)->pdata))->name),name))
 		{
 			PX_StringClear(&PX_LISTAT(PX_SCRIPT_ASM_ASSUME_NODE,&compiler->assumeTable,i)->assume);
 			PX_StringCat(&PX_LISTAT(PX_SCRIPT_ASM_ASSUME_NODE,&compiler->assumeTable,i)->assume,assume);
@@ -604,7 +606,7 @@ px_int PX_ScriptAsmStringSize(PX_SCRIPT_ASM_COMPILER *compiler)
 	px_int size=0;
 	for (i=0;i<compiler->StringTable.size;i++)
 	{
-		size+= (PX_strlen(((PX_SCRIPT_ASM_STRING_NODE *)(PX_ListNodeAt(&compiler->StringTable,i)->pdata))->str.buffer))+1;
+		size+= (PX_strlen(PX_StringGetText(&((PX_SCRIPT_ASM_STRING_NODE *)(PX_ListNodeAt(&compiler->StringTable,i)->pdata))->str)))+1;
 	}
 	return size;
 }
@@ -626,7 +628,7 @@ px_void PX_ScriptAsmAddStringConst(PX_SCRIPT_ASM_COMPILER *compiler,px_char *Str
 	PX_SCRIPT_ASM_STRING_NODE stringNode,*pLastNode;
 	for (i=0;i<compiler->StringTable.size;i++)
 	{
-		if (PX_strequ(((PX_SCRIPT_ASM_STRING_NODE *)(PX_ListNodeAt(&compiler->StringTable,i)->pdata))->str.buffer,Str))
+		if (PX_strequ(PX_StringGetText(&((PX_SCRIPT_ASM_STRING_NODE *)(PX_ListNodeAt(&compiler->StringTable,i)->pdata))->str),Str))
 		{
 			return;
 		}
@@ -635,7 +637,7 @@ px_void PX_ScriptAsmAddStringConst(PX_SCRIPT_ASM_COMPILER *compiler,px_char *Str
 	if(compiler->StringTable.size!=0)
 	{
 		pLastNode=(PX_SCRIPT_ASM_STRING_NODE *)(PX_ListNodeAt(&compiler->StringTable,compiler->StringTable.size-1)->pdata);
-		stringNode.addr=pLastNode->addr+PX_strlen(pLastNode->str.buffer)+1;
+		stringNode.addr=pLastNode->addr+PX_strlen(PX_StringGetText(&pLastNode->str))+1;
 	}
 	else
 	stringNode.addr=0;
@@ -688,7 +690,7 @@ px_dword PX_ScriptAsmGetStringAddr(PX_SCRIPT_ASM_COMPILER *compiler,px_char *Str
 	px_int i;
 	for (i=0;i<compiler->StringTable.size;i++)
 	{
-		if (PX_strequ(((PX_SCRIPT_ASM_STRING_NODE *)(PX_ListNodeAt(&compiler->StringTable,i)->pdata))->str.buffer,Str))
+		if (PX_strequ(PX_StringGetText(&((PX_SCRIPT_ASM_STRING_NODE *)(PX_ListNodeAt(&compiler->StringTable,i)->pdata))->str),Str))
 		{
 			return ((PX_SCRIPT_ASM_STRING_NODE *)(PX_ListNodeAt(&compiler->StringTable,i)->pdata))->addr;
 		}
@@ -831,7 +833,7 @@ px_bool PX_ScriptAsmScan(PX_SCRIPT_ASM_COMPILER *compiler)
 					PX_StringClear(&assumeString);
 					PX_StringCat(&assumeString,pLexeme);
 
-					if (PX_strequ(assumeString.buffer,assumeName.buffer))
+					if (PX_strequ(PX_StringGetText(&assumeString),PX_StringGetText(&assumeName)))
 					{
 						PX_ScriptAsmError(&compiler->lexer,"ASSUME token should not equal.");
 						goto _ERROR;
@@ -1192,7 +1194,7 @@ px_bool PX_ScriptAsmCc(PX_SCRIPT_ASM_COMPILER *pCompiler)
 					pLexeme=pCompiler->lexer.CurLexeme.buffer;
 					PX_StringSet(&assumeString,pLexeme);
 
-					if (PX_strequ(assumeString.buffer,assumeName.buffer))
+					if (PX_strequ(PX_StringGetText(&assumeString),PX_StringGetText(&assumeName)))
 					{
 						PX_ScriptAsmError(&pCompiler->lexer,"ASSUME token should not equal.");
 						goto _ERROR;
@@ -1333,14 +1335,14 @@ px_bool PX_ScriptAsmCc(PX_SCRIPT_ASM_COMPILER *pCompiler)
 
 								case PX_SCRIPT_ASM_OPTYPE_MEMORY:
 									PX_StringInitialize(pCompiler->mp,&strInc);
-									PX_StringCat(&strInc,ParamMne.buffer);
+									PX_StringCat(&strInc,PX_StringGetText(&ParamMne));
 									PX_LexerGetIncludedString(&pCompiler->lexer,&strInc);
 									instrbin.param[j]=PX_ScriptAsmGetMemoryAddr(pCompiler,strInc.buffer);
 									PX_StringFree(&strInc);
 									break;
 								case PX_SCRIPT_ASM_OPTYPE_STRING:
 									PX_StringInitialize(pCompiler->mp,&strInc);
-									PX_StringCat(&strInc,ParamMne.buffer);
+									PX_StringCat(&strInc,PX_StringGetText(&ParamMne));
 									PX_LexerGetIncludedString(&pCompiler->lexer,&strInc);
 									PX_ScriptAsmStringConvert(&strInc);
 									instrbin.param[j]=PX_ScriptAsmGetStringAddr(pCompiler,strInc.buffer);
@@ -1350,14 +1352,14 @@ px_bool PX_ScriptAsmCc(PX_SCRIPT_ASM_COMPILER *pCompiler)
 									instrbin.param[j]=PX_ScriptAsmGetLabelIndex(pCompiler,ParamMne.buffer);
 									break;
 								case PX_SCRIPT_ASM_OPTYPE_FLOAT:
-									itf=PX_atof(ParamMne.buffer);
+									itf=PX_atof(PX_StringGetText(&ParamMne));
 									instrbin.param[j]=*((px_int *)&itf);
 									break;
 								case PX_SCRIPT_ASM_OPTYPE_INT:
-									if(ParamMne.buffer[0]!='\'')
+									if(PX_StringGetText(&ParamMne)[0]!='\'')
 									instrbin.param[j]=PX_ScriptAsm_atoi(ParamMne.buffer);
 									else
-									instrbin.param[j]=ParamMne.buffer[1];
+									instrbin.param[j]=PX_StringGetText(&ParamMne)[1];
 									break;
 								case PX_SCRIPT_ASM_OPTYPE_REG:
 									instrbin.param[j]=PX_ScriptAsm_atoi(ParamMne.buffer+1);

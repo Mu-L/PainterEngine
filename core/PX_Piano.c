@@ -409,7 +409,6 @@ px_void PX_Piano_dwgUpdate(PX_Piano_dwg* pdwg) {
 
 px_void PX_Piano_ThirianDispersion(px_float B, px_float f, px_int M, PX_Thirian* c)
 {
-    px_int N = 2;
     px_float D;
 	px_float C1, C2, k1, k2, k3, logB, kd, Cd, halfstep, Ikey;
 
@@ -451,7 +450,6 @@ px_bool PX_Piano_dwgsInitialize(PX_Piano_dwgs *pdwgs,px_memorypool *mp,px_float 
 	px_int del2;
 	px_int del3;
 	px_float D;
-	px_float tuningdelay;
 	px_float deltot = Fs / f;
 	px_int del1 = (px_int)(inpos * 0.5 * deltot);
 	px_int i;
@@ -493,7 +491,6 @@ px_bool PX_Piano_dwgsInitialize(PX_Piano_dwgs *pdwgs,px_memorypool *mp,px_float 
 
 	D = (deltot - (px_float)(del1 + del1 + del2 + del3 + dispersiondelay + lowpassdelay));
     PX_LagrangeSetDelay(&pdwgs->fracdelay3, D);
-	tuningdelay = D;
 
     
 	

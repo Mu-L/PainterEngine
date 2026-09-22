@@ -5,7 +5,7 @@ px_void PX_Object_EditGetCursorXY(PX_Object *pObject, px_int *cx, px_int *cy, px
 {
 	px_int x = 0, y = 0, cursor = 0, fsize = 0;
 	PX_Object_Edit *pEdit = PX_Object_GetEdit(pObject);
-	const px_char *Text = pEdit->text.buffer;
+	const px_char *Text = PX_StringGetText(&pEdit->text);
 	px_float objx, objy, objWidth, objHeight;
 	px_rect rect=PX_ObjectGetRect(pObject);
 	objx = rect.x;
@@ -229,9 +229,9 @@ static px_void PX_Object_EditCheckCursor(PX_Object_Edit*pedit)
 	{
 		pedit->cursor_index=0;
 	}
-	if (pedit->cursor_index>PX_strlen(pedit->text.buffer))
+	if (pedit->cursor_index>PX_strlen(PX_StringGetText(&pedit->text)))
 	{
-		pedit->cursor_index=PX_strlen(pedit->text.buffer);
+		pedit->cursor_index=PX_strlen(PX_StringGetText(&pedit->text));
 	}
 }
 
@@ -239,7 +239,7 @@ PX_OBJECT_RENDER_FUNCTION(PX_Object_EditRender)
 {
 	px_int x_draw_oft, y_draw_oft, x, y, cursor, fsize;
 	PX_Object_Edit* pEdit = PX_ObjectGetDesc(PX_Object_Edit, pObject);
-	const px_char* Text = pEdit->text.buffer;
+	const px_char* Text = PX_StringGetText(&pEdit->text);
 	px_float objx, objy, objWidth, objHeight;
 	px_rect rect=PX_ObjectGetRect(pObject);
 	objx = rect.x;
@@ -305,7 +305,7 @@ PX_OBJECT_RENDER_FUNCTION(PX_Object_EditRender)
 		clr._argb.a >>= 1;
 		x_draw_oft = x - pEdit->XOffset;
 		y_draw_oft = y - pEdit->YOffset;
-		PX_FontModuleDrawText(&pEdit->EditSurface, pEdit->fontModule, x_draw_oft, y_draw_oft, PX_ALIGN_LEFTTOP, pEdit->tips.buffer, clr);
+		PX_FontModuleDrawText(&pEdit->EditSurface, pEdit->fontModule, x_draw_oft, y_draw_oft, PX_ALIGN_LEFTTOP, PX_StringGetText(&pEdit->tips), clr);
 	}
 	else
 	{
@@ -674,7 +674,7 @@ px_void PX_Object_EditUpdateCursorOnDown(PX_Object *pObject,px_int cx,px_int cy)
 {
 	px_int x_draw_oft=0,y_draw_oft=0,x=0,y=0,cursor=0,fsize=0;
 	PX_Object_Edit *pEdit=PX_Object_GetEdit(pObject);
-	const px_char *Text=pEdit->text.buffer;
+	const px_char *Text=PX_StringGetText(&pEdit->text);
 	px_float objx,objy,objWidth,objHeight;
 	px_rect rect=PX_ObjectGetRect(pObject);
 
@@ -900,15 +900,15 @@ px_void PX_Object_EditAddString(PX_Object *pObject,px_char *Text)
 						else
 						{
 							//last 3 char is numeric
-							px_int i = PX_strlen(pEdit->text.buffer) - 1;
+							px_int i = PX_strlen(PX_StringGetText(&pEdit->text)) - 1;
 							px_int count = 0;
 							while (i >= 0 && count < 3)
 							{
-								if (pEdit->text.buffer[i] == '.')
+								if (PX_StringGetText(&pEdit->text)[i] == '.')
 								{
 									break;
 								}
-								if (pEdit->text.buffer[i] >= '0' && pEdit->text.buffer[i] <= '9')
+								if (PX_StringGetText(&pEdit->text)[i] >= '0' && PX_StringGetText(&pEdit->text)[i] <= '9')
 								{
 									count++;
 								}
@@ -1203,9 +1203,9 @@ px_void PX_Object_EditForward(PX_Object* pObject)
 				pEdit->cursor_index += 1;
 				break;
 			}
-			if (pEdit->cursor_index>PX_strlen(pEdit->text.buffer))
+			if (pEdit->cursor_index>PX_strlen(PX_StringGetText(&pEdit->text)))
 			{
-				pEdit->cursor_index = PX_strlen(pEdit->text.buffer);
+				pEdit->cursor_index = PX_strlen(PX_StringGetText(&pEdit->text));
 			}
 		}
 		break;

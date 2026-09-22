@@ -17,7 +17,7 @@ void setCurrentDirectory()
 }
 
 
-int main()
+int main(int argc, char *argv[])
 {
 	RECT rc;
 	HWND hwnd=(HWND)0;
@@ -28,6 +28,8 @@ int main()
 	height = rc.bottom - rc.top;
 	PX_DisplayInitialize(hwnd, 328, 237);
 	setCurrentDirectory();
+	PainterEngine_argc = argc;
+	PainterEngine_argv = argv;
 	if (!PX_ApplicationInitialize(&App,width,height))
 	{
 		return 0;

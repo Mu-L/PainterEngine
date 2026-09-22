@@ -19,7 +19,7 @@ typedef struct
 	px_int yoffset;
 	px_int ycount;
 	px_int xoffset;
-	px_abi tree_root_abi;
+	px_abi ui_tree;
 	px_int item_height;
 	px_vector nodes;
 	px_texture render_target;
@@ -33,6 +33,8 @@ PX_Object* PX_Object_TreeCreate(px_memorypool* mp, PX_Object* Parent, px_int x, 
 px_bool PX_Object_TreeAddAbi(PX_Object* pObject, const px_char name[], px_abi* pAbi);
 px_bool PX_Object_TreeSetAbi(PX_Object* pObject, px_abi* pAbi);
 px_void PX_Object_TreeClear(PX_Object* pObject);
+px_abi* PX_Object_TreeGetRootAbi(PX_Object* pObject);
+px_bool PX_Object_TreeReRender(PX_Object* pObject);
 PX_Object_TreeNode* PX_Object_TreeGetCurrentSelectNode(PX_Object* pObject);
 #endif
 

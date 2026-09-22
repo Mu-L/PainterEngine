@@ -426,8 +426,7 @@ static px_void PX_3D_RenderListRasterization(px_surface *psurface,PX_3D_RenderLi
 	px_int ix,iy;
 	px_bool  k01infinite=PX_FALSE;
 	px_bool  k02infinite=PX_FALSE;
-	px_bool  k12infinite=PX_FALSE;
-	px_float k01,b01,k02,b02,k12,b12;
+	px_float k01,b01,k02,b02;
 	px_float x0;
 	px_float y0;
 	px_float z0;
@@ -553,7 +552,6 @@ static px_void PX_3D_RenderListRasterization(px_surface *psurface,PX_3D_RenderLi
 
 	k01infinite=PX_FALSE;
 	k02infinite=PX_FALSE;
-	k12infinite=PX_FALSE;
 	if (x0==x1)
 	{
 		k01infinite=PX_TRUE;
@@ -576,17 +574,6 @@ static px_void PX_3D_RenderListRasterization(px_surface *psurface,PX_3D_RenderLi
 	{
 		k02=(y0-y2)/(x0-x2);
 		b02=y0-k02*x0;
-	}
-
-	if (x1==x2)
-	{
-		k12infinite=PX_TRUE;
-		b12=x0;
-	}
-	else
-	{
-		k12=(y1-y2)/(x1-x2);
-		b12=y1-k12*x1;
 	}
 
 	
@@ -746,7 +733,6 @@ static px_void PX_3D_RenderListRasterization(px_surface *psurface,PX_3D_RenderLi
 
 	k01infinite=PX_FALSE;
 	k02infinite=PX_FALSE;
-	k12infinite=PX_FALSE;
 	if (x0==x1)
 	{
 		k01infinite=PX_TRUE;
@@ -768,18 +754,6 @@ static px_void PX_3D_RenderListRasterization(px_surface *psurface,PX_3D_RenderLi
 		k02=(y0-y2)/(x0-x2);
 		b02=y0-k02*x0;
 	}
-
-	if (x1==x2)
-	{
-		k12infinite=PX_TRUE;
-		b12=x0;
-	}
-	else
-	{
-		k12=(y1-y2)/(x1-x2);
-		b12=y1-k12*x1;
-	}
-
 
 	for(y = (px_int)(midy+0.5f)+0.5f; y < y0; y++)
 	{

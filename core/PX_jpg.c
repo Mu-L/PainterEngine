@@ -1060,7 +1060,7 @@ px_bool PX_JpgDecodeHuffmanData(PX_JpgDecoder* pJpgdecoder)
 px_bool PX_JpgReadScans(PX_JpgDecoder* pJpgdecoder) 
 {
     PX_MemoryStream* pstream = &pJpgdecoder->stream;
-    px_byte last, current;
+    px_byte last;
     // decode first scan
     if (!PX_JpgReadStartOfScan(pJpgdecoder))
         return PX_FALSE;
@@ -1082,7 +1082,7 @@ px_bool PX_JpgReadScans(PX_JpgDecoder* pJpgdecoder)
     }
 
     last = PX_MemoryStreamReadByte(pstream);
-    current = PX_MemoryStreamReadByte(pstream);
+    PX_MemoryStreamReadByte(pstream);
 
     if (last != 0xFF) {
         // "Error - Expected a marker\n";
@@ -1138,7 +1138,6 @@ px_bool PX_JpgDequantize(PX_JpgDecoder* pJpgdecoder) {
 px_void PX_JpgInverseDCTBlockComponent(px_int* component) {
     // IDCT scaling factors
     px_uint i;
-    px_float m0 = 1.8477590650225739f;
     px_float m1 = 1.4142135623730949f;
     px_float m3 = 1.4142135623730949f;
     px_float m5 = 0.76536686473017945f;

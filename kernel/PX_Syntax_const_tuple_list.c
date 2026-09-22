@@ -3,7 +3,7 @@
 PX_SYNTAX_FUNCTION(PX_Syntax_Parse_const_tuple_list_begin)
 {
 	px_abi* pnewabi;
-	if (!(pnewabi=PX_Syntax_NewAbi(pSyntax,"const_tuple_list",pSyntax->reg_lifetime)))
+	if (!(pnewabi=PX_Syntax_NewAbi(pSyntax,"const_tuple_list")))
 	{
 		PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_const_tuple_list_begin out of memory1");
 		return PX_FALSE;
@@ -29,8 +29,8 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_const_tuple_list_begin)
 PX_SYNTAX_FUNCTION(PX_Syntax_Parse_const_tuple_list_new)
 {
 	px_char index_named[32] = { 0 };
-	px_abi* plastabi = PX_Syntax_GetAbiLast(pSyntax);
-	px_abi* psecondlastabi = PX_Syntax_GetAbiSecondLast(pSyntax);
+	px_abi* plastabi = PX_Syntax_GetLastAbi(pSyntax);
+	px_abi* psecondlastabi = PX_Syntax_GetSecondLastAbi(pSyntax);
 	const px_char* pname;
 	const px_int* plistcount;
 	px_int listcount;
@@ -45,7 +45,11 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_const_tuple_list_new)
 	plistcount = PX_AbiGet_int(psecondlastabi, "list_count");
 	PX_ASSERTIFX(!plistcount, "unexpected logic!");
 	listcount = *plistcount;
-	PX_AbiSet_int(psecondlastabi, "list_count", listcount + 1);
+	if(!PX_AbiSet_int(psecondlastabi, "list_count", listcount + 1))
+	{
+		PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_const_tuple_list_new out of memory1");
+		return PX_FALSE;
+	}
 	PX_sprintf1(index_named, sizeof(index_named), "const_tuple[%1]", PX_STRINGFORMAT_INT(listcount));
 	if (!PX_AbiSet_Abi(psecondlastabi, index_named, plastabi))
 	{
@@ -53,7 +57,7 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_const_tuple_list_new)
 		return PX_FALSE;
 	}
 
-	if (!PX_AbiSet_int(plastabi, "end", PX_Syntax_GetCurrentLexemeEnd(pSyntax)))
+	if (!PX_AbiSet_int(psecondlastabi, "end", PX_Syntax_GetCurrentLexemeEnd(pSyntax)))
 	{
 		PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_const_tuple_list_new out of memory2");
 		return PX_FALSE;
@@ -69,11 +73,11 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_const_tuple_list_end)
 
 px_bool PX_Syntax_load_const_tuple_list(PX_Syntax* pSyntax)
 {
-	PX_Syntax_Parse_PEBNF(pSyntax, "const_tuple_list", PX_Syntax_Parse_const_tuple_list_begin,0, 0);
-	PX_Syntax_Parse_PEBNF(pSyntax, "const_tuple_list = const_tuple",0, PX_Syntax_Parse_const_tuple_list_new, 0);
-	PX_Syntax_Parse_PEBNF(pSyntax, "const_tuple_list = const_tuple ',' ...", 0,0, 0);
-	PX_Syntax_Parse_PEBNF(pSyntax, "const_tuple_list = const_tuple ',' *", 0,PX_Syntax_Parse_const_tuple_list_end, 0);
-	PX_Syntax_Parse_PEBNF(pSyntax, "const_tuple_list = const_tuple *",0, PX_Syntax_Parse_const_tuple_list_end, 0);
+	if(!PX_Syntax_Parse_PEBNF(pSyntax, "const_tuple_list", PX_Syntax_Parse_const_tuple_list_begin,0, 0))return PX_FALSE;
+	if(!PX_Syntax_Parse_PEBNF(pSyntax, "const_tuple_list = const_tuple",0, PX_Syntax_Parse_const_tuple_list_new, 0))return PX_FALSE;
+	if(!PX_Syntax_Parse_PEBNF(pSyntax, "const_tuple_list = const_tuple ',' ...", 0,0, 0))return PX_FALSE;
+	if(!PX_Syntax_Parse_PEBNF(pSyntax, "const_tuple_list = const_tuple ',' *", 0,PX_Syntax_Parse_const_tuple_list_end, 0))return PX_FALSE;
+	if(!PX_Syntax_Parse_PEBNF(pSyntax, "const_tuple_list = const_tuple *",0, PX_Syntax_Parse_const_tuple_list_end, 0))return PX_FALSE;
 	
 	return PX_TRUE;
 }

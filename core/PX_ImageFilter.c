@@ -312,8 +312,6 @@ static px_double PX_ImageFilter_SSIM(px_color* mod_tex, px_color* target_tex,px_
 	px_float ux=0, uy=0;
 	px_float sx=0,sy=0,sxy=0;
 	px_float ssim;
-	px_float counter;
-	counter = 0;
 	for ( i = 0; i < size; i++)
 	{
 			px_color clr = mod_tex[i];

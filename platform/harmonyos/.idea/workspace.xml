@@ -4,11 +4,15 @@
     <list default="true" id="9610b501-b44d-4b1e-a277-113425ea3851" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/../../.demo/syntax/PainterEngine_Syntax.exe" beforeDir="false" afterPath="$PROJECT_DIR$/../../.demo/syntax/PainterEngine_Syntax.exe" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../../.demo/syntax/PainterEngine_Syntax.pdb" beforeDir="false" afterPath="$PROJECT_DIR$/../../.demo/syntax/PainterEngine_Syntax.pdb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../.demo/syntax/ir.c" beforeDir="false" afterPath="$PROJECT_DIR$/../../.demo/syntax/ir.c" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../../.demo/syntax/main.c" beforeDir="false" afterPath="$PROJECT_DIR$/../../.demo/syntax/main.c" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../core/PX_SyntaxLexer.c" beforeDir="false" afterPath="$PROJECT_DIR$/../../core/PX_SyntaxLexer.c" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../.demo/syntax/tb_expr2.c" beforeDir="false" afterPath="$PROJECT_DIR$/../../.demo/syntax/tb_expr2.c" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../../kernel/PX_Syntax.c" beforeDir="false" afterPath="$PROJECT_DIR$/../../kernel/PX_Syntax.c" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../kernel/PX_Syntax_define.c" beforeDir="false" afterPath="$PROJECT_DIR$/../../kernel/PX_Syntax_define.c" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../kernel/PX_Syntax_eof.c" beforeDir="false" afterPath="$PROJECT_DIR$/../../kernel/PX_Syntax_eof.c" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../kernel/PX_Syntax_base_operate.c" beforeDir="false" afterPath="$PROJECT_DIR$/../../kernel/PX_Syntax_base_operate.c" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../kernel/PX_Syntax_declare_prefix.c" beforeDir="false" afterPath="$PROJECT_DIR$/../../kernel/PX_Syntax_declare_prefix.c" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../kernel/PX_Syntax_expr.c" beforeDir="false" afterPath="$PROJECT_DIR$/../../kernel/PX_Syntax_expr.c" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../kernel/PX_Syntax_function.c" beforeDir="false" afterPath="$PROJECT_DIR$/../../kernel/PX_Syntax_function.c" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -27,11 +31,12 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "last_opened_file_path": "C:/Users/matri/Downloads/speech-kit-codelabs_TextReader-arkts-master"
   }
-}</component>
+}]]></component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
 </project>

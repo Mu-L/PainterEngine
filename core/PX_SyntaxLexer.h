@@ -45,6 +45,7 @@ typedef struct
 	PX_SyntaxLexer_LineMap* line_begin_cell_index_map;
 	
 	px_int last_descriptor_index;
+	px_map descriptor_map; // px_map, key=descriptor_name, value=descriptor_abi_index
 	px_vector descriptor; // px_abi
 }PX_SyntaxLexer_Source;
 
@@ -152,7 +153,7 @@ px_bool PX_SyntaxLexer_Initialize(px_memorypool *mp, px_syntaxlexer* plexer);
 px_void PX_SyntaxLexer_Reset(px_syntaxlexer* plexer);
 px_void PX_SyntaxLexer_Clear(px_syntaxlexer* plexer);
 px_void PX_SyntaxLexer_Free(px_syntaxlexer* plexer);
-px_bool PX_SyntaxLexer_AddSource(px_syntaxlexer* plexer, const px_char* name, const px_char* SourceText);
+px_int PX_SyntaxLexer_AddSource(px_syntaxlexer* plexer, const px_char* name, const px_char* SourceText);
 px_int PX_SyntaxLexer_GetSourceCount(px_syntaxlexer* plexer);
 
 px_void PX_SyntaxLexer_GetIncludedString(px_syntaxlexer* plexer, px_string* str);

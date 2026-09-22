@@ -187,7 +187,7 @@ px_bool PX_CDA_ObjectVM_SetObjectName(PX_VM* Ins, px_void* userptr)
 		PX_VM_RET(Ins, PX_Variable_int(0));
 		return PX_FALSE;
 	}
-	x = PX_VM_STACK(Ins, 1)._string.buffer;
+	x = PX_StringGetText(&PX_VM_STACK(Ins, 1)._string);
 
 	PX_ObjectSetId(handler, x);
 	return PX_TRUE;
@@ -337,7 +337,7 @@ px_bool PX_CDA_ObjectVM_CreateThread(PX_VM* Ins, px_void* userptr)
 		return PX_TRUE;
 	}
 
-	if (!PX_VMBeginThreadFunction(&pDesc->vm, PX_VMGetFreeThreadId(Ins), PX_VM_STACK(Ins, 0)._string.buffer, PX_NULL, 0))
+	if (!PX_VMBeginThreadFunction(&pDesc->vm, PX_VMGetFreeThreadId(Ins), PX_StringGetText(&PX_VM_STACK(Ins, 0)._string), PX_NULL, 0))
 	{
 		PX_VM_RET(Ins, PX_Variable_int(0));
 	}
@@ -404,7 +404,7 @@ px_bool PX_CDA_ObjectVM_GetPortString(PX_VM* Ins, px_void* userptr)
 	pvar = PX_CDA_ObjectGetPortVariable(handler, PX_VM_STACK(Ins, 0)._int);
 	if (pvar&&pvar->type == PX_VARIABLE_TYPE_STRING)
 	{
-		PX_VM_RET_String(Ins, pvar->_string.buffer);
+		PX_VM_RET_String(Ins, PX_StringGetText(&pvar->_string));
 	}
 	else
 	{
@@ -525,7 +525,7 @@ px_bool PX_CDA_ObjectVM_PlayAnimation(PX_VM* Ins, px_void* userptr)
 		return PX_TRUE;
 	}
 
-	if (!PX_AnimationPlay(&pDesc->animation, PX_VM_STACK(Ins, 0)._string.buffer))
+	if (!PX_AnimationPlay(&pDesc->animation, PX_StringGetText(&PX_VM_STACK(Ins, 0)._string)))
 	{
 		PX_VM_RET(Ins, PX_Variable_int(0));
 	}

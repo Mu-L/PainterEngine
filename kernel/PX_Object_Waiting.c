@@ -23,7 +23,7 @@ PX_OBJECT_RENDER_FUNCTION(PX_Object_WaitingRender)
 		PX_Object_CursorSliderSetXY(pDesc->cursor, rect.x + x, rect.y + y);
 	}
 
-	PX_FontModuleDrawText(psurface, pDesc->fm, (px_int)(rect.x ),(px_int)(rect.y), PX_ALIGN_CENTER, pDesc->text.buffer, pDesc->color);
+	PX_FontModuleDrawText(psurface, pDesc->fm, (px_int)(rect.x ),(px_int)(rect.y), PX_ALIGN_CENTER, PX_StringGetText(&pDesc->text), pDesc->color);
 }
 
 PX_OBJECT_FREE_FUNCTION(PX_Object_WaitingFree)

@@ -37,7 +37,7 @@ typedef struct
 {
 	px_memorypool *mp;
     px_uint SWITCH_DURATION;
-	px_uint ATOM_OPRAND_TIME;
+	px_uint ATOM_OPERAND_TIME;
 	px_uint EXISTING_FLAG_TIMES;
 	px_uint ADVANCE_TIME;
 	px_uint AdvanceElpased;

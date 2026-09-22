@@ -358,10 +358,12 @@ int PX_VisualOSInitializeWebServer()
 	return 1;
 }
 
-int main()
+int main(int argc, char *argv[])
 {
 	px_dword timelasttime=0;
 	PX_MutexInitialize(&cache_surface_lock);
+	PainterEngine_argc = argc;
+	PainterEngine_argv = argv;
 	if (!PX_ApplicationInitialize(&App,0,0))
 	{
 		return 0;

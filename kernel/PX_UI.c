@@ -60,20 +60,20 @@ PX_UiBaseInfo PX_UIGetBaseInfo(PX_Json_Value *json_value,px_int width,px_int hei
 	pSubValue=PX_JsonGetObjectValue(json_value,"id");
 	if (pSubValue&&pSubValue->type==PX_JSON_VALUE_TYPE_STRING)
 	{
-		PX_strcpy(baseInfo.id,pSubValue->_string.buffer,sizeof(baseInfo.id));
+		PX_strcpy(baseInfo.id,PX_StringGetText(&pSubValue->_string),sizeof(baseInfo.id));
 	}
 	pSubValue=PX_JsonGetObjectValue(json_value,"halign");
 	if (pSubValue&&pSubValue->type==PX_JSON_VALUE_TYPE_STRING)
 	{
-		if(PX_strequ(pSubValue->_string.buffer,"left"))
+		if(PX_strequ(PX_StringGetText(&pSubValue->_string),"left"))
 		{
 			//
 		}
-		if(PX_strequ(pSubValue->_string.buffer,"mid"))
+		if(PX_strequ(PX_StringGetText(&pSubValue->_string),"mid"))
 		{
 			baseInfo.x+=width/2;
 		}
-		if(PX_strequ(pSubValue->_string.buffer,"right"))
+		if(PX_strequ(PX_StringGetText(&pSubValue->_string),"right"))
 		{
 			baseInfo.x+=width;
 		}
@@ -82,15 +82,15 @@ PX_UiBaseInfo PX_UIGetBaseInfo(PX_Json_Value *json_value,px_int width,px_int hei
 	pSubValue=PX_JsonGetObjectValue(json_value,"valign");
 	if (pSubValue&&pSubValue->type==PX_JSON_VALUE_TYPE_STRING)
 	{
-		if(PX_strequ(pSubValue->_string.buffer,"top"))
+		if(PX_strequ(PX_StringGetText(&pSubValue->_string),"top"))
 		{
 			//
 		}
-		if(PX_strequ(pSubValue->_string.buffer,"mid"))
+		if(PX_strequ(PX_StringGetText(&pSubValue->_string),"mid"))
 		{
 			baseInfo.y+=height/2;
 		}
-		if(PX_strequ(pSubValue->_string.buffer,"bottom"))
+		if(PX_strequ(PX_StringGetText(&pSubValue->_string),"bottom"))
 		{
 			baseInfo.y+=height;
 		}
@@ -169,7 +169,7 @@ px_bool PX_UI_GetString(PX_Json_Value *json_value,const px_char name[],px_char s
 	{
 		if (pSubValue->type==PX_JSON_VALUE_TYPE_STRING)
 		{
-			PX_strcpy(str,pSubValue->_string.buffer,size);
+			PX_strcpy(str,PX_StringGetText(&pSubValue->_string),size);
 			return PX_TRUE;
 		}
 	}
@@ -193,7 +193,7 @@ PX_Object * PX_UI_CreateLabel(PX_UI *ui,PX_Object *parent,PX_Json_Value *json_va
 	pSubValue=PX_JsonGetObjectValue(json_value,"text");
 	if (pSubValue&&pSubValue->type==PX_JSON_VALUE_TYPE_STRING)
 	{
-		text=pSubValue->_string.buffer;
+		text=PX_StringGetText(&pSubValue->_string);
 	}
 
 	baseInfo=PX_UIGetBaseInfo(json_value,width,height);
@@ -226,39 +226,39 @@ PX_Object * PX_UI_CreateLabel(PX_UI *ui,PX_Object *parent,PX_Json_Value *json_va
 	pSubValue=PX_JsonGetObjectValue(json_value,"align");
 	if (pSubValue&&pSubValue->type==PX_JSON_VALUE_TYPE_STRING)
 	{
-		if (PX_strequ(pSubValue->_string.buffer,"lefttop"))
+		if (PX_strequ(PX_StringGetText(&pSubValue->_string),"lefttop"))
 		{
 			PX_Object_LabelSetAlign(pObject,PX_ALIGN_LEFTTOP);
 		}
-		else if (PX_strequ(pSubValue->_string.buffer,"leftmid"))
+		else if (PX_strequ(PX_StringGetText(&pSubValue->_string),"leftmid"))
 		{
 			PX_Object_LabelSetAlign(pObject,PX_ALIGN_LEFTMID);
 		}
-		else if (PX_strequ(pSubValue->_string.buffer,"leftbottom"))
+		else if (PX_strequ(PX_StringGetText(&pSubValue->_string),"leftbottom"))
 		{
 			PX_Object_LabelSetAlign(pObject,PX_ALIGN_LEFTBOTTOM);
 		}
-		else if (PX_strequ(pSubValue->_string.buffer,"midtop"))
+		else if (PX_strequ(PX_StringGetText(&pSubValue->_string),"midtop"))
 		{
 			PX_Object_LabelSetAlign(pObject,PX_ALIGN_MIDTOP);
 		}
-		else if (PX_strequ(pSubValue->_string.buffer,"center"))
+		else if (PX_strequ(PX_StringGetText(&pSubValue->_string),"center"))
 		{
 			PX_Object_LabelSetAlign(pObject,PX_ALIGN_CENTER);
 		}
-		else if (PX_strequ(pSubValue->_string.buffer,"midbottom"))
+		else if (PX_strequ(PX_StringGetText(&pSubValue->_string),"midbottom"))
 		{
 			PX_Object_LabelSetAlign(pObject,PX_ALIGN_MIDBOTTOM);
 		}
-		else if (PX_strequ(pSubValue->_string.buffer,"righttop"))
+		else if (PX_strequ(PX_StringGetText(&pSubValue->_string),"righttop"))
 		{
 			PX_Object_LabelSetAlign(pObject,PX_ALIGN_RIGHTTOP);
 		}
-		else if (PX_strequ(pSubValue->_string.buffer,"rightmid"))
+		else if (PX_strequ(PX_StringGetText(&pSubValue->_string),"rightmid"))
 		{
 			PX_Object_LabelSetAlign(pObject,PX_ALIGN_RIGHTMID);
 		}
-		else if (PX_strequ(pSubValue->_string.buffer,"rightbottom"))
+		else if (PX_strequ(PX_StringGetText(&pSubValue->_string),"rightbottom"))
 		{
 			PX_Object_LabelSetAlign(pObject,PX_ALIGN_RIGHTBOTTOM);
 		}
@@ -340,13 +340,13 @@ PX_Object * PX_UI_CreateSliderbar(PX_UI *ui,PX_Object *parent,PX_Json_Value *jso
 	}
 
 	pSubValue=PX_JsonGetObjectValue(json_value,"type");
-	if (pSubValue&&pSubValue->type==PX_JSON_VALUE_TYPE_STRING&&PX_strequ(pSubValue->_string.buffer,"vertical"))
+	if (pSubValue&&pSubValue->type==PX_JSON_VALUE_TYPE_STRING&&PX_strequ(PX_StringGetText(&pSubValue->_string),"vertical"))
 	{
 		type=PX_OBJECT_SLIDERBAR_TYPE_VERTICAL;
 	}
 
 	pSubValue=PX_JsonGetObjectValue(json_value,"style");
-	if (pSubValue&&pSubValue->type==PX_JSON_VALUE_TYPE_STRING&&PX_strequ(pSubValue->_string.buffer,"liner"))
+	if (pSubValue&&pSubValue->type==PX_JSON_VALUE_TYPE_STRING&&PX_strequ(PX_StringGetText(&pSubValue->_string),"liner"))
 	{
 		style=PX_OBJECT_SLIDERBAR_STYLE_LINER;
 	}
@@ -387,7 +387,7 @@ PX_Object * PX_UI_CreateButton(PX_UI *ui,PX_Object *parent,PX_Json_Value *json_v
 	pSubValue=PX_JsonGetObjectValue(json_value,"text");
 	if (pSubValue&&pSubValue->type==PX_JSON_VALUE_TYPE_STRING)
 	{
-		text=pSubValue->_string.buffer;
+		text=PX_StringGetText(&pSubValue->_string);
 	}
 
 	baseInfo=PX_UIGetBaseInfo(json_value,width,height);
@@ -545,7 +545,7 @@ PX_Object * PX_UI_CreateAutoText(PX_UI *ui,PX_Object *parent,PX_Json_Value *json
 	pSubValue=PX_JsonGetObjectValue(json_value,"text");
 	if (pSubValue&&pSubValue->type==PX_JSON_VALUE_TYPE_STRING)
 	{
-		text=pSubValue->_string.buffer;
+		text=PX_StringGetText(&pSubValue->_string);
 		PX_Object_AutoTextSetText(pObject,text);
 	}
 
@@ -568,7 +568,7 @@ PX_Object * PX_UI_CreateCursorButton(PX_UI *ui,PX_Object *parent,PX_Json_Value *
 	pSubValue=PX_JsonGetObjectValue(json_value,"text");
 	if (pSubValue&&pSubValue->type==PX_JSON_VALUE_TYPE_STRING)
 	{
-		text=pSubValue->_string.buffer;
+		text=PX_StringGetText(&pSubValue->_string);
 	}
 
 	baseInfo=PX_UIGetBaseInfo(json_value,width,height);
@@ -688,7 +688,7 @@ PX_Object * PX_UI_CreateCheckBox(PX_UI *ui,PX_Object *parent,PX_Json_Value *json
 	pSubValue=PX_JsonGetObjectValue(json_value,"text");
 	if (pSubValue&&pSubValue->type==PX_JSON_VALUE_TYPE_STRING)
 	{
-		text=pSubValue->_string.buffer;
+		text=PX_StringGetText(&pSubValue->_string);
 	}
 
 	baseInfo=PX_UIGetBaseInfo(json_value,width,height);
@@ -727,13 +727,13 @@ px_bool PX_UI_IsValidUIObject(PX_UI *ui,PX_Json_Value *json_value)
 {
 	if (json_value->type==PX_JSON_VALUE_TYPE_OBJECT)
 	{
-		if (json_value->name.buffer&&json_value->name.buffer[0])
+		if (PX_StringGetText(&json_value->name)&&PX_StringGetText(&json_value->name)[0])
 		{
 			px_int i;
 			for (i=0;i<ui->infos.size;i++)
 			{
 				PX_UI_ControllerInfo *pInfo=PX_VECTORAT(PX_UI_ControllerInfo,&ui->infos,i);
-				if (PX_strequ(pInfo->Type,json_value->name.buffer))
+				if (PX_strequ(pInfo->Type,PX_StringGetText(&json_value->name)))
 				{
 					return PX_TRUE;
 				}
@@ -754,7 +754,7 @@ PX_Object * PX_UI_CreateRadioBox(PX_UI *ui,PX_Object *parent,PX_Json_Value *json
 	pSubValue=PX_JsonGetObjectValue(json_value,"text");
 	if (pSubValue&&pSubValue->type==PX_JSON_VALUE_TYPE_STRING)
 	{
-		text=pSubValue->_string.buffer;
+		text=PX_StringGetText(&pSubValue->_string);
 	}
 
 	baseInfo=PX_UIGetBaseInfo(json_value,width,height);
@@ -859,7 +859,7 @@ PX_Object * PX_UI_CreateSelectBar(PX_UI *ui,PX_Object *parent,PX_Json_Value *jso
 			pArrayValue=PX_JsonGetArrayValue(pSubValue,i);
 			if (pArrayValue&&pArrayValue->type==PX_JSON_VALUE_TYPE_STRING)
 			{
-				PX_Object_SelectBarAddItem(pObject,pArrayValue->_string.buffer);
+				PX_Object_SelectBarAddItem(pObject,PX_StringGetText(&pArrayValue->_string));
 			}
 		}
 	}
@@ -926,13 +926,13 @@ PX_Object * PX_UICreate(PX_UI *ui,PX_Object *parent,PX_Json_Value *json_value,px
 		return PX_NULL;
 	}
 	
-	if (json_value->name.buffer&&json_value->name.buffer[0])
+	if (PX_StringGetText(&json_value->name)&&PX_StringGetText(&json_value->name)[0])
 	{
 		px_int i;
 		for (i=0;i<ui->infos.size;i++)
 		{
 			PX_UI_ControllerInfo *pInfo=PX_VECTORAT(PX_UI_ControllerInfo,&ui->infos,i);
-			if (PX_strequ(pInfo->Type,json_value->name.buffer))
+			if (PX_strequ(pInfo->Type,PX_StringGetText(&json_value->name)))
 			{
 				if (pInfo->create_func)
 				{
@@ -965,15 +965,15 @@ PX_Object * PX_UICreate(PX_UI *ui,PX_Object *parent,PX_Json_Value *json_value,px
 	}
 
 	pSubValue=PX_JsonGetObjectValue(json_value,"id");
-	if (pSubValue&&pSubValue->type==PX_JSON_VALUE_TYPE_STRING&&pSubValue->_string.buffer[0])
+	if (pSubValue&&pSubValue->type==PX_JSON_VALUE_TYPE_STRING&&PX_StringGetText(&pSubValue->_string)[0])
 	{
-		if(PX_MapGet(&ui->ObjectMap,(const px_byte *)pSubValue->_string.buffer, PX_strlen(pSubValue->_string.buffer)))
+		if(PX_MapGet(&ui->ObjectMap,(const px_byte *)PX_StringGetText(&pSubValue->_string), PX_strlen(PX_StringGetText(&pSubValue->_string))))
 		{
 			//"Repeat controller"
 			PX_ASSERT();
 			goto _ERROR;
 		}
-		if(PX_MapPut(&ui->ObjectMap,(const px_byte *)pSubValue->_string.buffer, PX_strlen(pSubValue->_string.buffer),pNewObject)!=PX_HASHMAP_RETURN_OK)
+		if(PX_MapPut(&ui->ObjectMap,(const px_byte *)PX_StringGetText(&pSubValue->_string), PX_strlen(PX_StringGetText(&pSubValue->_string)),pNewObject)!=PX_HASHMAP_RETURN_OK)
 			goto _ERROR;
 	}
 

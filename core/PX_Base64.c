@@ -141,7 +141,7 @@ px_uint PX_Base64Decode(const px_char *in, px_uint inlen, px_byte *out)
 	return j;
 }
 
-px_uint PX_Base64GetEncodeLen(px_uint beforeEncodeLen)
+px_uint PX_Base64GetEncodeBytesLength(px_uint beforeEncodeLen)
 {
 	if(beforeEncodeLen%3)
 	return (beforeEncodeLen/3+1)*4;
@@ -149,9 +149,26 @@ px_uint PX_Base64GetEncodeLen(px_uint beforeEncodeLen)
 	return (beforeEncodeLen/3)*4;
 }
 
-px_uint PX_Base64GetDecodeLen(px_uint beforeEncodeLen)
+px_uint PX_Base64GetDecodeBytesLength(px_uint beforeEncodeLen)
 {
 	if(beforeEncodeLen%4)
 		return 0;
 	return (beforeEncodeLen/4)*3;
+}
+
+px_bool PX_Base64Check(const px_char* code, px_uint codeLen)
+{
+	px_uint i;
+	if (!codeLen||codeLen % 4 != 0)
+	{
+		return PX_FALSE;
+	}
+	for (i = 0; i < codeLen; i++)
+	{
+		if (!((code[i] >= 'A' && code[i] <= 'Z') || (code[i] >= 'a' && code[i] <= 'z') || (code[i] >= '0' && code[i] <= '9') || code[i] == '+' || code[i] == '/' || code[i] == '='))
+		{
+			return PX_FALSE;
+		}
+	}
+	return PX_TRUE;
 }

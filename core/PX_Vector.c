@@ -49,6 +49,7 @@ px_bool PX_VectorSet(px_vector *vec,px_uint index,px_void *data)
 
 px_bool PX_VectorInsertBefore(px_vector* vec, px_int insert_before_index, px_void* data)
 {
+	px_int i;
 	if (insert_before_index < 0 || insert_before_index > vec->size)
 	{
 		return PX_FALSE;
@@ -57,9 +58,9 @@ px_bool PX_VectorInsertBefore(px_vector* vec, px_int insert_before_index, px_voi
 	{
 		return PX_FALSE;
 	}
-	if (insert_before_index < vec->size - 1)
+	for (i = vec->size - 1; i > insert_before_index; i--)
 	{
-		PX_memcpy((px_byte*)vec->data + (insert_before_index + 1) * vec->nodesize, (px_byte*)vec->data + insert_before_index * vec->nodesize, (vec->size - insert_before_index - 1) * vec->nodesize);
+		PX_memcpy((px_byte*)vec->data + i * vec->nodesize, (px_byte*)vec->data + (i - 1) * vec->nodesize, vec->nodesize);
 	}
 	PX_memcpy((px_byte*)vec->data + insert_before_index * vec->nodesize, data, vec->nodesize);
 	return PX_TRUE;
@@ -67,19 +68,21 @@ px_bool PX_VectorInsertBefore(px_vector* vec, px_int insert_before_index, px_voi
 
 px_bool PX_VectorInsertAfter(px_vector* vec, px_int insert_after_index, px_void* data)
 {
+	px_int i, insert_index;
 	if (insert_after_index < -1 || insert_after_index >= vec->size)
 	{
 		return PX_FALSE;
 	}
+	insert_index = insert_after_index + 1;
 	if (!PX_VectorPushback(vec, PX_NULL))
 	{
 		return PX_FALSE;
 	}
-	if (insert_after_index < vec->size - 2)
+	for (i = vec->size - 1; i > insert_index; i--)
 	{
-		PX_memcpy((px_byte*)vec->data + (insert_after_index + 2) * vec->nodesize, (px_byte*)vec->data + (insert_after_index + 1) * vec->nodesize, (vec->size - insert_after_index - 2) * vec->nodesize);
+		PX_memcpy((px_byte*)vec->data + i * vec->nodesize, (px_byte*)vec->data + (i - 1) * vec->nodesize, vec->nodesize);
 	}
-	PX_memcpy((px_byte*)vec->data + (insert_after_index + 1) * vec->nodesize, data, vec->nodesize);
+	PX_memcpy((px_byte*)vec->data + insert_index * vec->nodesize, data, vec->nodesize);
 	return PX_TRUE;
 }
 
@@ -290,7 +293,8 @@ px_bool PX_VectorResize(px_vector *vec,px_int size)
 		PX_memset(vec->data,0,vec->nodesize*vec->allocsize);
 		PX_memcpy(vec->data, pold, vec->nodesize * (oldsize < size ? oldsize : size));
 		vec->size=size;
-		PX_Free(vec->mp, pold);
+		if(pold)
+			PX_Free(vec->mp, pold);
 		return PX_TRUE;
 	}
 	return PX_TRUE;

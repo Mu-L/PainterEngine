@@ -46,14 +46,13 @@ typedef struct
 	PX_FontModule* fm;
 	PX_OBJECT_SYNTAX_STATE state;
 	PX_Syntax *psyntax;
-	px_int  reg_target_syntax_message_offset;
-	px_int  reg_last_break_row_index;
+	px_int  reg_last_break_source_index,reg_last_break_row_index;
 	px_int  current_view_source_index; // current view source index
-	px_vector pages_memory; //PX_Object_Syntax_pagememory
+	px_vector pages_state; //PX_Object_Syntax_pagememory
 	px_vector list_contents;//px_char *
 	PX_Object* area_tab;
 	px_vector  tab_buttons;
-	PX_Object* tree_root_abi,*list_info;
+	PX_Object* ui_tree,*ui_list;
 	PX_Object* controller_panel;
 	PX_Object* button_run, *button_pause, * button_step, * button_stop,* button_reset;
 	px_texture texture_run, texture_pause, texture_step, texture_stop, texture_reset;
@@ -63,6 +62,7 @@ typedef struct
 	px_dword struct_update_delay;
 	px_int last_run_circles;
 	px_int last_tab_syntax_source_count;
+	px_bool last_ast_break_enable;
 }PX_Object_Syntax;
 
 PX_Object* PX_Object_Syntax_Create(px_memorypool* mp, PX_Object* Parent, px_int x, px_int y, px_int Width, px_int Height, PX_FontModule* fm);

@@ -1,7 +1,7 @@
 #include "PX_Syntax_const_set.h"
 PX_SYNTAX_FUNCTION(PX_Syntax_Parse_const_int_set_begin)
 {
-	px_abi* pnewabi = PX_Syntax_NewAbi(pSyntax, "const_int_set", pSyntax->reg_lifetime);
+	px_abi* pnewabi = PX_Syntax_NewAbi(pSyntax, "const_int_set");
 	if (!pnewabi)
 	{
 		PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_const_int_set_begin Memory Error1");
@@ -22,7 +22,7 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_const_int_set_begin)
 
 PX_SYNTAX_FUNCTION(PX_Syntax_Parse_const_int_set)
 {
-	px_abi* plastabi = PX_Syntax_GetAbiLast(pSyntax);
+	px_abi* plastabi = PX_Syntax_GetLastAbi(pSyntax);
 	const px_char* pname;
 	if(!plastabi)
 	{
@@ -42,7 +42,7 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_const_int_set)
 		PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_const_int_set Memory Error1");
 		return PX_FALSE;
 	}
-	plastabi = PX_Syntax_GetAbiLast(pSyntax);
+	plastabi = PX_Syntax_GetLastAbi(pSyntax);
 	if (!plastabi)
 	{
 		return PX_FALSE;
@@ -58,7 +58,7 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_const_int_set)
 
 PX_SYNTAX_FUNCTION(PX_Syntax_Parse_const_float_set_begin)
 {
-	px_abi* pnewabi = PX_Syntax_NewAbi(pSyntax, "const_float_set", pSyntax->reg_lifetime);
+	px_abi* pnewabi = PX_Syntax_NewAbi(pSyntax, "const_float_set");
 	if (!pnewabi)
 	{
 		PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_const_float_set_begin Memory Error1");
@@ -79,7 +79,7 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_const_float_set_begin)
 
 PX_SYNTAX_FUNCTION(PX_Syntax_Parse_const_float_set)
 {
-	px_abi* plastabi = PX_Syntax_GetAbiLast(pSyntax);
+	px_abi* plastabi = PX_Syntax_GetLastAbi(pSyntax);
 	const px_char* pname;
 	if (!plastabi)
 	{
@@ -99,7 +99,7 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_const_float_set)
 		PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_const_float_set Memory Error1");
 		return PX_FALSE;
 	}
-	plastabi = PX_Syntax_GetAbiLast(pSyntax);
+	plastabi = PX_Syntax_GetLastAbi(pSyntax);
 	if (!plastabi)
 	{
 		return PX_FALSE;
@@ -115,7 +115,7 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_const_float_set)
 
 PX_SYNTAX_FUNCTION(PX_Syntax_Parse_const_string_set_begin)
 {
-	px_abi* pnewabi = PX_Syntax_NewAbi(pSyntax, "const_string_set", pSyntax->reg_lifetime);
+	px_abi* pnewabi = PX_Syntax_NewAbi(pSyntax, "const_string_set");
 	if (!pnewabi)
 	{
 		PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_const_string_set_begin Memory Error1");
@@ -136,7 +136,7 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_const_string_set_begin)
 
 PX_SYNTAX_FUNCTION(PX_Syntax_Parse_const_string_set)
 {
-	px_abi* plastabi = PX_Syntax_GetAbiLast(pSyntax);
+	px_abi* plastabi = PX_Syntax_GetLastAbi(pSyntax);
 	const px_char* pname;
 	if (!plastabi)
 	{
@@ -157,7 +157,7 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_const_string_set)
 		return PX_FALSE;
 	}
 
-	plastabi = PX_Syntax_GetAbiLast(pSyntax);
+	plastabi = PX_Syntax_GetLastAbi(pSyntax);
 	if (!plastabi)
 	{
 		return PX_FALSE;
@@ -172,7 +172,7 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_const_string_set)
 
 PX_SYNTAX_FUNCTION(PX_Syntax_Parse_const_tuple_set_begin)
 {
-	px_abi* pnewabi = PX_Syntax_NewAbi(pSyntax, "const_tuple_set", pSyntax->reg_lifetime);
+	px_abi* pnewabi = PX_Syntax_NewAbi(pSyntax, "const_tuple_set");
 	if (!pnewabi)
 	{
 		PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_const_tuple_set_begin Memory Error1");
@@ -193,7 +193,7 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_const_tuple_set_begin)
 
 PX_SYNTAX_FUNCTION(PX_Syntax_Parse_const_tuple_set)
 {
-	px_abi* plastabi = PX_Syntax_GetAbiLast(pSyntax);
+	px_abi* plastabi = PX_Syntax_GetLastAbi(pSyntax);
 	const px_char* pname;
 	if (!plastabi)
 	{
@@ -213,7 +213,7 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_const_tuple_set)
 		PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_const_tuple_set Memory Error1");
 		return PX_FALSE;
 	}
-	plastabi = PX_Syntax_GetAbiLast(pSyntax);
+	plastabi = PX_Syntax_GetLastAbi(pSyntax);
 	if (!plastabi)
 	{
 		return PX_FALSE;
@@ -230,14 +230,14 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_const_tuple_set)
 
 px_bool PX_Syntax_load_const_set(PX_Syntax* pSyntax)
 {
-	PX_Syntax_Parse_PEBNF(pSyntax, "const_int_set = '{'", 0,PX_Syntax_Parse_const_int_set_begin, 0);
-	PX_Syntax_Parse_PEBNF(pSyntax, "const_int_set = '{' const_int_list '}'",0, PX_Syntax_Parse_const_int_set, 0);
-	PX_Syntax_Parse_PEBNF(pSyntax, "const_float_set = '{'",0, PX_Syntax_Parse_const_float_set_begin, 0);
-	PX_Syntax_Parse_PEBNF(pSyntax, "const_float_set = '{' const_float_list '}'",0, PX_Syntax_Parse_const_float_set, 0);
-	PX_Syntax_Parse_PEBNF(pSyntax, "const_string_set = '{'",0, PX_Syntax_Parse_const_string_set_begin, 0);
-	PX_Syntax_Parse_PEBNF(pSyntax, "const_string_set = '{' const_string_list '}'",0, PX_Syntax_Parse_const_string_set, 0);
-	PX_Syntax_Parse_PEBNF(pSyntax, "const_tuple_set = '{'",0, PX_Syntax_Parse_const_tuple_set_begin, 0);
-	PX_Syntax_Parse_PEBNF(pSyntax, "const_tuple_set = '{' const_tuple_list '}'",0, PX_Syntax_Parse_const_tuple_set, 0);
+	if(!PX_Syntax_Parse_PEBNF(pSyntax, "const_int_set = '{'", 0,PX_Syntax_Parse_const_int_set_begin, 0))return PX_FALSE;
+	if(!PX_Syntax_Parse_PEBNF(pSyntax, "const_int_set = '{' const_int_list '}'",0, PX_Syntax_Parse_const_int_set, 0))return PX_FALSE;
+	if(!PX_Syntax_Parse_PEBNF(pSyntax, "const_float_set = '{'",0, PX_Syntax_Parse_const_float_set_begin, 0))return PX_FALSE;
+	if(!PX_Syntax_Parse_PEBNF(pSyntax, "const_float_set = '{' const_float_list '}'",0, PX_Syntax_Parse_const_float_set, 0))return PX_FALSE;
+	if(!PX_Syntax_Parse_PEBNF(pSyntax, "const_string_set = '{'",0, PX_Syntax_Parse_const_string_set_begin, 0))return PX_FALSE;
+	if(!PX_Syntax_Parse_PEBNF(pSyntax, "const_string_set = '{' const_string_list '}'",0, PX_Syntax_Parse_const_string_set, 0))return PX_FALSE;
+	if(!PX_Syntax_Parse_PEBNF(pSyntax, "const_tuple_set = '{'",0, PX_Syntax_Parse_const_tuple_set_begin, 0))return PX_FALSE;
+	if(!PX_Syntax_Parse_PEBNF(pSyntax, "const_tuple_set = '{' const_tuple_list '}'",0, PX_Syntax_Parse_const_tuple_set, 0))return PX_FALSE;
 
 	return PX_TRUE;
 }

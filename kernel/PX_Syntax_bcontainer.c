@@ -21,7 +21,11 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_bcontainer)
 	}
 	begin = PX_Syntax_GetCurrentLexemeBegin(pSyntax);
 	
-	PX_StringInitialize(pSyntax->mp, &str);
+	if(!PX_StringInitialize(pSyntax->mp, &str))
+	{
+		PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_bcontainer Memory Error1");
+		return PX_FALSE;
+	}
 
 	while (PX_TRUE)
 	{
@@ -37,16 +41,21 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_bcontainer)
 			break;
 		}
 
-		PX_StringCatChar(&str, nextchar);
+		if (!PX_StringCatChar(&str, nextchar))
+		{
+			PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_bcontainer Memory Error2");
+			PX_StringFree(&str);
+			return PX_FALSE;
+		}
 	}
 
-	pnewabi = PX_Syntax_NewAbi(pSyntax, "bcontainer", pSyntax->reg_lifetime);
+	pnewabi = PX_Syntax_NewAbi(pSyntax, "bcontainer");
 	if (!pnewabi)
 	{
 		PX_StringFree(&str);
 		return PX_FALSE;
 	}
-	if (!PX_AbiSet_string(pnewabi, "value", str.buffer))
+	if (!PX_AbiSet_string(pnewabi, "value", PX_StringGetText(&str)))
 	{
 		PX_StringFree(&str);
 		return PX_FALSE;
@@ -70,7 +79,7 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_bcontainer)
 	}
 	PX_StringFree(&str);
 
-	if (!PX_Syntax_NewMapToken(pSyntax, source_index, begin, source_index, end, PX_COLOR(255, 168, 250, 225), "container"))
+	if (!PX_Syntax_NewStaticMapToken(pSyntax, source_index, begin, source_index, end, PX_COLOR(255, 168, 250, 225), "container"))
 	{
 		PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_Parse_bcontainer Memory Error");
 		return PX_FALSE;
@@ -82,6 +91,5 @@ PX_SYNTAX_FUNCTION(PX_Syntax_Parse_bcontainer)
 
 px_bool PX_Syntax_load_bcontainer(PX_Syntax* pSyntax)
 {
-	PX_Syntax_Parse_PEBNF(pSyntax, "bcontainer = *", 0,PX_Syntax_Parse_bcontainer, 0);
-	return PX_TRUE;
+	return PX_Syntax_Parse_PEBNF(pSyntax, "bcontainer = *", 0,PX_Syntax_Parse_bcontainer, 0);
 }

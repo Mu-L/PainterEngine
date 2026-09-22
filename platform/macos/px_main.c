@@ -11,6 +11,8 @@ int main(int argc, char** argv) {
     } while (0);
 #endif
 
+    PainterEngine_argc = argc;
+    PainterEngine_argv = argv;
     if (!PX_ApplicationInitialize(&App, PX_GetScreenWidth(), PX_GetScreenHeight())) {
         return 0;
     }

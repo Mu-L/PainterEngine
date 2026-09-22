@@ -62,7 +62,6 @@ px_int PX_SoundModuleFilter(PX_SoundModule *SoundModule,_IN px_double _in[],px_i
 	px_complex Frame[PX_SOUNDMODULE_N];
 	px_double  InstantaneousPhase[PX_SOUNDMODULE_N];
 	px_double sincWindow[PX_SOUNDMODULE_N];
-	px_double ModuleAmplitude[PX_SOUNDMODULE_FORMANT_COUNT];
 	px_double  Pitch;
 	px_double  ZCR;
 	px_double  *Data;
@@ -123,42 +122,6 @@ px_int PX_SoundModuleFilter(PX_SoundModule *SoundModule,_IN px_double _in[],px_i
 			{
 				InstantaneousPhase[i]=Frame[i].im-SoundModule->lastPhase[i];
 				SoundModule->lastPhase[i]=Frame[i].im;
-			}
-
-			//Build sound module
-			for (i=0;i<PX_SOUNDMODULE_FORMANT_COUNT;i++)
-			{
-				px_int HZindex;
-				px_double max;
-				
-
-				HZindex=(px_int)((Pitch*i-SoundModule->searchHzW/2)/durHZ);
-
-				if (HZindex<0)
-				{
-					HZindex=0;
-				}
-
-				max=Frame[HZindex].re;
-
-				while (PX_TRUE)
-				{
-					HZindex++;
-					if (HZindex>=PX_SOUNDMODULE_FORMANT_COUNT)
-					{
-						break;
-					}
-					if (HZindex*durHZ>Pitch*i+SoundModule->searchHzW/2)
-					{
-						break;
-					}
-					if (Frame[HZindex].re>max)
-					{
-						max=Frame[HZindex].re;
-					}
-				}
-				if(HZindex<PX_SOUNDMODULE_FORMANT_COUNT)
-					ModuleAmplitude[HZindex]=max;
 			}
 
 			//now rebuild signal 

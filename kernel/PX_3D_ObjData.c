@@ -42,9 +42,9 @@ px_bool PX_3D_ObjectDataLoad(PX_3D_ObjectData *ObjectData,const px_byte *data,px
 		{
 			//g s o <param> note:The flag is useless,we register it but not solve it 
 
-			if (PX_strequ(Lexer.CurLexeme.buffer,"g")\
-				||PX_strequ(Lexer.CurLexeme.buffer,"s")\
-				||PX_strequ(Lexer.CurLexeme.buffer,"o"))
+			if (PX_strequ(PX_StringGetText(&Lexer.CurLexeme),"g")\
+				||PX_strequ(PX_StringGetText(&Lexer.CurLexeme),"s")\
+				||PX_strequ(PX_StringGetText(&Lexer.CurLexeme),"o"))
 			{
 				while (PX_TRUE)
 				{
@@ -58,7 +58,7 @@ px_bool PX_3D_ObjectDataLoad(PX_3D_ObjectData *ObjectData,const px_byte *data,px
 			}
 
 
-			if (PX_strequ(Lexer.CurLexeme.buffer,"mtllib"))
+			if (PX_strequ(PX_StringGetText(&Lexer.CurLexeme),"mtllib"))
 			{
 				type=PX_3D_ObjectDataNextTokenSN(&Lexer);
 				if (type==PX_LEXER_LEXEME_TYPE_TOKEN)
@@ -68,7 +68,7 @@ px_bool PX_3D_ObjectDataLoad(PX_3D_ObjectData *ObjectData,const px_byte *data,px
 					{
 						goto _ERROR;
 					}
-					PX_StringSet(&strName,Lexer.CurLexeme.buffer);
+					PX_StringSet(&strName,PX_StringGetText(&Lexer.CurLexeme));
 					if(!PX_VectorPushback(&ObjectData->mtlFile,&strName)) goto _ERROR;
 				}
 				else
@@ -79,7 +79,7 @@ px_bool PX_3D_ObjectDataLoad(PX_3D_ObjectData *ObjectData,const px_byte *data,px
 			}
 
 			//usemtl <param>
-			if (PX_strequ(Lexer.CurLexeme.buffer,"usemtl"))
+			if (PX_strequ(PX_StringGetText(&Lexer.CurLexeme),"usemtl"))
 			{
 				type=PX_3D_ObjectDataNextTokenSN(&Lexer);
 				if (type==PX_LEXER_LEXEME_TYPE_TOKEN)
@@ -89,7 +89,7 @@ px_bool PX_3D_ObjectDataLoad(PX_3D_ObjectData *ObjectData,const px_byte *data,px
 					{
 						goto _ERROR;
 					}
-					PX_StringSet(&strName,Lexer.CurLexeme.buffer);
+					PX_StringSet(&strName,PX_StringGetText(&Lexer.CurLexeme));
 					if(!PX_VectorPushback(&ObjectData->mtlName,&strName)) goto _ERROR;
 				}
 				else
@@ -100,7 +100,7 @@ px_bool PX_3D_ObjectDataLoad(PX_3D_ObjectData *ObjectData,const px_byte *data,px
 			}
 
 			//v <param> <param> <param>
-			if (PX_strequ(Lexer.CurLexeme.buffer,"v"))
+			if (PX_strequ(PX_StringGetText(&Lexer.CurLexeme),"v"))
 			{
 				px_int i;
 				px_float v[3];
@@ -114,7 +114,7 @@ px_bool PX_3D_ObjectDataLoad(PX_3D_ObjectData *ObjectData,const px_byte *data,px
 						PX_LOG("<ERROR> Numeric block is expected but not found");
 						goto _ERROR;
 					}
-					v[i]=(px_float)PX_atof(Lexer.CurLexeme.buffer);
+					v[i]=(px_float)PX_atof(PX_StringGetText(&Lexer.CurLexeme));
 					
 				}
 				ov.x=v[0];
@@ -125,7 +125,7 @@ px_bool PX_3D_ObjectDataLoad(PX_3D_ObjectData *ObjectData,const px_byte *data,px
 			}
 
 			//vn <param>/<param>/<param>
-			if (PX_strequ(Lexer.CurLexeme.buffer,"vn"))
+			if (PX_strequ(PX_StringGetText(&Lexer.CurLexeme),"vn"))
 			{
 				px_int i;
 				px_float v[3];
@@ -138,7 +138,7 @@ px_bool PX_3D_ObjectDataLoad(PX_3D_ObjectData *ObjectData,const px_byte *data,px
 						PX_LOG("<ERROR> Numeric block is expected but not found");
 						goto _ERROR;
 					}
-					v[i]=(px_float)PX_atof(Lexer.CurLexeme.buffer);
+					v[i]=(px_float)PX_atof(PX_StringGetText(&Lexer.CurLexeme));
 				}
 				ov.x=v[0];
 				ov.y=v[1];
@@ -149,7 +149,7 @@ px_bool PX_3D_ObjectDataLoad(PX_3D_ObjectData *ObjectData,const px_byte *data,px
 			}
 
 			//vt <param> <param>
-			if (PX_strequ(Lexer.CurLexeme.buffer,"vt"))
+			if (PX_strequ(PX_StringGetText(&Lexer.CurLexeme),"vt"))
 			{
 				px_int i;
 				px_float v[2];
@@ -162,7 +162,7 @@ px_bool PX_3D_ObjectDataLoad(PX_3D_ObjectData *ObjectData,const px_byte *data,px
 						PX_LOG("<ERROR> Numeric block is expected but not found");
 						goto _ERROR;
 					}
-					v[i]=(px_float)PX_atof(Lexer.CurLexeme.buffer);
+					v[i]=(px_float)PX_atof(PX_StringGetText(&Lexer.CurLexeme));
 				}
 				ov.u=v[0];
 				ov.v=v[1];
@@ -182,7 +182,7 @@ px_bool PX_3D_ObjectDataLoad(PX_3D_ObjectData *ObjectData,const px_byte *data,px
 
 			//f <v/vt/vn> <v/vt/vn> <v/vt/vn> [<v/vt/vn>]
 			PX_LexerGetState(&Lexer);
-			if (PX_strequ(Lexer.CurLexeme.buffer,"f"))
+			if (PX_strequ(PX_StringGetText(&Lexer.CurLexeme),"f"))
 			{
 				PX_3D_ObjectDataFace Face;
 				px_int v;
@@ -229,7 +229,7 @@ px_bool PX_3D_ObjectDataLoad(PX_3D_ObjectData *ObjectData,const px_byte *data,px
 						PX_LOG("<ERROR> Numeric block is expected but not found");
 						goto _ERROR;
 					}
-					v=PX_atoi(Lexer.CurLexeme.buffer);
+					v=PX_atoi(PX_StringGetText(&Lexer.CurLexeme));
 					
 					if(v>ObjectData->v.size)
 						goto _ERROR;
@@ -246,7 +246,7 @@ px_bool PX_3D_ObjectDataLoad(PX_3D_ObjectData *ObjectData,const px_byte *data,px
 						type=PX_3D_ObjectDataNextTokenSN(&Lexer);
 						if (PX_LexerIsLememeIsNumeric(&Lexer))
 						{
-							v=PX_atoi(Lexer.CurLexeme.buffer);
+							v=PX_atoi(PX_StringGetText(&Lexer.CurLexeme));
 							if(v>ObjectData->vt.size)
 								goto _ERROR;
 							Face.v[i].vt=v;
@@ -272,7 +272,7 @@ px_bool PX_3D_ObjectDataLoad(PX_3D_ObjectData *ObjectData,const px_byte *data,px
 						type=PX_3D_ObjectDataNextTokenSN(&Lexer);
 						if (PX_LexerIsLememeIsNumeric(&Lexer))
 						{
-							v=PX_atoi(Lexer.CurLexeme.buffer);
+							v=PX_atoi(PX_StringGetText(&Lexer.CurLexeme));
 							if(v>ObjectData->vn.size)
 								goto _ERROR;
 							Face.v[i].vn=v;

@@ -136,6 +136,8 @@ int main(int argc,char **argv)
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA );
 
 	PX_srand(314159);
+	PainterEngine_argc = argc;
+	PainterEngine_argv = argv;
 	if(!PX_ApplicationInitialize(&App,PX_GetScreenWidth(),PX_GetScreenHeight()))return 0;
 	if(!PX_CreateWindow(App.runtime.surface_width,App.runtime.surface_height,App.runtime.window_width,App.runtime.window_height,PX_APPLICATION_NAME)) 
 	{

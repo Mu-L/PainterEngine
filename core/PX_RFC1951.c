@@ -124,7 +124,6 @@ px_bool PX_RFC1951Inflate(const px_byte* _in, px_uint input_size, px_memory* _ou
 	do
 	{
 		px_uint32 type;
-		px_int sum = 0;
 		//out of range
 		if (bit_position / 8 > input_size)
 		{

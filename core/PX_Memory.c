@@ -113,7 +113,7 @@ px_bool PX_MemoryCatByte(px_memory* memory, px_byte b)
 	return PX_MemoryCat(memory, &b, 1);
 }
 
-px_byte * PX_MemoryData(px_memory *memory)
+px_byte * PX_MemoryGetData(px_memory *memory)
 {
 	return memory->buffer;
 }
@@ -277,7 +277,7 @@ px_void PX_MemoryLeft(px_memory* memory,px_int trimsize)
 	memory->usedsize = trimsize;
 	memory->bit_pointer = 0;
 }
-px_int PX_MemoryGetUsedSize(px_memory* memory)
+px_int PX_MemoryGetSize(px_memory* memory)
 {
 	return memory->usedsize;
 }

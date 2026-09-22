@@ -38,6 +38,15 @@ px_void PX_ASSERT(void)
 #endif
 }
 
+px_void PX_ASSERTX(const px_char fmt[])
+{
+#ifdef PX_DEBUG_MODE
+	PX_DEBUG_BREAK();
+#endif
+	PX_printf("ASSERT:%s\n", fmt);
+}
+
+
 px_void PX_ERROR(const px_char fmt[])
 {
 	PX_ASSERT();
@@ -51,8 +60,6 @@ px_char * PX_GETLOG(void)
 
 px_void PX_LOG(const px_char fmt[])
 {
-	int errcode;
-	errcode = 0;
 }
 
 px_void PX_NOP()

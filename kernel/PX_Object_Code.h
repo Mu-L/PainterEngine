@@ -25,6 +25,7 @@ typedef struct
 	PX_Object* content_vslider_bar;
 	px_int cursor_abi_index;
 	px_int cursorx, cursory;
+	px_int current_lexer_index;
 	px_int current_cursor_line;
 	px_int current_panel_max_row;
 	px_color bordercolor;
@@ -35,10 +36,13 @@ px_void PX_Object_Code_SetSource(PX_Object* pObject, PX_SyntaxLexer_Source* pSou
 px_void PX_Object_Code_SetCursorLine(PX_Object* pObject, px_int line);
 px_void PX_Object_Code_SetCursorLineAndView(PX_Object* pObject, px_int line);
 px_int  PX_Object_Code_GetCursorAbiIndex(PX_Object* pObject);
+px_abi* PX_Object_Code_GetDescAbi(PX_Object* pObject, px_int abi_index);
+px_abi* PX_Object_Code_GetCursorAbi(PX_Object* pObject);
 px_int  PX_Object_Code_GetCurrentCursorLine(PX_Object* pObject);
 px_int  PX_Object_Code_GetScrollOffsetX(PX_Object* pObject);
 px_int  PX_Object_Code_GetScrollOffsetYRow(PX_Object* pObject);
 px_void PX_Object_Code_SetScrollOffset(PX_Object* pObject, px_int row_offset, px_int x_offset);
 px_void PX_Object_Code_SetBorderColor(PX_Object* pObject, px_color color);
-
+px_void PX_Object_Code_SetCurrentLexerIndex(PX_Object* pObject, px_int lexer_index);
+px_void PX_Object_Code_Refresh(PX_Object* pObject);
 #endif

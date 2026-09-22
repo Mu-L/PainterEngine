@@ -24,7 +24,7 @@ void PX_AudioSetVolume(unsigned int volume)
 }
 
 
-int main()
+int main(int argc, char **argv)
 {
     px_int fbfd, flags;
     px_color* gram32;
@@ -42,6 +42,8 @@ int main()
     if (px_main_touch_fd == -1)
         return 0;
 
+    PainterEngine_argc = argc;
+    PainterEngine_argv = argv;
     if (!PX_ApplicationInitialize(&App, px_main_screen_width, px_main_screen_height))
         return 0;
 

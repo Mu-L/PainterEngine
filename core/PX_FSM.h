@@ -1,7 +1,7 @@
 #ifndef PX_FSM_H
 #define PX_FSM_H
 #include "PX_Vector.h"
-
+#include "PX_Abi.h"
 typedef struct _PX_FSM PX_FSM;
 
 typedef struct
@@ -37,6 +37,7 @@ struct _PX_FSM
 	px_memorypool* mp;
 	px_int current_state_index;
 	px_vector states;
+	px_abi parameters;
 };
 
 
@@ -68,5 +69,22 @@ px_bool PX_FSM_NewState(PX_FSM* fsm, px_int state, pfsm_update_function update_f
 px_bool PX_FSM_RegisterEvent(PX_FSM* fsm, px_int state, px_uint Event, pfsm_event_function EventFunc, px_void* user_ptr);
 px_void PX_FSM_ExecuteEvent(PX_FSM* fsm, PX_FSM_Event e);
 px_bool PX_FSM_SetState(PX_FSM* fsm, px_int state);
+
+px_bool PX_FSM_SetParameter_int(PX_FSM* fsm,const px_char payload[], px_int _int);
+px_bool PX_FSM_SetParameter_dword(PX_FSM* fsm, const px_char payload[], px_dword _dword);
+px_bool PX_FSM_SetParameter_float(PX_FSM* fsm, const px_char payload[], px_float _float);
+px_bool PX_FSM_SetParameter_data(PX_FSM* fsm, const px_char payload[], px_void* ptr, px_int size);
+
+px_bool PX_FSM_CheckParameterExist(PX_FSM* fsm, const px_char payload[]);
+
+px_int PX_FSM_GetParameter_int(PX_FSM* fsm, const px_char payload[]);
+px_dword PX_FSM_GetParameter_dword(PX_FSM* fsm, const px_char payload[]);
+px_float PX_FSM_GetParameter_float(PX_FSM* fsm, const px_char payload[]);
+px_int PX_FSM_GetParameter_datasize(PX_FSM* fsm, const px_char payload[]);
+px_void* PX_FSM_GetParameter_dataptr(PX_FSM* fsm, const px_char payload[]);
+
+px_void PX_FSM_ResetParameter(PX_FSM* fsm, const px_char payload[]);
+px_void PX_FSM_ResetAllParameters(PX_FSM* fsm);
+
 px_int  PX_FSM_GetCurrentState(PX_FSM* fsm);
 #endif // !PX_FSM_H

@@ -81,7 +81,7 @@ px_void* PX_FSM_GetEvent_DataPtr(PX_FSM_Event e)
 px_int PX_FSM_GetEvent_DataSize(PX_FSM_Event e)
 {
 	px_int size;
-	PX_memcpy(&size, e.Param_ptr[1], sizeof(size));
+	PX_memcpy(&size, &e.Param_ptr[1], sizeof(size));
 	return size;
 }
 
@@ -89,10 +89,16 @@ px_int PX_FSM_GetEvent_DataSize(PX_FSM_Event e)
 
 px_bool PX_FSM_Initialize(px_memorypool* mp, PX_FSM* fsm)
 {
-    fsm->mp = mp;
-	if (!PX_VectorInitialize(fsm->mp, &fsm->states, sizeof(PX_FSM_State), 4))
+	if (!mp || !fsm)
 		return PX_FALSE;
+	fsm->mp = mp;
 	fsm->current_state_index = -1;
+	PX_AbiCreate_DynamicWriter(&fsm->parameters, fsm->mp);
+	if (!PX_VectorInitialize(fsm->mp, &fsm->states, sizeof(PX_FSM_State), 4))
+	{
+		PX_AbiFree(&fsm->parameters);
+		return PX_FALSE;
+	}
 	return PX_TRUE;
 }
 
@@ -105,6 +111,7 @@ px_void PX_FSM_Clear(PX_FSM* fsm)
 		PX_FSM_FreeStateActions(fsm, pState);
 	}
 	PX_VectorClear(&fsm->states);
+	PX_AbiClear(&fsm->parameters);
 	fsm->current_state_index = -1;
 }
 
@@ -120,8 +127,12 @@ px_void PX_FSM_Update(PX_FSM* fsm, px_uint elapsed)
 
 px_void PX_FSM_Free(PX_FSM* fsm)
 {
+	if (!fsm)
+		return;
 	PX_FSM_Clear(fsm);
 	PX_VectorFree(&fsm->states);
+	PX_AbiFree(&fsm->parameters);
+	fsm->mp = PX_NULL;
 }
 
 px_bool PX_FSM_NewState(PX_FSM* fsm, px_int state,pfsm_update_function update_function, px_void* userptr)
@@ -189,13 +200,133 @@ px_void PX_FSM_ExecuteEvent(PX_FSM* fsm, PX_FSM_Event e)
 
 px_bool PX_FSM_SetState(PX_FSM* fsm, px_int state)
 {
-	if (!PX_FSM_GetState(fsm, state))
+	px_int state_index = PX_FSM_GetStateIndex(fsm, state);
+	if (state_index < 0)
 	{
 		PX_ASSERTX("state not exist");
 		return PX_FALSE;
 	}
-	fsm->current_state_index = state;
+	fsm->current_state_index = state_index;
+	PX_printf("Switch to state %d\n", fsm->current_state_index);
 	return PX_TRUE;
+}
+
+px_bool PX_FSM_SetParameter_int(PX_FSM* fsm, const px_char payload[], px_int _int)
+{
+	if (!fsm || !payload || !payload[0])
+		return PX_FALSE;
+	return PX_AbiSet_int(&fsm->parameters, payload, _int);
+}
+
+px_bool PX_FSM_SetParameter_dword(PX_FSM* fsm, const px_char payload[], px_dword _dword)
+{
+	if (!fsm || !payload || !payload[0])
+		return PX_FALSE;
+	return PX_AbiSet_dword(&fsm->parameters, payload, _dword);
+}
+
+px_bool PX_FSM_SetParameter_float(PX_FSM* fsm, const px_char payload[], px_float _float)
+{
+	if (!fsm || !payload || !payload[0])
+		return PX_FALSE;
+	return PX_AbiSet_float(&fsm->parameters, payload, _float);
+}
+
+px_bool PX_FSM_SetParameter_data(PX_FSM* fsm, const px_char payload[], px_void* ptr, px_int size)
+{
+	if (!fsm || !payload || !payload[0] || size < 0)
+		return PX_FALSE;
+	return PX_AbiSet_data(&fsm->parameters, payload, ptr, size);
+}
+
+px_bool PX_FSM_CheckParameterExist(PX_FSM* fsm, const px_char payload[])
+{
+	if (!fsm || !payload || !payload[0])
+		return PX_FALSE;
+	return PX_AbiExist(&fsm->parameters, payload);
+}
+
+px_int PX_FSM_GetParameter_int(PX_FSM* fsm, const px_char payload[])
+{
+	px_int* pvalue;
+	if (!fsm || !payload || !payload[0])
+	{
+		PX_ASSERTX("invalid parameter");
+		return 0;
+	}
+	pvalue = PX_AbiGet_int(&fsm->parameters, payload);
+	return pvalue ? *pvalue : 0;
+}
+
+px_dword PX_FSM_GetParameter_dword(PX_FSM* fsm, const px_char payload[])
+{
+	px_dword* pvalue;
+	if (!fsm || !payload || !payload[0])
+	{
+		PX_ASSERTX("invalid parameter");
+		return 0;
+	}
+	pvalue = PX_AbiGet_dword(&fsm->parameters, payload);
+	return pvalue ? *pvalue : 0;
+}
+
+px_float PX_FSM_GetParameter_float(PX_FSM* fsm, const px_char payload[])
+{
+	px_float* pvalue;
+	if (!fsm || !payload || !payload[0])
+	{
+		PX_ASSERTX("invalid parameter");
+		return 0;
+	}
+	pvalue = PX_AbiGet_float(&fsm->parameters, payload);
+	return pvalue ? *pvalue : 0;
+}
+
+px_int PX_FSM_GetParameter_datasize(PX_FSM* fsm, const px_char payload[])
+{
+	px_dword size = 0;
+	if (!fsm || !payload || !payload[0])
+	{
+		PX_ASSERTX("invalid parameter");
+		return 0;
+	}
+	if (!PX_AbiGet_data(&fsm->parameters, payload, &size))
+	{
+		PX_ASSERTX("invalid parameter");
+		return 0;
+	}
+	return (px_int)size;
+}
+
+px_void* PX_FSM_GetParameter_dataptr(PX_FSM* fsm, const px_char payload[])
+{
+	px_dword size;
+	if (!fsm || !payload || !payload[0])
+	{
+		PX_ASSERTX("invalid parameter");
+		return 0;
+	}
+	return PX_AbiGet_data(&fsm->parameters, payload, &size);
+}
+
+px_void PX_FSM_ResetParameter(PX_FSM* fsm, const px_char payload[])
+{
+	if (!fsm || !payload || !payload[0])
+	{
+		PX_ASSERTX("invalid parameter");
+		return;
+	}
+	PX_AbiDelete(&fsm->parameters, payload);
+}
+
+px_void PX_FSM_ResetAllParameters(PX_FSM* fsm)
+{
+	if (!fsm)
+	{
+		PX_ASSERTX("invalid parameter");
+		return;
+	}
+	PX_AbiClear(&fsm->parameters);
 }
 
 px_int PX_FSM_GetCurrentState(PX_FSM* fsm)

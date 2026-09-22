@@ -16,7 +16,7 @@ px_void PX_Machine_Crash(PX_Machine* pmac, const px_char* message)
 px_void PX_Machine_Execute_Opcode_loadxx(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip,px_bool is_signed,px_int x)
 {
 	px_dword target_reg;
-	px_bool is_global;
+	px_dword addr_mode;
 	px_dword offset;
 	px_dword address;
 	if (pthread->ip+6>=pmac->runtime_memory_size)
@@ -25,11 +25,19 @@ px_void PX_Machine_Execute_Opcode_loadxx(PX_Machine* pmac, PX_Machine_Thread* pt
 		return;
 	}
 	target_reg = ip[1] & 0x0f;
-	is_global = (ip[1] & 0x10) ? PX_FALSE:PX_TRUE;
+	addr_mode = ip[1] & 0xf0;
 	offset = *(px_dword*)(ip + 2);
-	if (!is_global)
+	if (addr_mode == 0x10)
 	{
 		address = pthread->bp - offset;
+	}
+	else if (addr_mode == 0x20)
+	{
+		address = pthread->sp + offset;
+	}
+	else if (addr_mode == 0x30)
+	{
+		address = pthread->bp + offset;
 	}
 	else
 	{
@@ -40,7 +48,7 @@ px_void PX_Machine_Execute_Opcode_loadxx(PX_Machine* pmac, PX_Machine_Thread* pt
 		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_loadu8: load address out of range");
 		return;
 	}
-	if (target_reg>1)
+	if (target_reg > 7)
 	{
 		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_loadu8: target register out of range");
 		return;
@@ -87,7 +95,7 @@ px_void PX_Machine_Execute_Opcode_loadxx(PX_Machine* pmac, PX_Machine_Thread* pt
 px_void PX_Machine_Execute_Opcode_storex(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip,  px_int x)
 {
 	px_dword source_reg;
-	px_bool is_global;
+	px_dword addr_mode;
 	px_dword offset;
 	px_dword address;
 	if (pthread->ip + 6 >= pmac->runtime_memory_size)
@@ -96,11 +104,19 @@ px_void PX_Machine_Execute_Opcode_storex(PX_Machine* pmac, PX_Machine_Thread* pt
 		return;
 	}
 	source_reg = ip[1] & 0x0f;
-	is_global = (ip[1] & 0x10) ?  PX_FALSE:PX_TRUE;
+	addr_mode = ip[1] & 0xf0;
 	offset = *(px_dword*)(ip + 2);
-	if (!is_global)
+	if (addr_mode == 0x10)
 	{
 		address = pthread->bp - offset;
+	}
+	else if (addr_mode == 0x20)
+	{
+		address = pthread->sp + offset;
+	}
+	else if (addr_mode == 0x30)
+	{
+		address = pthread->bp + offset;
 	}
 	else
 	{
@@ -111,7 +127,7 @@ px_void PX_Machine_Execute_Opcode_storex(PX_Machine* pmac, PX_Machine_Thread* pt
 		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_storex: store address out of range");
 		return;
 	}
-	if (source_reg > 1)
+	if (source_reg > 7)
 	{
 		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_storex: source register out of range");
 		return;
@@ -133,6 +149,204 @@ px_void PX_Machine_Execute_Opcode_storex(PX_Machine* pmac, PX_Machine_Thread* pt
 	}
 	pthread->ip += 6;
 
+}
+
+px_void PX_Machine_Execute_Opcode_loadxxr(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip, px_bool is_signed, px_int x)
+{
+	px_dword reg;
+	px_dword address;
+
+	if (pthread->ip + 2 >= pmac->runtime_memory_size)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_loadxxr: thread ip out of range");
+		return;
+	}
+	reg = ip[1] & 0x0f;
+	if (reg > 7)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_loadxxr: register out of range");
+		return;
+	}
+
+	/* Capture the address before writing the loaded value back to the same register. */
+	address = pthread->r[reg];
+	if (address + (px_dword)(x / 8) > pmac->runtime_memory_size)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_loadxxr: load address out of range");
+		return;
+	}
+
+	if (is_signed)
+	{
+		switch (x)
+		{
+		case 8:
+			pthread->r[reg] = (px_dword)(px_char)pmac->runtime_memory[address];
+			break;
+		case 16:
+			pthread->r[reg] = (px_dword)(px_short)(*(px_word*)&pmac->runtime_memory[address]);
+			break;
+		case 32:
+			pthread->r[reg] = *(px_dword*)&pmac->runtime_memory[address];
+			break;
+		default:
+			PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_loadxxr: x error");
+			return;
+		}
+	}
+	else
+	{
+		switch (x)
+		{
+		case 8:
+			pthread->r[reg] = (px_dword)(px_byte)pmac->runtime_memory[address];
+			break;
+		case 16:
+			pthread->r[reg] = (px_dword)(px_word)(*(px_word*)&pmac->runtime_memory[address]);
+			break;
+		case 32:
+			pthread->r[reg] = *(px_dword*)&pmac->runtime_memory[address];
+			break;
+		default:
+			PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_loadxxr: x error");
+			return;
+		}
+	}
+	pthread->ip += 2;
+}
+
+px_void PX_Machine_Execute_Opcode_storexr(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip, px_int x)
+{
+	px_dword val_reg, addr_reg;
+	px_dword address;
+	if (pthread->ip + 2 >= pmac->runtime_memory_size)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_storexr: thread ip out of range");
+		return;
+	}
+	val_reg  = ip[1] & 0x0f;
+	addr_reg = (ip[1] >> 4) & 0x0f;
+	if (val_reg > 7 || addr_reg > 7)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_storexr: register out of range");
+		return;
+	}
+	address = pthread->r[addr_reg];
+	if (address + (px_dword)(x / 8) > pmac->runtime_memory_size)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_storexr: store address out of range");
+		return;
+	}
+	switch (x)
+	{
+	case 8:
+		pmac->runtime_memory[address] = (px_byte)(pthread->r[val_reg] & 0xFF);
+		break;
+	case 16:
+		*(px_word*)&pmac->runtime_memory[address] = (px_word)(pthread->r[val_reg] & 0xFFFF);
+		break;
+	case 32:
+		*(px_dword*)&pmac->runtime_memory[address] = pthread->r[val_reg];
+		break;
+	default:
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_storexr: x error");
+		return;
+	}
+	pthread->ip += 2;
+}
+
+px_void PX_Machine_Execute_Opcode_storexrc(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip, px_int x)
+{
+	px_dword addr_reg;
+	px_dword address;
+	px_dword const_value;
+	if (pthread->ip + 6 >= pmac->runtime_memory_size)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_storexrc: thread ip out of range");
+		return;
+	}
+	addr_reg = ip[1] & 0x0f;
+	if (addr_reg > 7)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_storexrc: register out of range");
+		return;
+	}
+	address = pthread->r[addr_reg];
+	const_value = *(px_dword*)(ip + 2);
+	if (address + (px_dword)(x / 8) > pmac->runtime_memory_size)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_storexrc: store address out of range");
+		return;
+	}
+	switch (x)
+	{
+	case 8:
+		pmac->runtime_memory[address] = (px_byte)(const_value & 0xFF);
+		break;
+	case 16:
+		*(px_word*)&pmac->runtime_memory[address] = (px_word)(const_value & 0xFFFF);
+		break;
+	case 32:
+		*(px_dword*)&pmac->runtime_memory[address] = const_value;
+		break;
+	default:
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_storexrc: x error");
+		return;
+	}
+	pthread->ip += 6;
+}
+
+px_void PX_Machine_Execute_Opcode_storexc(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip, px_int x)
+{
+	px_dword addr_mode;
+	px_dword offset;
+	px_dword address;
+	px_dword const_value;
+	if (pthread->ip + 10 >= pmac->runtime_memory_size)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_storexc: thread ip out of range");
+		return;
+	}
+	addr_mode   = ip[1];
+	offset      = *(px_dword*)(ip + 2);
+	const_value = *(px_dword*)(ip + 6);
+	if (addr_mode == 0x01)
+	{
+		address = pthread->bp - offset;
+	}
+	else if (addr_mode == 0x02)
+	{
+		address = pthread->sp + offset;
+	}
+	else if (addr_mode == 0x03)
+	{
+		address = pthread->bp + offset;
+	}
+	else
+	{
+		address = offset;
+	}
+	if (address + (px_dword)(x / 8) > pmac->runtime_memory_size)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_storexc: store address out of range");
+		return;
+	}
+	switch (x)
+	{
+	case 8:
+		pmac->runtime_memory[address] = (px_byte)(const_value & 0xFF);
+		break;
+	case 16:
+		*(px_word*)&pmac->runtime_memory[address] = (px_word)(const_value & 0xFFFF);
+		break;
+	case 32:
+		*(px_dword*)&pmac->runtime_memory[address] = const_value;
+		break;
+	default:
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_storexc: x error");
+		return;
+	}
+	pthread->ip += 10;
 }
 
 px_void PX_Machine_Execute_Opcode_pushad(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
@@ -246,11 +460,55 @@ px_void PX_Machine_Execute_Opcode_movr(PX_Machine* pmac, PX_Machine_Thread* pthr
 	pthread->ip += 3;
 }
 
-px_void PX_Machine_Execute_Opcode_movc_movf(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
+px_void PX_Machine_Execute_Opcode_movc(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
 {
-	if (pthread->ip + 6 >= pmac->runtime_memory_size)
+	px_int dst_index;
+	px_byte addr_mode;
+	px_dword offset;
+	px_dword value;
+
+	if (pthread->ip > pmac->runtime_memory_size || pmac->runtime_memory_size - pthread->ip < 7)
 	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_movc/movf: thread ip out of range");
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_movc: thread ip out of range");
+		return;
+	}
+
+	dst_index = (px_int)ip[1];
+	if (dst_index > 7)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_movc: dst register out of range");
+		return;
+	}
+	addr_mode = ip[2];
+	PX_memcpy(&offset, ip + 3, sizeof(offset));
+	switch (addr_mode)
+	{
+	case 0:
+		value = offset;
+		break;
+	case 1:
+		value = pthread->bp - offset;
+		break;
+	case 2:
+		value = pthread->sp + offset;
+		break;
+	case 3:
+		value = pthread->bp + offset;
+		break;
+	default:
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_movc: invalid address mode");
+		return;
+	}
+
+	pthread->r[dst_index] = value;
+	pthread->ip += 7;
+}
+
+px_void PX_Machine_Execute_Opcode_movf(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
+{
+	if (pthread->ip > pmac->runtime_memory_size || pmac->runtime_memory_size - pthread->ip < 6)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_movf: thread ip out of range");
 		return;
 	}
 	do
@@ -259,7 +517,7 @@ px_void PX_Machine_Execute_Opcode_movc_movf(PX_Machine* pmac, PX_Machine_Thread*
 		px_dword constant_value = *(px_dword*)(ip + 2);
 		if (dst_index>7)
 		{
-			PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_movc/movf: dst register out of range");
+			PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_movf: dst register out of range");
 			return;
 		}
 		pthread->r[dst_index] = constant_value;
@@ -271,12 +529,12 @@ px_void PX_Machine_Execute_Opcode_movn(PX_Machine* pmac, PX_Machine_Thread* pthr
 {
 	if (pthread->ip + 1 >= pmac->runtime_memory_size)
 	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_movc/movf: thread ip out of range");
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_movn: thread ip out of range");
 		return;
 	}
 	if ((pthread->r0 + pthread->r2 > pmac->runtime_memory_size)||(pthread->r1+ pthread->r2> pmac->runtime_memory_size))
 	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_movc/movn: memory copy out of range");
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_movn: memory copy out of range");
 		return;
 	}
 	PX_memcpy(pmac->runtime_memory + pthread->r1, pmac->runtime_memory + pthread->r0, pthread->r2);
@@ -411,137 +669,415 @@ px_void PX_Machine_Execute_Opcode_neg(PX_Machine* pmac, PX_Machine_Thread* pthre
 
 px_void PX_Machine_Execute_Opcode_add(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
 {
-	px_int dst_index, src1_index, src2_index;
-	if (pthread->ip + 3 >= pmac->runtime_memory_size)
+	px_int dst_index, src_index;
+	if (pthread->ip + 2 >= pmac->runtime_memory_size)
 	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_neg: thread ip out of range");
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_add: thread ip out of range");
 		return;
 	}
-	dst_index = (px_int)((ip[1] & 0x0f));
-	src1_index = (px_int)((ip[1] & 0xf0) >> 4);
-	src2_index = (px_int)((ip[2] & 0x0f));
-	if (dst_index > 7 || src1_index > 7 || src2_index > 7)
+	dst_index = (px_int)(ip[1] & 0x0f);
+	src_index = (px_int)((ip[1] >> 4) & 0x0f);
+	if (dst_index > 7 || src_index > 7)
 	{
 		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_add: register out of range");
 		return;
 	}
-	pthread->r[dst_index] = pthread->r[src1_index] + pthread->r[src2_index];
-	pthread->ip += 3;
+	pthread->r[dst_index] += pthread->r[src_index];
+	pthread->ip += 2;
 }
 
 px_void PX_Machine_Execute_Opcode_sub(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
 {
-	px_int dst_index, src1_index, src2_index;
-	if (pthread->ip + 3 >= pmac->runtime_memory_size)
+	px_int dst_index, src_index;
+	if (pthread->ip + 2 >= pmac->runtime_memory_size)
 	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_neg: thread ip out of range");
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_sub: thread ip out of range");
 		return;
 	}
-	dst_index = (px_int)((ip[1] & 0x0f));
-	src1_index = (px_int)((ip[1] & 0xf0) >> 4);
-	src2_index = (px_int)((ip[2] & 0x0f));
-	if (dst_index > 7 || src1_index > 7 || src2_index > 7)
+	dst_index = (px_int)(ip[1] & 0x0f);
+	src_index = (px_int)((ip[1] >> 4) & 0x0f);
+	if (dst_index > 7 || src_index > 7)
 	{
 		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_sub: register out of range");
 		return;
 	}
-	pthread->r[dst_index] = pthread->r[src1_index] - pthread->r[src2_index];
-	pthread->ip += 3;
+	pthread->r[dst_index] -= pthread->r[src_index];
+	pthread->ip += 2;
 }
 
 px_void PX_Machine_Execute_Opcode_mul(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
 {
-	px_int dst_index, src1_index, src2_index;
-	if (pthread->ip + 3 >= pmac->runtime_memory_size)
+	px_int dst_index, src_index;
+	if (pthread->ip + 2 >= pmac->runtime_memory_size)
 	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_neg: thread ip out of range");
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_mul: thread ip out of range");
 		return;
 	}
-	dst_index = (px_int)((ip[1] & 0x0f));
-	src1_index = (px_int)((ip[1] & 0xf0) >> 4);
-	src2_index = (px_int)((ip[2] & 0x0f));
-	if (dst_index > 7 || src1_index > 7 || src2_index > 7)
+	dst_index = (px_int)(ip[1] & 0x0f);
+	src_index = (px_int)((ip[1] >> 4) & 0x0f);
+	if (dst_index > 7 || src_index > 7)
 	{
 		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_mul: register out of range");
 		return;
 	}
-	pthread->r[dst_index] = pthread->r[src1_index] * pthread->r[src2_index];
-	pthread->ip += 3;
+	pthread->r[dst_index] *= pthread->r[src_index];
+	pthread->ip += 2;
 }
 
 px_void PX_Machine_Execute_Opcode_div(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
 {
-	px_int dst_index, src1_index, src2_index;
-	if (pthread->ip + 3 >= pmac->runtime_memory_size)
+	px_int dst_index, src_index;
+	if (pthread->ip + 2 >= pmac->runtime_memory_size)
 	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_neg: thread ip out of range");
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_div: thread ip out of range");
 		return;
 	}
-	dst_index = (px_int)((ip[1] & 0x0f));
-	src1_index = (px_int)((ip[1] & 0xf0) >> 4);
-	src2_index = (px_int)((ip[2] & 0x0f));
-	if (dst_index > 7 || src1_index > 7 || src2_index > 7)
+	dst_index = (px_int)(ip[1] & 0x0f);
+	src_index = (px_int)((ip[1] >> 4) & 0x0f);
+	if (dst_index > 7 || src_index > 7)
 	{
 		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_div: register out of range");
 		return;
 	}
-	if (pthread->r[src2_index] == 0)
+	if (pthread->r[src_index] == 0)
 	{
 		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_div: divide by zero");
 		return;
 	}
-	pthread->r[dst_index] = pthread->r[src1_index] / pthread->r[src2_index];
-	pthread->ip += 3;
+	pthread->r[dst_index] /= pthread->r[src_index];
+	pthread->ip += 2;
 }
 
 px_void PX_Machine_Execute_Opcode_idiv(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
 {
-	px_int dst_index, src1_index, src2_index;
-	if (pthread->ip + 3 >= pmac->runtime_memory_size)
+	px_int dst_index, src_index;
+	if (pthread->ip + 2 >= pmac->runtime_memory_size)
 	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_neg: thread ip out of range");
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_idiv: thread ip out of range");
 		return;
 	}
-	dst_index = (px_int)((ip[1] & 0x0f));
-	src1_index = (px_int)((ip[1] & 0xf0) >> 4);
-	src2_index = (px_int)((ip[2] & 0x0f));
-	if (dst_index > 7 || src1_index > 7 || src2_index > 7)
+	dst_index = (px_int)(ip[1] & 0x0f);
+	src_index = (px_int)((ip[1] >> 4) & 0x0f);
+	if (dst_index > 7 || src_index > 7)
 	{
 		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_idiv: register out of range");
 		return;
 	}
-	if ((px_int)pthread->r[src2_index] == 0)
+	if ((px_int)pthread->r[src_index] == 0)
 	{
 		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_idiv: divide by zero");
 		return;
 	}
-	pthread->r[dst_index] = (px_dword)((px_int)pthread->r[src1_index] / (px_int)pthread->r[src2_index]);
-	pthread->ip += 3;
+	pthread->r[dst_index] = (px_dword)((px_int)pthread->r[dst_index] / (px_int)pthread->r[src_index]);
+	pthread->ip += 2;
 }
 
 px_void PX_Machine_Execute_Opcode_mod(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
 {
-	px_int dst_index, src1_index, src2_index;
-	if (pthread->ip + 3 >= pmac->runtime_memory_size)
+	px_int dst_index, src_index;
+	if (pthread->ip + 2 >= pmac->runtime_memory_size)
 	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_neg: thread ip out of range");
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_mod: thread ip out of range");
 		return;
 	}
-	dst_index = (px_int)((ip[1] & 0x0f));
-	src1_index = (px_int)((ip[1] & 0xf0) >> 4);
-	src2_index = (px_int)((ip[2] & 0x0f));
-	if (dst_index > 7 || src1_index > 7 || src2_index > 7)
+	dst_index = (px_int)(ip[1] & 0x0f);
+	src_index = (px_int)((ip[1] >> 4) & 0x0f);
+	if (dst_index > 7 || src_index > 7)
 	{
 		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_mod: register out of range");
 		return;
 	}
-	if (pthread->r[src2_index] == 0)
+	if (pthread->r[src_index] == 0)
 	{
 		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_mod: divide by zero");
 		return;
 	}
-	pthread->r[dst_index] = pthread->r[src1_index] % pthread->r[src2_index];
-	pthread->ip += 3;
+	pthread->r[dst_index] %= pthread->r[src_index];
+	pthread->ip += 2;
+}
+
+px_void PX_Machine_Execute_Opcode_addc(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
+{
+	px_int dst_index;
+	px_dword const_value;
+	if (pthread->ip + 6 >= pmac->runtime_memory_size)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_addc: thread ip out of range");
+		return;
+	}
+	dst_index = (px_int)((ip[1] & 0x0f));
+	if (dst_index > 7)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_addc: register out of range");
+		return;
+	}
+	PX_memcpy(&const_value, ip + 2, sizeof(px_dword));
+	pthread->r[dst_index] += const_value;
+	pthread->ip += 6;
+}
+
+px_void PX_Machine_Execute_Opcode_subc(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
+{
+	px_int dst_index;
+	px_dword const_value;
+	if (pthread->ip + 6 >= pmac->runtime_memory_size)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_subc: thread ip out of range");
+		return;
+	}
+	dst_index = (px_int)((ip[1] & 0x0f));
+	if (dst_index > 7)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_subc: register out of range");
+		return;
+	}
+	PX_memcpy(&const_value, ip + 2, sizeof(px_dword));
+	pthread->r[dst_index] -= const_value;
+	pthread->ip += 6;
+}
+
+px_void PX_Machine_Execute_Opcode_mulc(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
+{
+	px_int dst_index;
+	px_dword const_value;
+	if (pthread->ip + 6 >= pmac->runtime_memory_size)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_mulc: thread ip out of range");
+		return;
+	}
+	dst_index = (px_int)((ip[1] & 0x0f));
+	if (dst_index > 7)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_mulc: register out of range");
+		return;
+	}
+	PX_memcpy(&const_value, ip + 2, sizeof(px_dword));
+	pthread->r[dst_index] *= const_value;
+	pthread->ip += 6;
+}
+
+px_void PX_Machine_Execute_Opcode_divc(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
+{
+	px_int dst_index;
+	px_dword const_value;
+	if (pthread->ip + 6 >= pmac->runtime_memory_size)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_divc: thread ip out of range");
+		return;
+	}
+	dst_index = (px_int)((ip[1] & 0x0f));
+	if (dst_index > 7)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_divc: register out of range");
+		return;
+	}
+	PX_memcpy(&const_value, ip + 2, sizeof(px_dword));
+	if (const_value == 0)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_divc: divide by zero");
+		return;
+	}
+	pthread->r[dst_index] /= const_value;
+	pthread->ip += 6;
+}
+
+px_void PX_Machine_Execute_Opcode_idivc(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
+{
+	px_int dst_index;
+	px_int const_value;
+	if (pthread->ip + 6 >= pmac->runtime_memory_size)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_idivc: thread ip out of range");
+		return;
+	}
+	dst_index = (px_int)((ip[1] & 0x0f));
+	if (dst_index > 7)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_idivc: register out of range");
+		return;
+	}
+	PX_memcpy(&const_value, ip + 2, sizeof(px_int));
+	if (const_value == 0)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_idivc: divide by zero");
+		return;
+	}
+	pthread->r[dst_index] = (px_dword)((px_int)pthread->r[dst_index] / const_value);
+	pthread->ip += 6;
+}
+
+px_void PX_Machine_Execute_Opcode_modc(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
+{
+	px_int dst_index;
+	px_dword const_value;
+	if (pthread->ip + 6 >= pmac->runtime_memory_size)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_modc: thread ip out of range");
+		return;
+	}
+	dst_index = (px_int)((ip[1] & 0x0f));
+	if (dst_index > 7)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_modc: register out of range");
+		return;
+	}
+	PX_memcpy(&const_value, ip + 2, sizeof(px_dword));
+	if (const_value == 0)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_modc: divide by zero");
+		return;
+	}
+	pthread->r[dst_index] %= const_value;
+	pthread->ip += 6;
+}
+
+px_void PX_Machine_Execute_Opcode_imod(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
+{
+	px_int dst_index, src_index;
+	if (pthread->ip + 2 >= pmac->runtime_memory_size)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_imod: thread ip out of range");
+		return;
+	}
+	dst_index = (px_int)((ip[1] & 0x0f));
+	src_index = (px_int)((ip[1] >> 4) & 0x0f);
+	if (dst_index > 7 || src_index > 7)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_imod: register out of range");
+		return;
+	}
+	if ((px_int)pthread->r[src_index] == 0)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_imod: divide by zero");
+		return;
+	}
+	pthread->r[dst_index] = (px_dword)((px_int)pthread->r[dst_index] % (px_int)pthread->r[src_index]);
+	pthread->ip += 2;
+}
+
+px_void PX_Machine_Execute_Opcode_imodc(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
+{
+	px_int dst_index;
+	px_dword const_value;
+	if (pthread->ip + 6 >= pmac->runtime_memory_size)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_imodc: thread ip out of range");
+		return;
+	}
+	dst_index = (px_int)((ip[1] & 0x0f));
+	if (dst_index > 7)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_imodc: register out of range");
+		return;
+	}
+	PX_memcpy(&const_value, ip + 2, sizeof(px_dword));
+	if ((px_int)const_value == 0)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_imodc: divide by zero");
+		return;
+	}
+	pthread->r[dst_index] = (px_dword)((px_int)pthread->r[dst_index] % (px_int)const_value);
+	pthread->ip += 6;
+}
+
+px_void PX_Machine_Execute_Opcode_andc(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
+{
+	px_int dst_index;
+	px_dword const_value;
+	if (pthread->ip + 6 >= pmac->runtime_memory_size)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_andc: thread ip out of range");
+		return;
+	}
+	dst_index = (px_int)((ip[1] & 0x0f));
+	if (dst_index > 7)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_andc: register out of range");
+		return;
+	}
+	PX_memcpy(&const_value, ip + 2, sizeof(px_dword));
+	pthread->r[dst_index] &= const_value;
+	pthread->ip += 6;
+}
+
+px_void PX_Machine_Execute_Opcode_orc(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
+{
+	px_int dst_index;
+	px_dword const_value;
+	if (pthread->ip + 6 >= pmac->runtime_memory_size)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_orc: thread ip out of range");
+		return;
+	}
+	dst_index = (px_int)((ip[1] & 0x0f));
+	if (dst_index > 7)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_orc: register out of range");
+		return;
+	}
+	PX_memcpy(&const_value, ip + 2, sizeof(px_dword));
+	pthread->r[dst_index] |= const_value;
+	pthread->ip += 6;
+}
+
+px_void PX_Machine_Execute_Opcode_xorc(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
+{
+	px_int dst_index;
+	px_dword const_value;
+	if (pthread->ip + 6 >= pmac->runtime_memory_size)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_xorc: thread ip out of range");
+		return;
+	}
+	dst_index = (px_int)((ip[1] & 0x0f));
+	if (dst_index > 7)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_xorc: register out of range");
+		return;
+	}
+	PX_memcpy(&const_value, ip + 2, sizeof(px_dword));
+	pthread->r[dst_index] ^= const_value;
+	pthread->ip += 6;
+}
+
+px_void PX_Machine_Execute_Opcode_shlc(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
+{
+	px_int dst_index;
+	px_dword const_value;
+	if (pthread->ip + 6 >= pmac->runtime_memory_size)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_shlc: thread ip out of range");
+		return;
+	}
+	dst_index = (px_int)((ip[1] & 0x0f));
+	if (dst_index > 7)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_shlc: register out of range");
+		return;
+	}
+	PX_memcpy(&const_value, ip + 2, sizeof(px_dword));
+	pthread->r[dst_index] <<= const_value;
+	pthread->ip += 6;
+}
+
+px_void PX_Machine_Execute_Opcode_shrc(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
+{
+	px_int dst_index;
+	px_dword const_value;
+	if (pthread->ip + 6 >= pmac->runtime_memory_size)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_shrc: thread ip out of range");
+		return;
+	}
+	dst_index = (px_int)((ip[1] & 0x0f));
+	if (dst_index > 7)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_shrc: register out of range");
+		return;
+	}
+	PX_memcpy(&const_value, ip + 2, sizeof(px_dword));
+	pthread->r[dst_index] >>= const_value;
+	pthread->ip += 6;
 }
 
 px_void PX_Machine_Execute_Opcode_fneg(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
@@ -566,230 +1102,225 @@ px_void PX_Machine_Execute_Opcode_fneg(PX_Machine* pmac, PX_Machine_Thread* pthr
 
 px_void PX_Machine_Execute_Opcode_fadd(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
 {
-	px_int dst_index, src1_index, src2_index;
-	if (pthread->ip + 3 >= pmac->runtime_memory_size)
+	px_int dst_index, src_index;
+	if (pthread->ip + 2 >= pmac->runtime_memory_size)
 	{
 		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_fadd: thread ip out of range");
 		return;
 	}
-	dst_index = (px_int)((ip[1] & 0x0f));
-	src1_index = (px_int)((ip[1] & 0xf0) >> 4);
-	src2_index = (px_int)((ip[2] & 0x0f));
-	if (dst_index > 3 || src1_index > 3 || src2_index > 3)
+	dst_index = (px_int)(ip[1] & 0x0f);
+	src_index = (px_int)((ip[1] >> 4) & 0x0f);
+	if (dst_index > 3 || src_index > 3)
 	{
 		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_fadd: float register out of range");
 		return;
 	}
-	pthread->f[dst_index] = pthread->f[src1_index] + pthread->f[src2_index];
-	pthread->ip += 3;
+	pthread->f[dst_index] += pthread->f[src_index];
+	pthread->ip += 2;
 }
 
 px_void PX_Machine_Execute_Opcode_fsub(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
 {
-	px_int dst_index, src1_index, src2_index;
-	if (pthread->ip + 3 >= pmac->runtime_memory_size)
+	px_int dst_index, src_index;
+	if (pthread->ip + 2 >= pmac->runtime_memory_size)
 	{
 		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_fsub: thread ip out of range");
 		return;
 	}
-	dst_index = (px_int)((ip[1] & 0x0f));
-	src1_index = (px_int)((ip[1] & 0xf0) >> 4);
-	src2_index = (px_int)((ip[2] & 0x0f));
-	if (dst_index > 3 || src1_index > 3 || src2_index > 3)
+	dst_index = (px_int)(ip[1] & 0x0f);
+	src_index = (px_int)((ip[1] >> 4) & 0x0f);
+	if (dst_index > 3 || src_index > 3)
 	{
 		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_fsub: float register out of range");
 		return;
 	}
-	pthread->f[dst_index] = pthread->f[src1_index] - pthread->f[src2_index];
-	pthread->ip += 3;
+	pthread->f[dst_index] -= pthread->f[src_index];
+	pthread->ip += 2;
 }
 
 px_void PX_Machine_Execute_Opcode_fmul(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
 {
-	px_int dst_index, src1_index, src2_index;
-	if (pthread->ip + 3 >= pmac->runtime_memory_size)
+	px_int dst_index, src_index;
+	if (pthread->ip + 2 >= pmac->runtime_memory_size)
 	{
 		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_fmul: thread ip out of range");
 		return;
 	}
-	dst_index = (px_int)((ip[1] & 0x0f));
-	src1_index = (px_int)((ip[1] & 0xf0) >> 4);
-	src2_index = (px_int)((ip[2] & 0x0f));
-	if (dst_index > 3 || src1_index > 3 || src2_index > 3)
+	dst_index = (px_int)(ip[1] & 0x0f);
+	src_index = (px_int)((ip[1] >> 4) & 0x0f);
+	if (dst_index > 3 || src_index > 3)
 	{
 		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_fmul: float register out of range");
 		return;
 	}
-	pthread->f[dst_index] = pthread->f[src1_index] * pthread->f[src2_index];
-	pthread->ip += 3;
+	pthread->f[dst_index] *= pthread->f[src_index];
+	pthread->ip += 2;
 }
 
 px_void PX_Machine_Execute_Opcode_fdiv(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
 {
-	px_int dst_index, src1_index, src2_index;
-	if (pthread->ip + 3 >= pmac->runtime_memory_size)
+	px_int dst_index, src_index;
+	if (pthread->ip + 2 >= pmac->runtime_memory_size)
 	{
 		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_fdiv: thread ip out of range");
 		return;
 	}
-	dst_index = (px_int)((ip[1] & 0x0f));
-	src1_index = (px_int)((ip[1] & 0xf0) >> 4);
-	src2_index = (px_int)((ip[2] & 0x0f));
-	if (dst_index > 3 || src1_index > 3 || src2_index > 3)
+	dst_index = (px_int)(ip[1] & 0x0f);
+	src_index = (px_int)((ip[1] >> 4) & 0x0f);
+	if (dst_index > 3 || src_index > 3)
 	{
 		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_fdiv: float register out of range");
 		return;
 	}
-	if (pthread->f[src2_index] == 0)
+	if (pthread->f[src_index] == 0)
 	{
 		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_fdiv: divide by zero");
 		return;
 	}
-	pthread->f[dst_index] = pthread->f[src1_index] / pthread->f[src2_index];
-	pthread->ip += 3;
-}
-
-px_void PX_Machine_Execute_Opcode_fcmp(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
-{
-	px_int src1_index, src2_index;
-	if (pthread->ip + 2 >= pmac->runtime_memory_size)
-	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_fcmp: thread ip out of range");
-		return;
-	}
-	src1_index = (px_int)((ip[1] & 0xf0) >> 4);
-	src2_index = (px_int)((ip[1] & 0x0f));
-	if (src1_index > 3 || src2_index > 3)
-	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_fcmp: float register out of range");
-		return;
-	}
-	if (pthread->f[src1_index] == pthread->f[src2_index])
-	{
-		pthread->C0 = 0;
-		pthread->C2 = 0;
-		pthread->C3 = 1;
-
-	}
-	else if (pthread->f[src1_index] > pthread->f[src2_index])
-	{
-		pthread->C0 = 0;
-		pthread->C2 = 0;
-		pthread->C3 = 0;
-	}
-	else
-	{
-		pthread->C0 = 1;
-		pthread->C2 = 0;
-		pthread->C3 = 0;
-	}
-	pthread->ip += 2;
-
-}
-
-px_void PX_Machine_Execute_Opcode_fcomi(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
-{
-	px_int src1_index, src2_index;
-	if (pthread->ip + 2 >= pmac->runtime_memory_size)
-	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_fcomi: thread ip out of range");
-		return;
-	}
-	src1_index = (px_int)((ip[1] & 0xf0) >> 4);
-	src2_index = (px_int)((ip[1] & 0x0f));
-	if (src1_index > 3 || src2_index > 3)
-	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_fcomi: float register out of range");
-		return;
-	}
-	if (pthread->f[src1_index] == pthread->f[src2_index])
-	{
-		pthread->Z = PX_TRUE;
-		pthread->C = PX_FALSE;
-	}
-	else if (pthread->f[src1_index] > pthread->f[src2_index])
-	{
-		pthread->Z = PX_FALSE;
-		pthread->C = PX_FALSE;
-	}
-	else
-	{
-		pthread->Z = PX_FALSE;
-		pthread->C = PX_TRUE;
-	}
+	pthread->f[dst_index] /= pthread->f[src_index];
 	pthread->ip += 2;
 }
 
-px_void PX_Machine_Execute_Opcode_ff2f(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
+px_void PX_Machine_Execute_Opcode_faddc(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
 {
-	if (pthread->ip + 1 >= pmac->runtime_memory_size)
+	px_int dst_index;
+	px_float const_value;
+	if (pthread->ip + 6 >= pmac->runtime_memory_size)
 	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_fstsw: thread ip out of range");
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_faddc: thread ip out of range");
 		return;
 	}
-	pthread->Z = pthread->C3;
-	pthread->C = pthread->C0;
-	pthread->ip += 1;
+	dst_index = (px_int)((ip[1] & 0x0f));
+	if (dst_index > 3)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_faddc: float register out of range");
+		return;
+	}
+	PX_memcpy(&const_value, ip + 2, sizeof(px_float));
+	pthread->f[dst_index] += const_value;
+	pthread->ip += 6;
+}
+
+px_void PX_Machine_Execute_Opcode_fsubc(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
+{
+	px_int dst_index;
+	px_float const_value;
+	if (pthread->ip + 6 >= pmac->runtime_memory_size)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_fsubc: thread ip out of range");
+		return;
+	}
+	dst_index = (px_int)((ip[1] & 0x0f));
+	if (dst_index > 3)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_fsubc: float register out of range");
+		return;
+	}
+	PX_memcpy(&const_value, ip + 2, sizeof(px_float));
+	pthread->f[dst_index] -= const_value;
+	pthread->ip += 6;
+}
+
+px_void PX_Machine_Execute_Opcode_fmulc(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
+{
+	px_int dst_index;
+	px_float const_value;
+	if (pthread->ip + 6 >= pmac->runtime_memory_size)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_fmulc: thread ip out of range");
+		return;
+	}
+	dst_index = (px_int)((ip[1] & 0x0f));
+	if (dst_index > 3)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_fmulc: float register out of range");
+		return;
+	}
+	PX_memcpy(&const_value, ip + 2, sizeof(px_float));
+	pthread->f[dst_index] *= const_value;
+	pthread->ip += 6;
+}
+
+px_void PX_Machine_Execute_Opcode_fdivc(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
+{
+	px_int dst_index;
+	px_float const_value;
+	if (pthread->ip + 6 >= pmac->runtime_memory_size)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_fdivc: thread ip out of range");
+		return;
+	}
+	dst_index = (px_int)((ip[1] & 0x0f));
+	if (dst_index > 3)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_fdivc: float register out of range");
+		return;
+	}
+	PX_memcpy(&const_value, ip + 2, sizeof(px_float));
+	if (const_value == 0)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_fdivc: divide by zero");
+		return;
+	}
+	pthread->f[dst_index] /= const_value;
+	pthread->ip += 6;
 }
 
 px_void PX_Machine_Execute_Opcode_and(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
 {
-	px_int dst_index, src1_index, src2_index;
-	if (pthread->ip + 3 >= pmac->runtime_memory_size)
+	px_int dst_index, src_index;
+	if (pthread->ip + 2 >= pmac->runtime_memory_size)
 	{
 		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_and: thread ip out of range");
 		return;
 	}
-	dst_index = (px_int)((ip[1] & 0x0f));
-	src1_index = (px_int)((ip[1] & 0xf0) >> 4);
-	src2_index = (px_int)((ip[2] & 0x0f));
-	if (dst_index > 7 || src1_index > 7 || src2_index > 7)
+	dst_index = (px_int)(ip[1] & 0x0f);
+	src_index = (px_int)((ip[1] >> 4) & 0x0f);
+	if (dst_index > 7 || src_index > 7)
 	{
 		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_and: register out of range");
 		return;
 	}
-	pthread->r[dst_index] = pthread->r[src1_index] & pthread->r[src2_index];
-	pthread->ip += 3;
+	pthread->r[dst_index] &= pthread->r[src_index];
+	pthread->ip += 2;
 }
 
 px_void PX_Machine_Execute_Opcode_or(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
 {
-	px_int dst_index, src1_index, src2_index;
-	if (pthread->ip + 3 >= pmac->runtime_memory_size)
+	px_int dst_index, src_index;
+	if (pthread->ip + 2 >= pmac->runtime_memory_size)
 	{
 		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_or: thread ip out of range");
 		return;
 	}
-	dst_index = (px_int)((ip[1] & 0x0f));
-	src1_index = (px_int)((ip[1] & 0xf0) >> 4);
-	src2_index = (px_int)((ip[2] & 0x0f));
-	if (dst_index > 7 || src1_index > 7 || src2_index > 7)
+	dst_index = (px_int)(ip[1] & 0x0f);
+	src_index = (px_int)((ip[1] >> 4) & 0x0f);
+	if (dst_index > 7 || src_index > 7)
 	{
 		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_or: register out of range");
 		return;
 	}
-	pthread->r[dst_index] = pthread->r[src1_index] | pthread->r[src2_index];
-	pthread->ip += 3;
+	pthread->r[dst_index] |= pthread->r[src_index];
+	pthread->ip += 2;
 }
 
 px_void PX_Machine_Execute_Opcode_xor(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
 {
-	px_int dst_index, src1_index, src2_index;
-	if (pthread->ip + 3 >= pmac->runtime_memory_size)
+	px_int dst_index, src_index;
+	if (pthread->ip + 2 >= pmac->runtime_memory_size)
 	{
 		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_xor: thread ip out of range");
 		return;
 	}
-	dst_index = (px_int)((ip[1] & 0x0f));
-	src1_index = (px_int)((ip[1] & 0xf0) >> 4);
-	src2_index = (px_int)((ip[2] & 0x0f));
-	if (dst_index > 7 || src1_index > 7 || src2_index > 7)
+	dst_index = (px_int)(ip[1] & 0x0f);
+	src_index = (px_int)((ip[1] >> 4) & 0x0f);
+	if (dst_index > 7 || src_index > 7)
 	{
 		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_xor: register out of range");
 		return;
 	}
-	pthread->r[dst_index] = pthread->r[src1_index] ^ pthread->r[src2_index];
-	pthread->ip += 3;
+	pthread->r[dst_index] ^= pthread->r[src_index];
+	pthread->ip += 2;
 }
 
 px_void PX_Machine_Execute_Opcode_not(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
@@ -806,72 +1337,175 @@ px_void PX_Machine_Execute_Opcode_not(PX_Machine* pmac, PX_Machine_Thread* pthre
 		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_not: register out of range");
 		return;
 	}
+	pthread->r[reg_index] = pthread->r[reg_index] ? 0 : 1;
+	pthread->ip += 2;
+}
+
+px_void PX_Machine_Execute_Opcode_inv(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
+{
+	px_int reg_index;
+	if (pthread->ip + 2 >= pmac->runtime_memory_size)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_inv: thread ip out of range");
+		return;
+	}
+	reg_index = (px_int)(ip[1]);
+	if (reg_index > 7)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_inv: register out of range");
+		return;
+	}
 	pthread->r[reg_index] = ~pthread->r[reg_index];
+	pthread->ip += 2;
+}
+
+px_void PX_Machine_Execute_Opcode_andl_orl(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
+{
+	px_int dst_index, src2_index;
+	if (pthread->ip + 2 >= pmac->runtime_memory_size)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_andl_orl: thread ip out of range");
+		return;
+	}
+	dst_index  = (px_int)(ip[1] & 0x0f);
+	src2_index = (px_int)((ip[1] >> 4) & 0x0f);
+	if (dst_index > 7 || src2_index > 7)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_andl_orl: register out of range");
+		return;
+	}
+	if (ip[0] == PX_SYNTAX_MACHINE_OPCODE_ANDL)
+	{
+		pthread->r[dst_index] = (pthread->r[dst_index] && pthread->r[src2_index]) ? 1 : 0;
+	}
+	else
+	{
+		pthread->r[dst_index] = (pthread->r[dst_index] || pthread->r[src2_index]) ? 1 : 0;
+	}
 	pthread->ip += 2;
 }
 
 px_void PX_Machine_Execute_Opcode_shl(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
 {
-	px_int dst_index, src1_index, src2_index;
-	if (pthread->ip + 3 >= pmac->runtime_memory_size)
+	px_int dst_index, src_index;
+	if (pthread->ip + 2 >= pmac->runtime_memory_size)
 	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_xor: thread ip out of range");
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_shl: thread ip out of range");
 		return;
 	}
-	dst_index = (px_int)((ip[1] & 0x0f));
-	src1_index = (px_int)((ip[1] & 0xf0) >> 4);
-	src2_index = (px_int)((ip[2] & 0x0f));
-	if (dst_index > 7 || src1_index > 7 || src2_index > 7)
+	dst_index = (px_int)(ip[1] & 0x0f);
+	src_index = (px_int)((ip[1] >> 4) & 0x0f);
+	if (dst_index > 7 || src_index > 7)
 	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_xor: register out of range");
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_shl: register out of range");
 		return;
 	}
-	pthread->r[dst_index] = pthread->r[src1_index] << pthread->r[src2_index];
-	pthread->ip += 3;
+	pthread->r[dst_index] <<= pthread->r[src_index];
+	pthread->ip += 2;
 }
 
 px_void PX_Machine_Execute_Opcode_shr(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
 {
+	px_int dst_index, src_index;
+	if (pthread->ip + 2 >= pmac->runtime_memory_size)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_shr: thread ip out of range");
+		return;
+	}
+	dst_index = (px_int)(ip[1] & 0x0f);
+	src_index = (px_int)((ip[1] >> 4) & 0x0f);
+	if (dst_index > 7 || src_index > 7)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_shr: register out of range");
+		return;
+	}
+	pthread->r[dst_index] >>= pthread->r[src_index];
+	pthread->ip += 2;
+}
+
+//set-compare(integer): rd = (rd OP rs)?1:0
+px_void PX_Machine_Execute_Opcode_setcc_i(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
+{
+	px_int dst_index, src_index;
+	px_dword u1, u2;
+	px_int32 i1, i2;
+	px_dword result;
+	if (pthread->ip + 2 >= pmac->runtime_memory_size)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_setcc_i: thread ip out of range");
+		return;
+	}
+	dst_index = (px_int)(ip[1] & 0x0f);
+	src_index = (px_int)((ip[1] >> 4) & 0x0f);
+	if (dst_index > 7 || src_index > 7)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_setcc_i: register out of range");
+		return;
+	}
+	u1 = pthread->r[dst_index];
+	u2 = pthread->r[src_index];
+	i1 = (px_int32)u1;
+	i2 = (px_int32)u2;
+	switch (ip[0])
+	{
+	case PX_SYNTAX_MACHINE_OPCODE_GT:  result = (i1 >  i2) ? 1 : 0; break;
+	case PX_SYNTAX_MACHINE_OPCODE_GE:  result = (i1 >= i2) ? 1 : 0; break;
+	case PX_SYNTAX_MACHINE_OPCODE_LT:  result = (i1 <  i2) ? 1 : 0; break;
+	case PX_SYNTAX_MACHINE_OPCODE_LE:  result = (i1 <= i2) ? 1 : 0; break;
+	case PX_SYNTAX_MACHINE_OPCODE_EQ:  result = (u1 == u2) ? 1 : 0; break;
+	case PX_SYNTAX_MACHINE_OPCODE_NEQ: result = (u1 != u2) ? 1 : 0; break;
+	case PX_SYNTAX_MACHINE_OPCODE_UGT: result = (u1 >  u2) ? 1 : 0; break;
+	case PX_SYNTAX_MACHINE_OPCODE_UGE: result = (u1 >= u2) ? 1 : 0; break;
+	case PX_SYNTAX_MACHINE_OPCODE_ULT: result = (u1 <  u2) ? 1 : 0; break;
+	case PX_SYNTAX_MACHINE_OPCODE_ULE: result = (u1 <= u2) ? 1 : 0; break;
+	default:
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_setcc_i: opcode error");
+		return;
+	}
+	pthread->r[dst_index] = result;
+	pthread->ip += 2;
+}
+
+//set-compare(float): rd = (fa OP fb)?1:0
+px_void PX_Machine_Execute_Opcode_setcc_f(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
+{
 	px_int dst_index, src1_index, src2_index;
+	px_float32 f1, f2;
+	px_dword result;
 	if (pthread->ip + 3 >= pmac->runtime_memory_size)
 	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_xor: thread ip out of range");
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_setcc_f: thread ip out of range");
 		return;
 	}
 	dst_index = (px_int)((ip[1] & 0x0f));
 	src1_index = (px_int)((ip[1] & 0xf0) >> 4);
 	src2_index = (px_int)((ip[2] & 0x0f));
-	if (dst_index > 7 || src1_index > 7 || src2_index > 7)
+	if (dst_index > 7)
 	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_xor: register out of range");
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_setcc_f: register out of range");
 		return;
 	}
-	pthread->r[dst_index] = pthread->r[src1_index] >> pthread->r[src2_index];
+	if (src1_index > 3 || src2_index > 3)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_setcc_f: float register out of range");
+		return;
+	}
+	f1 = pthread->f[src1_index];
+	f2 = pthread->f[src2_index];
+	switch (ip[0])
+	{
+	case PX_SYNTAX_MACHINE_OPCODE_FGT:  result = (f1 >  f2) ? 1 : 0; break;
+	case PX_SYNTAX_MACHINE_OPCODE_FGE:  result = (f1 >= f2) ? 1 : 0; break;
+	case PX_SYNTAX_MACHINE_OPCODE_FLT:  result = (f1 <  f2) ? 1 : 0; break;
+	case PX_SYNTAX_MACHINE_OPCODE_FLE:  result = (f1 <= f2) ? 1 : 0; break;
+	case PX_SYNTAX_MACHINE_OPCODE_FEQ:  result = (f1 == f2) ? 1 : 0; break;
+	case PX_SYNTAX_MACHINE_OPCODE_FNEQ: result = (f1 != f2) ? 1 : 0; break;
+	default:
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_setcc_f: opcode error");
+		return;
+	}
+	pthread->r[dst_index] = result;
 	pthread->ip += 3;
-}
-
-px_void PX_Machine_Execute_Opcode_cmp(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
-{
-	px_int src1_index, src2_index;
-	if (pthread->ip + 2 >= pmac->runtime_memory_size)
-	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_cmp: thread ip out of range");
-		return;
-	}
-	src1_index = (px_int)((ip[1] & 0xf0) >> 4);
-	src2_index = (px_int)((ip[1] & 0x0f));
-	if (src1_index > 7 || src2_index > 7)
-	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_cmp: register out of range");
-		return;
-	}
-	pthread->Z = (px_bool)(pthread->r[src1_index] == pthread->r[src2_index] ? PX_TRUE : PX_FALSE);
-	pthread->C = (px_bool)(pthread->r[src1_index] < pthread->r[src2_index] ? PX_TRUE : PX_FALSE);
-	pthread->N = ((pthread->r[src1_index] - pthread->r[src2_index]) & 0x80000000) ? PX_TRUE : PX_FALSE;
-	pthread->V = (pthread->r[src1_index] & 0x80000000) != (pthread->r[src2_index] & 0x80000000) \
-		&& (pthread->r[src1_index] & 0x80000000) != ((pthread->r[src1_index] - pthread->r[src2_index]) & 0x80000000) ?\
-		PX_TRUE : PX_FALSE;
-	pthread->ip += 2;
 }
 
 px_void PX_Machine_Execute_Opcode_jmp(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
@@ -891,148 +1525,67 @@ px_void PX_Machine_Execute_Opcode_jmp(PX_Machine* pmac, PX_Machine_Thread* pthre
 	pthread->ip = jmp_address;
 }
 
-px_void PX_Machine_Execute_Opcode_je(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
+//jz rx,addr: 6 bytes -- opcode + register index + 32-bit absolute address
+px_void PX_Machine_Execute_Opcode_jz(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
 {
 	px_dword jmp_address;
-	if (pthread->ip + 5 >= pmac->runtime_memory_size)
+	px_int reg_index;
+	if (pthread->ip + 6 >= pmac->runtime_memory_size)
 	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_je: thread ip out of range");
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_jz: thread ip out of range");
 		return;
 	}
-	jmp_address = *(px_dword*)(ip + 1);
+	reg_index = (px_int)(ip[1] & 0x0f);
+	if (reg_index > 7)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_jz: register out of range");
+		return;
+	}
+	jmp_address = *(px_dword*)(ip + 2);
 	if (jmp_address >= pmac->runtime_memory_size)
 	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_je: jump address out of range");
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_jz: jump address out of range");
 		return;
 	}
-	if (pthread->Z)
+	if (pthread->r[reg_index] == 0)
 	{
 		pthread->ip = jmp_address;
 	}
 	else
 	{
-		pthread->ip += 5;
+		pthread->ip += 6;
 	}
 }
 
-px_void PX_Machine_Execute_Opcode_jne(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
+//jnz rx,addr: 6 bytes -- opcode + register index + 32-bit absolute address
+px_void PX_Machine_Execute_Opcode_jnz(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
 {
 	px_dword jmp_address;
-	if (pthread->ip + 5 >= pmac->runtime_memory_size)
+	px_int reg_index;
+	if (pthread->ip + 6 >= pmac->runtime_memory_size)
 	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_jne: thread ip out of range");
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_jnz: thread ip out of range");
 		return;
 	}
-	jmp_address = *(px_dword*)(ip + 1);
+	reg_index = (px_int)(ip[1] & 0x0f);
+	if (reg_index > 7)
+	{
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_jnz: register out of range");
+		return;
+	}
+	jmp_address = *(px_dword*)(ip + 2);
 	if (jmp_address >= pmac->runtime_memory_size)
 	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_jne: jump address out of range");
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_jnz: jump address out of range");
 		return;
 	}
-	if (!pthread->Z)
+	if (pthread->r[reg_index] != 0)
 	{
 		pthread->ip = jmp_address;
 	}
 	else
 	{
-		pthread->ip += 5;
-	}
-}
-
-px_void PX_Machine_Execute_Opcode_jg(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
-{
-	px_dword jmp_address;
-	if (pthread->ip + 5 >= pmac->runtime_memory_size)
-	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_jg: thread ip out of range");
-		return;
-	}
-	jmp_address = *(px_dword*)(ip + 1);
-	if (jmp_address >= pmac->runtime_memory_size)
-	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_jg: jump address out of range");
-		return;
-	}
-	if (!pthread->Z && (pthread->N == pthread->V))
-	{
-		pthread->ip = jmp_address;
-	}
-	else
-	{
-		pthread->ip += 5;
-	}
-}
-
-px_void PX_Machine_Execute_Opcode_jge(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
-{
-	px_dword jmp_address;
-	if (pthread->ip + 5 >= pmac->runtime_memory_size)
-	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_jge: thread ip out of range");
-		return;
-	}
-	jmp_address = *(px_dword*)(ip + 1);
-	if (jmp_address >= pmac->runtime_memory_size)
-	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_jge: jump address out of range");
-		return;
-	}
-	if (pthread->N == pthread->V)
-	{
-		pthread->ip = jmp_address;
-	}
-	else
-	{
-		pthread->ip += 5;
-	}
-}
-
-px_void PX_Machine_Execute_Opcode_jl(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
-{
-	px_dword jmp_address;
-	if (pthread->ip + 5 >= pmac->runtime_memory_size)
-	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_jl: thread ip out of range");
-		return;
-	}
-	jmp_address = *(px_dword*)(ip + 1);
-	if (jmp_address >= pmac->runtime_memory_size)
-	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_jl: jump address out of range");
-		return;
-	}
-	if (pthread->N != pthread->V)
-	{
-		pthread->ip = jmp_address;
-	}
-	else
-	{
-		pthread->ip += 5;
-	}
-
-}
-
-px_void PX_Machine_Execute_Opcode_jle(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
-{
-	px_dword jmp_address;
-	if (pthread->ip + 5 >= pmac->runtime_memory_size)
-	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_jle: thread ip out of range");
-		return;
-	}
-	jmp_address = *(px_dword*)(ip + 1);
-	if (jmp_address >= pmac->runtime_memory_size)
-	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_jle: jump address out of range");
-		return;
-	}
-	if (pthread->Z || (pthread->N != pthread->V))
-	{
-		pthread->ip = jmp_address;
-	}
-	else
-	{
-		pthread->ip += 5;
+		pthread->ip += 6;
 	}
 }
 
@@ -1072,23 +1625,25 @@ px_void PX_Machine_Execute_Opcode_call(PX_Machine* pmac, PX_Machine_Thread* pthr
 
 px_void PX_Machine_Execute_Opcode_ret(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
 {
+	px_dword frame_bp;
 	px_dword return_address;
-	if (pthread->sp + 8 > pmac->runtime_memory_size)
+	px_dword old_bp;
+	frame_bp = pthread->bp;
+	if (pmac->runtime_memory_size < 8 || frame_bp > pmac->runtime_memory_size - 8)
 	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_ret: stack underflow");
+		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_ret: frame pointer out of range");
 		return;
 	}
 	//pop bp
-	pthread->bp = *(px_dword*)&pmac->runtime_memory[pthread->sp];
-	pthread->sp += 4;
-	//pop return address
-	return_address = *(px_dword*)&pmac->runtime_memory[pthread->sp];
-	pthread->sp += 4;
+	old_bp = *(px_dword*)&pmac->runtime_memory[frame_bp];
+	return_address = *(px_dword*)&pmac->runtime_memory[frame_bp + 4];
 	if (return_address >= pmac->runtime_memory_size)
 	{
 		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_ret: return address out of range");
 		return;
 	}
+	pthread->sp = frame_bp + 8;
+	pthread->bp = old_bp;
 	pthread->ip = return_address;
 
 }
@@ -1159,635 +1714,11 @@ px_void PX_Machine_Execute_Opcode_jmpr(PX_Machine* pmac, PX_Machine_Thread* pthr
 	pthread->ip = jmp_address;
 }
 
-px_void PX_Machine_Execute_Opcode_addsp(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
-{
-	// addsp: 5 bytes -- opcode + 32-bit n
-	px_dword n;
-	if (pthread->ip + 5 >= pmac->runtime_memory_size)
-	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_addsp: thread ip out of range");
-		return;
-	}
-	n = *(px_dword*)(ip + 1);
-	pthread->sp += n;
-	if (pthread->sp > pmac->runtime_memory_size)
-	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_addsp: stack pointer out of range");
-		return;
-	}
-	pthread->ip += 5;
-}
-
-px_void PX_Machine_Execute_Opcode_subsp(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
-{
-	// subsp: 5 bytes -- opcode + 32-bit n
-	px_dword n;
-	if (pthread->ip + 5 >= pmac->runtime_memory_size)
-	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_subsp: thread ip out of range");
-		return;
-	}
-	n = *(px_dword*)(ip + 1);
-	pthread->sp -= n;
-	if (pthread->sp > pmac->runtime_memory_size)
-	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_subsp: stack pointer out of range");
-		return;
-	}
-	pthread->ip += 5;
-}
-// ee instruction helper: get integer operand value by type
-// type: 0=const_int  1=const_float  2=rx  3=fx  4=addr(global)  5=bp-addr(local)
-// For const_float (type 1): value is bit-pattern of float, treated as px_dword
-static px_bool PX_Machine_ee_get_int(PX_Machine* pmac, PX_Machine_Thread* pthread, px_byte type, px_dword value, px_dword* out)
-{
-	switch (type)
-	{
-	case 0: // const_int
-		*out = value;
-		return PX_TRUE;
-	case 1: // const_float - raw bits
-		*out = value;
-		return PX_TRUE;
-	case 2: // rx
-		if (value > 7)
-		{
-			PX_Machine_Crash(pmac, "PX_Machine_ee_get_int: rx index out of range");
-			return PX_FALSE;
-		}
-		*out = pthread->r[value];
-		return PX_TRUE;
-	case 3: // fx - raw bits
-		if (value > 3)
-		{
-			PX_Machine_Crash(pmac, "PX_Machine_ee_get_int: fx index out of range");
-			return PX_FALSE;
-		}
-		*out = *(px_dword*)&pthread->f[value];
-		return PX_TRUE;
-	case 4: // addr (global)
-		if (value >= pmac->runtime_memory_size)
-		{
-			PX_Machine_Crash(pmac, "PX_Machine_ee_get_int: addr out of range");
-			return PX_FALSE;
-		}
-		*out = *(px_dword*)&pmac->runtime_memory[value];
-		return PX_TRUE;
-	case 5: // bp-addr (local)
-	{
-		px_dword real_addr = pthread->bp - value;
-		if (real_addr >= pmac->runtime_memory_size)
-		{
-			PX_Machine_Crash(pmac, "PX_Machine_ee_get_int: bp-addr out of range");
-			return PX_FALSE;
-		}
-		*out = *(px_dword*)&pmac->runtime_memory[real_addr];
-		return PX_TRUE;
-	}
-	default:
-		PX_Machine_Crash(pmac, "PX_Machine_ee_get_int: unknown type");
-		return PX_FALSE;
-	}
-}
-
-// ee instruction helper: get float operand value by type
-// type: 0=const_int  1=const_float  2=rx  3=fx  4=addr(global)  5=bp-addr(local)
-static px_bool PX_Machine_ee_get_float(PX_Machine* pmac, PX_Machine_Thread* pthread, px_byte type, px_dword value, px_float* out)
-{
-	switch (type)
-	{
-	case 0: // const_int - treat integer bits as float bits
-		*out = *(px_float*)&value;
-		return PX_TRUE;
-	case 1: // const_float - float bit-pattern
-		*out = *(px_float*)&value;
-		return PX_TRUE;
-	case 2: // rx - interpret as float
-		if (value > 7)
-		{
-			PX_Machine_Crash(pmac, "PX_Machine_ee_get_float: rx index out of range");
-			return PX_FALSE;
-		}
-		*out = *(px_float*)&pthread->r[value];
-		return PX_TRUE;
-	case 3: // fx
-		if (value > 3)
-		{
-			PX_Machine_Crash(pmac, "PX_Machine_ee_get_float: fx index out of range");
-			return PX_FALSE;
-		}
-		*out = pthread->f[value];
-		return PX_TRUE;
-	case 4: // addr (global)
-		if (value >= pmac->runtime_memory_size)
-		{
-			PX_Machine_Crash(pmac, "PX_Machine_ee_get_float: addr out of range");
-			return PX_FALSE;
-		}
-		*out = *(px_float*)&pmac->runtime_memory[value];
-		return PX_TRUE;
-	case 5: // bp-addr (local)
-	{
-		px_dword real_addr = pthread->bp - value;
-		if (real_addr >= pmac->runtime_memory_size)
-		{
-			PX_Machine_Crash(pmac, "PX_Machine_ee_get_float: bp-addr out of range");
-			return PX_FALSE;
-		}
-		*out = *(px_float*)&pmac->runtime_memory[real_addr];
-		return PX_TRUE;
-	}
-	default:
-		PX_Machine_Crash(pmac, "PX_Machine_ee_get_float: unknown type");
-		return PX_FALSE;
-	}
-}
-
-// ee instruction helper: set integer operand value by type (type 0/1 = const, not writable)
-// type: 0=const_int  1=const_float  2=rx  3=fx  4=addr(global)  5=bp-addr(local)
-static px_bool PX_Machine_ee_set_int(PX_Machine* pmac, PX_Machine_Thread* pthread, px_byte type, px_dword value, px_dword src)
-{
-	switch (type)
-	{
-	case 0: // const_int - not writable
-	case 1: // const_float - not writable
-		PX_Machine_Crash(pmac, "PX_Machine_ee_set_int: cannot write to const");
-		return PX_FALSE;
-	case 2: // rx
-		if (value > 7)
-		{
-			PX_Machine_Crash(pmac, "PX_Machine_ee_set_int: rx index out of range");
-			return PX_FALSE;
-		}
-		pthread->r[value] = src;
-		return PX_TRUE;
-	case 3: // fx - raw bits
-		if (value > 3)
-		{
-			PX_Machine_Crash(pmac, "PX_Machine_ee_set_int: fx index out of range");
-			return PX_FALSE;
-		}
-		*(px_dword*)&pthread->f[value] = src;
-		return PX_TRUE;
-	case 4: // addr (global)
-		if (value >= pmac->runtime_memory_size)
-		{
-			PX_Machine_Crash(pmac, "PX_Machine_ee_set_int: addr out of range");
-			return PX_FALSE;
-		}
-		*(px_dword*)&pmac->runtime_memory[value] = src;
-		return PX_TRUE;
-	case 5: // bp-addr (local)
-	{
-		px_dword real_addr = pthread->bp - value;
-		if (real_addr >= pmac->runtime_memory_size)
-		{
-			PX_Machine_Crash(pmac, "PX_Machine_ee_set_int: bp-addr out of range");
-			return PX_FALSE;
-		}
-		*(px_dword*)&pmac->runtime_memory[real_addr] = src;
-		return PX_TRUE;
-	}
-	default:
-		PX_Machine_Crash(pmac, "PX_Machine_ee_set_int: unknown type");
-		return PX_FALSE;
-	}
-}
-
-// ee instruction helper: set float operand value by type (type 0/1 = const, not writable)
-// type: 0=const_int  1=const_float  2=rx  3=fx  4=addr(global)  5=bp-addr(local)
-static px_bool PX_Machine_ee_set_float(PX_Machine* pmac, PX_Machine_Thread* pthread, px_byte type, px_dword value, px_float src)
-{
-	switch (type)
-	{
-	case 0: // const_int - not writable
-	case 1: // const_float - not writable
-		PX_Machine_Crash(pmac, "PX_Machine_ee_set_float: cannot write to const");
-		return PX_FALSE;
-	case 2: // rx - interpret as float
-		if (value > 7)
-		{
-			PX_Machine_Crash(pmac, "PX_Machine_ee_set_float: rx index out of range");
-			return PX_FALSE;
-		}
-		*(px_float*)&pthread->r[value] = src;
-		return PX_TRUE;
-	case 3: // fx
-		if (value > 3)
-		{
-			PX_Machine_Crash(pmac, "PX_Machine_ee_set_float: fx index out of range");
-			return PX_FALSE;
-		}
-		pthread->f[value] = src;
-		return PX_TRUE;
-	case 4: // addr (global)
-		if (value >= pmac->runtime_memory_size)
-		{
-			PX_Machine_Crash(pmac, "PX_Machine_ee_set_float: addr out of range");
-			return PX_FALSE;
-		}
-		*(px_float*)&pmac->runtime_memory[value] = src;
-		return PX_TRUE;
-	case 5: // bp-addr (local)
-	{
-		px_dword real_addr = pthread->bp - value;
-		if (real_addr >= pmac->runtime_memory_size)
-		{
-			PX_Machine_Crash(pmac, "PX_Machine_ee_set_float: bp-addr out of range");
-			return PX_FALSE;
-		}
-		*(px_float*)&pmac->runtime_memory[real_addr] = src;
-		return PX_TRUE;
-	}
-	default:
-		PX_Machine_Crash(pmac, "PX_Machine_ee_set_float: unknown type");
-		return PX_FALSE;
-	}
-}
-
-// ee_push: [opcode][type][value 4B] -- 6 bytes
-// reads operand and pushes it onto the stack
-px_void PX_Machine_Execute_Opcode_ee_push(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
-{
-	px_byte type;
-	px_dword value;
-	px_dword operand;
-	if (pthread->ip + 6 > pmac->runtime_memory_size)
-	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_ee_push: thread ip out of range");
-		return;
-	}
-	type = ip[1];
-	value = *(px_dword*)(ip + 2);
-	if (!PX_Machine_ee_get_int(pmac, pthread, type, value, &operand))
-		return;
-	pthread->sp -= 4;
-	if (pthread->sp > pmac->runtime_memory_size)
-	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_ee_push: stack overflow");
-		return;
-	}
-	*(px_dword*)&pmac->runtime_memory[pthread->sp] = operand;
-	pthread->ip += 6;
-}
-
-// ee_pop: [opcode][type][value 4B] -- 6 bytes
-// pops from stack and writes to operand
-px_void PX_Machine_Execute_Opcode_ee_pop(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
-{
-	px_byte type;
-	px_dword value;
-	px_dword stack_val;
-	if (pthread->ip + 6 > pmac->runtime_memory_size)
-	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_ee_pop: thread ip out of range");
-		return;
-	}
-	type = ip[1];
-	value = *(px_dword*)(ip + 2);
-	if (pthread->sp + 4 > pmac->runtime_memory_size)
-	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_ee_pop: stack underflow");
-		return;
-	}
-	stack_val = *(px_dword*)&pmac->runtime_memory[pthread->sp];
-	pthread->sp += 4;
-	if (!PX_Machine_ee_set_int(pmac, pthread, type, value, stack_val))
-		return;
-	pthread->ip += 6;
-}
-
-// ee_neg: [opcode][type][value 4B] -- 6 bytes
-// reads operand (integer), negates (~v+1), writes back
-px_void PX_Machine_Execute_Opcode_ee_neg(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
-{
-	px_byte type;
-	px_dword value;
-	px_dword operand;
-	if (pthread->ip + 6 > pmac->runtime_memory_size)
-	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_ee_neg: thread ip out of range");
-		return;
-	}
-	type = ip[1];
-	value = *(px_dword*)(ip + 2);
-	if (!PX_Machine_ee_get_int(pmac, pthread, type, value, &operand))
-		return;
-	operand = (~operand) + 1;
-	if (!PX_Machine_ee_set_int(pmac, pthread, type, value, operand))
-		return;
-	pthread->ip += 6;
-}
-
-// ee_fneg: [opcode][type][value 4B] -- 6 bytes
-// reads operand (float), negates (-v), writes back
-px_void PX_Machine_Execute_Opcode_ee_fneg(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
-{
-	px_byte type;
-	px_dword value;
-	px_float operand;
-	if (pthread->ip + 6 > pmac->runtime_memory_size)
-	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_ee_fneg: thread ip out of range");
-		return;
-	}
-	type = ip[1];
-	value = *(px_dword*)(ip + 2);
-	if (!PX_Machine_ee_get_float(pmac, pthread, type, value, &operand))
-		return;
-	operand = -operand;
-	if (!PX_Machine_ee_set_float(pmac, pthread, type, value, operand))
-		return;
-	pthread->ip += 6;
-}
-
-// ee_not: [opcode][type][value 4B] -- 6 bytes
-// reads operand (integer), bitwise NOT (~v), writes back
-px_void PX_Machine_Execute_Opcode_ee_not(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
-{
-	px_byte type;
-	px_dword value;
-	px_dword operand;
-	if (pthread->ip + 6 > pmac->runtime_memory_size)
-	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_ee_not: thread ip out of range");
-		return;
-	}
-	type = ip[1];
-	value = *(px_dword*)(ip + 2);
-	if (!PX_Machine_ee_get_int(pmac, pthread, type, value, &operand))
-		return;
-	operand = ~operand;
-	if (!PX_Machine_ee_set_int(pmac, pthread, type, value, operand))
-		return;
-	pthread->ip += 6;
-}
-
-// ee_call: [opcode][type][value 4B] -- 6 bytes
-// reads call address operand, push return_addr then push bp, jump
-px_void PX_Machine_Execute_Opcode_ee_call(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
-{
-	px_byte type;
-	px_dword value;
-	px_dword call_addr;
-	if (pthread->ip + 6 > pmac->runtime_memory_size)
-	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_ee_call: thread ip out of range");
-		return;
-	}
-	type = ip[1];
-	value = *(px_dword*)(ip + 2);
-	if (!PX_Machine_ee_get_int(pmac, pthread, type, value, &call_addr))
-		return;
-	if (call_addr >= pmac->runtime_memory_size)
-	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_ee_call: call address out of range");
-		return;
-	}
-	// push return address (ip + 6)
-	pthread->sp -= 4;
-	if (pthread->sp > pmac->runtime_memory_size)
-	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_ee_call: stack overflow");
-		return;
-	}
-	*(px_dword*)&pmac->runtime_memory[pthread->sp] = pthread->ip + 6;
-	// push bp
-	pthread->sp -= 4;
-	if (pthread->sp > pmac->runtime_memory_size)
-	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_ee_call: stack overflow");
-		return;
-	}
-	*(px_dword*)&pmac->runtime_memory[pthread->sp] = pthread->bp;
-	pthread->ip = call_addr;
-}
-
-// Internal helper for ee integer binary ops: [opcode][type_dst][type_src1][type_src2][dst 4B][src1 4B][src2 4B] -- 16 bytes
-static px_void PX_Machine_Execute_Opcode_ee_int_binop(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip, px_int opcode)
-{
-	px_byte type_dst, type_src1, type_src2;
-	px_dword val_dst, val_src1, val_src2;
-	px_dword src1, src2, result;
-	if (pthread->ip + 16 > pmac->runtime_memory_size)
-	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_ee_int_binop: thread ip out of range");
-		return;
-	}
-	type_dst  = ip[1];
-	type_src1 = ip[2];
-	type_src2 = ip[3];
-	val_dst  = *(px_dword*)(ip + 4);
-	val_src1 = *(px_dword*)(ip + 8);
-	val_src2 = *(px_dword*)(ip + 12);
-	if (!PX_Machine_ee_get_int(pmac, pthread, type_src1, val_src1, &src1))
-		return;
-	if (!PX_Machine_ee_get_int(pmac, pthread, type_src2, val_src2, &src2))
-		return;
-	switch (opcode)
-	{
-	case 0: result = src1 + src2; break;
-	case 1: result = src1 - src2; break;
-	case 2: result = src1 * src2; break;
-	case 3:
-		if (src2 == 0) { PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_ee_div: divide by zero"); return; }
-		result = src1 / src2;
-		break;
-	case 4:
-		if ((px_int)src2 == 0) { PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_ee_idiv: divide by zero"); return; }
-		result = (px_dword)((px_int)src1 / (px_int)src2);
-		break;
-	case 5:
-		if (src2 == 0) { PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_ee_mod: divide by zero"); return; }
-		result = src1 % src2;
-		break;
-	case 6: result = src1 & src2; break;
-	case 7: result = src1 | src2; break;
-	case 8: result = src1 ^ src2; break;
-	case 9: result = src1 << src2; break;
-	case 10: result = src1 >> src2; break;
-	default:
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_ee_int_binop: invalid opcode");
-		return;
-	}
-	if (!PX_Machine_ee_set_int(pmac, pthread, type_dst, val_dst, result))
-		return;
-	pthread->ip += 16;
-}
-
-// Internal helper for ee float binary ops: [opcode][type_dst][type_src1][type_src2][dst 4B][src1 4B][src2 4B] -- 16 bytes
-static px_void PX_Machine_Execute_Opcode_ee_float_binop(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip, px_int opcode)
-{
-	px_byte type_dst, type_src1, type_src2;
-	px_dword val_dst, val_src1, val_src2;
-	px_float src1, src2, result;
-	if (pthread->ip + 16 > pmac->runtime_memory_size)
-	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_ee_float_binop: thread ip out of range");
-		return;
-	}
-	type_dst  = ip[1];
-	type_src1 = ip[2];
-	type_src2 = ip[3];
-	val_dst  = *(px_dword*)(ip + 4);
-	val_src1 = *(px_dword*)(ip + 8);
-	val_src2 = *(px_dword*)(ip + 12);
-	if (!PX_Machine_ee_get_float(pmac, pthread, type_src1, val_src1, &src1))
-		return;
-	if (!PX_Machine_ee_get_float(pmac, pthread, type_src2, val_src2, &src2))
-		return;
-	switch (opcode)
-	{
-	case 0: result = src1 + src2; break;
-	case 1: result = src1 - src2; break;
-	case 2: result = src1 * src2; break;
-	case 3:
-		if (src2 == 0) { PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_ee_fdiv: divide by zero"); return; }
-		result = src1 / src2;
-		break;
-	default:
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_ee_float_binop: invalid opcode");
-		return;
-	}
-	if (!PX_Machine_ee_set_float(pmac, pthread, type_dst, val_dst, result))
-		return;
-	pthread->ip += 16;
-}
-
-px_void PX_Machine_Execute_Opcode_ee_add(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
-{
-	PX_Machine_Execute_Opcode_ee_int_binop(pmac, pthread, ip, 0);
-}
-
-px_void PX_Machine_Execute_Opcode_ee_sub(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
-{
-	PX_Machine_Execute_Opcode_ee_int_binop(pmac, pthread, ip, 1);
-}
-
-px_void PX_Machine_Execute_Opcode_ee_mul(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
-{
-	PX_Machine_Execute_Opcode_ee_int_binop(pmac, pthread, ip, 2);
-}
-
-px_void PX_Machine_Execute_Opcode_ee_div(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
-{
-	PX_Machine_Execute_Opcode_ee_int_binop(pmac, pthread, ip, 3);
-}
-
-px_void PX_Machine_Execute_Opcode_ee_idiv(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
-{
-	PX_Machine_Execute_Opcode_ee_int_binop(pmac, pthread, ip, 4);
-}
-
-px_void PX_Machine_Execute_Opcode_ee_mod(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
-{
-	PX_Machine_Execute_Opcode_ee_int_binop(pmac, pthread, ip, 5);
-}
-
-px_void PX_Machine_Execute_Opcode_ee_and(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
-{
-	PX_Machine_Execute_Opcode_ee_int_binop(pmac, pthread, ip, 6);
-}
-
-px_void PX_Machine_Execute_Opcode_ee_or(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
-{
-	PX_Machine_Execute_Opcode_ee_int_binop(pmac, pthread, ip, 7);
-}
-
-px_void PX_Machine_Execute_Opcode_ee_xor(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
-{
-	PX_Machine_Execute_Opcode_ee_int_binop(pmac, pthread, ip, 8);
-}
-
-px_void PX_Machine_Execute_Opcode_ee_shl(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
-{
-	PX_Machine_Execute_Opcode_ee_int_binop(pmac, pthread, ip, 9);
-}
-
-px_void PX_Machine_Execute_Opcode_ee_shr(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
-{
-	PX_Machine_Execute_Opcode_ee_int_binop(pmac, pthread, ip, 10);
-}
-
-px_void PX_Machine_Execute_Opcode_ee_fadd(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
-{
-	PX_Machine_Execute_Opcode_ee_float_binop(pmac, pthread, ip, 0);
-}
-
-px_void PX_Machine_Execute_Opcode_ee_fsub(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
-{
-	PX_Machine_Execute_Opcode_ee_float_binop(pmac, pthread, ip, 1);
-}
-
-px_void PX_Machine_Execute_Opcode_ee_fmul(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
-{
-	PX_Machine_Execute_Opcode_ee_float_binop(pmac, pthread, ip, 2);
-}
-
-px_void PX_Machine_Execute_Opcode_ee_fdiv(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
-{
-	PX_Machine_Execute_Opcode_ee_float_binop(pmac, pthread, ip, 3);
-}
 
 // ee_cmp: [opcode][type_src1][type_src2][pad 1B][src1 4B][src2 4B] -- 12 bytes
 // sets Z/C/N/V flags the same as the existing cmp instruction
-px_void PX_Machine_Execute_Opcode_ee_cmp(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
-{
-	px_byte type_src1, type_src2;
-	px_dword val_src1, val_src2;
-	px_dword src1, src2;
-	if (pthread->ip + 12 > pmac->runtime_memory_size)
-	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_ee_cmp: thread ip out of range");
-		return;
-	}
-	type_src1 = ip[1];
-	type_src2 = ip[2];
-	// ip[3] is padding byte
-	val_src1 = *(px_dword*)(ip + 4);
-	val_src2 = *(px_dword*)(ip + 8);
-	if (!PX_Machine_ee_get_int(pmac, pthread, type_src1, val_src1, &src1))
-		return;
-	if (!PX_Machine_ee_get_int(pmac, pthread, type_src2, val_src2, &src2))
-		return;
-	pthread->Z = (px_bool)(src1 == src2 ? PX_TRUE : PX_FALSE);
-	pthread->C = (px_bool)(src1 < src2 ? PX_TRUE : PX_FALSE);
-	pthread->N = ((src1 - src2) & 0x80000000) ? PX_TRUE : PX_FALSE;
-	pthread->V = (src1 & 0x80000000) != (src2 & 0x80000000) \
-		&& (src1 & 0x80000000) != ((src1 - src2) & 0x80000000) ? \
-		PX_TRUE : PX_FALSE;
-	pthread->ip += 12;
-}
-
 // ee_fcmp: [opcode][type_src1][type_src2][pad 1B][src1 4B][src2 4B] -- 12 bytes
 // float compare: sets fflag (fZ/fC) then copies to integer flags
-px_void PX_Machine_Execute_Opcode_ee_fcmp(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
-{
-	px_byte type_src1, type_src2;
-	px_dword val_src1, val_src2;
-	px_float src1, src2;
-	if (pthread->ip + 12 > pmac->runtime_memory_size)
-	{
-		PX_Machine_Crash(pmac, "PX_Machine_Execute_Opcode_ee_fcmp: thread ip out of range");
-		return;
-	}
-	type_src1 = ip[1];
-	type_src2 = ip[2];
-	// ip[3] is padding byte
-	val_src1 = *(px_dword*)(ip + 4);
-	val_src2 = *(px_dword*)(ip + 8);
-	if (!PX_Machine_ee_get_float(pmac, pthread, type_src1, val_src1, &src1))
-		return;
-	if (!PX_Machine_ee_get_float(pmac, pthread, type_src2, val_src2, &src2))
-		return;
-	pthread->Z = (px_bool)(src1 == src2 ? PX_TRUE : PX_FALSE);
-	pthread->C = (px_bool)(src1 < src2 ? PX_TRUE : PX_FALSE);
-	// copy float flags to integer flags (same as ff2f)
-	pthread->N = PX_FALSE;
-	pthread->V = PX_FALSE;
-	pthread->ip += 12;
-}
-
 px_void PX_Machine_Execute_Opcode_push(PX_Machine* pmac, PX_Machine_Thread* pthread, const px_byte* ip)
 {
 	if (pthread->ip + 2 >= pmac->runtime_memory_size)
@@ -1907,9 +1838,11 @@ px_void PX_Machine_Run_Thread_ISA(PX_Machine* pmac, PX_Machine_Thread* pthread,p
 	case PX_SYNTAX_MACHINE_OPCODE_MOVR:
 		PX_Machine_Execute_Opcode_movr(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
 		break;
-	case PX_SYNTAX_MACHINE_OPCODE_MOVF:
 	case PX_SYNTAX_MACHINE_OPCODE_MOVC:
-		PX_Machine_Execute_Opcode_movc_movf(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
+		PX_Machine_Execute_Opcode_movc(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
+		break;
+	case PX_SYNTAX_MACHINE_OPCODE_MOVF:
+		PX_Machine_Execute_Opcode_movf(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
 		break;
 	case PX_SYNTAX_MACHINE_OPCODE_MOVN:
 		PX_Machine_Execute_Opcode_movn(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
@@ -1925,9 +1858,6 @@ px_void PX_Machine_Run_Thread_ISA(PX_Machine* pmac, PX_Machine_Thread* pthread,p
 		break;
 	case PX_SYNTAX_MACHINE_OPCODE_U2F:
 		PX_Machine_Execute_Opcode_u2f(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
-		break;
-	case PX_SYNTAX_MACHINE_OPCODE_FF2F:
-		PX_Machine_Execute_Opcode_ff2f(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
 		break;
 	case PX_SYNTAX_MACHINE_OPCODE_LOADU8:
 		PX_Machine_Execute_Opcode_loadxx(pmac, pthread, &pmac->runtime_memory[pthread->ip], PX_FALSE, 8);
@@ -1956,6 +1886,51 @@ px_void PX_Machine_Run_Thread_ISA(PX_Machine* pmac, PX_Machine_Thread* pthread,p
 	case PX_SYNTAX_MACHINE_OPCODE_STORE32:
 		PX_Machine_Execute_Opcode_storex(pmac, pthread, &pmac->runtime_memory[pthread->ip], 32);
 		break;
+	case PX_SYNTAX_MACHINE_OPCODE_LOADU8R:
+		PX_Machine_Execute_Opcode_loadxxr(pmac, pthread, &pmac->runtime_memory[pthread->ip], PX_FALSE, 8);
+		break;
+	case PX_SYNTAX_MACHINE_OPCODE_LOADU16R:
+		PX_Machine_Execute_Opcode_loadxxr(pmac, pthread, &pmac->runtime_memory[pthread->ip], PX_FALSE, 16);
+		break;
+	case PX_SYNTAX_MACHINE_OPCODE_LOADU32R:
+		PX_Machine_Execute_Opcode_loadxxr(pmac, pthread, &pmac->runtime_memory[pthread->ip], PX_FALSE, 32);
+		break;
+	case PX_SYNTAX_MACHINE_OPCODE_LOADI8R:
+		PX_Machine_Execute_Opcode_loadxxr(pmac, pthread, &pmac->runtime_memory[pthread->ip], PX_TRUE, 8);
+		break;
+	case PX_SYNTAX_MACHINE_OPCODE_LOADI16R:
+		PX_Machine_Execute_Opcode_loadxxr(pmac, pthread, &pmac->runtime_memory[pthread->ip], PX_TRUE, 16);
+		break;
+	case PX_SYNTAX_MACHINE_OPCODE_LOADI32R:
+		PX_Machine_Execute_Opcode_loadxxr(pmac, pthread, &pmac->runtime_memory[pthread->ip], PX_TRUE, 32);
+		break;
+	case PX_SYNTAX_MACHINE_OPCODE_STORE8R:
+		PX_Machine_Execute_Opcode_storexr(pmac, pthread, &pmac->runtime_memory[pthread->ip], 8);
+		break;
+	case PX_SYNTAX_MACHINE_OPCODE_STORE16R:
+		PX_Machine_Execute_Opcode_storexr(pmac, pthread, &pmac->runtime_memory[pthread->ip], 16);
+		break;
+	case PX_SYNTAX_MACHINE_OPCODE_STORE32R:
+		PX_Machine_Execute_Opcode_storexr(pmac, pthread, &pmac->runtime_memory[pthread->ip], 32);
+		break;
+	case PX_SYNTAX_MACHINE_OPCODE_STORE8RC:
+		PX_Machine_Execute_Opcode_storexrc(pmac, pthread, &pmac->runtime_memory[pthread->ip], 8);
+		break;
+	case PX_SYNTAX_MACHINE_OPCODE_STORE16RC:
+		PX_Machine_Execute_Opcode_storexrc(pmac, pthread, &pmac->runtime_memory[pthread->ip], 16);
+		break;
+	case PX_SYNTAX_MACHINE_OPCODE_STORE32RC:
+		PX_Machine_Execute_Opcode_storexrc(pmac, pthread, &pmac->runtime_memory[pthread->ip], 32);
+		break;
+	case PX_SYNTAX_MACHINE_OPCODE_STORE8C:
+		PX_Machine_Execute_Opcode_storexc(pmac, pthread, &pmac->runtime_memory[pthread->ip], 8);
+		break;
+	case PX_SYNTAX_MACHINE_OPCODE_STORE16C:
+		PX_Machine_Execute_Opcode_storexc(pmac, pthread, &pmac->runtime_memory[pthread->ip], 16);
+		break;
+	case PX_SYNTAX_MACHINE_OPCODE_STORE32C:
+		PX_Machine_Execute_Opcode_storexc(pmac, pthread, &pmac->runtime_memory[pthread->ip], 32);
+		break;
 	case PX_SYNTAX_MACHINE_OPCODE_PUSH:
 		PX_Machine_Execute_Opcode_push(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
 		break;
@@ -1974,20 +1949,44 @@ px_void PX_Machine_Run_Thread_ISA(PX_Machine* pmac, PX_Machine_Thread* pthread,p
 	case PX_SYNTAX_MACHINE_OPCODE_ADD:
 		PX_Machine_Execute_Opcode_add(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
 		break;
+	case PX_SYNTAX_MACHINE_OPCODE_ADDC:
+		PX_Machine_Execute_Opcode_addc(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
+		break;
 	case PX_SYNTAX_MACHINE_OPCODE_SUB:
 		PX_Machine_Execute_Opcode_sub(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
+		break;
+	case PX_SYNTAX_MACHINE_OPCODE_SUBC:
+		PX_Machine_Execute_Opcode_subc(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
 		break;
 	case PX_SYNTAX_MACHINE_OPCODE_MUL:
 		PX_Machine_Execute_Opcode_mul(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
 		break;
+	case PX_SYNTAX_MACHINE_OPCODE_MULC:
+		PX_Machine_Execute_Opcode_mulc(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
+		break;
 	case PX_SYNTAX_MACHINE_OPCODE_DIV:
 		PX_Machine_Execute_Opcode_div(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
+		break;
+	case PX_SYNTAX_MACHINE_OPCODE_DIVC:
+		PX_Machine_Execute_Opcode_divc(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
 		break;
 	case PX_SYNTAX_MACHINE_OPCODE_IDIV:
 		PX_Machine_Execute_Opcode_idiv(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
 		break;
+	case PX_SYNTAX_MACHINE_OPCODE_IDIVC:
+		PX_Machine_Execute_Opcode_idivc(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
+		break;
 	case PX_SYNTAX_MACHINE_OPCODE_MOD:
 		PX_Machine_Execute_Opcode_mod(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
+		break;
+	case PX_SYNTAX_MACHINE_OPCODE_MODC:
+		PX_Machine_Execute_Opcode_modc(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
+		break;
+	case PX_SYNTAX_MACHINE_OPCODE_IMOD:
+		PX_Machine_Execute_Opcode_imod(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
+		break;
+	case PX_SYNTAX_MACHINE_OPCODE_IMODC:
+		PX_Machine_Execute_Opcode_imodc(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
 		break;
 	case PX_SYNTAX_MACHINE_OPCODE_NEG:
 		PX_Machine_Execute_Opcode_neg(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
@@ -1995,59 +1994,98 @@ px_void PX_Machine_Run_Thread_ISA(PX_Machine* pmac, PX_Machine_Thread* pthread,p
 	case PX_SYNTAX_MACHINE_OPCODE_AND:
 		PX_Machine_Execute_Opcode_and(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
 		break;
+	case PX_SYNTAX_MACHINE_OPCODE_ANDC:
+		PX_Machine_Execute_Opcode_andc(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
+		break;
 	case PX_SYNTAX_MACHINE_OPCODE_OR:
 		PX_Machine_Execute_Opcode_or(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
+		break;
+	case PX_SYNTAX_MACHINE_OPCODE_ORC:
+		PX_Machine_Execute_Opcode_orc(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
 		break;
 	case PX_SYNTAX_MACHINE_OPCODE_XOR:
 		PX_Machine_Execute_Opcode_xor(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
 		break;
+	case PX_SYNTAX_MACHINE_OPCODE_XORC:
+		PX_Machine_Execute_Opcode_xorc(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
+		break;
 	case PX_SYNTAX_MACHINE_OPCODE_SHL:
 		PX_Machine_Execute_Opcode_shl(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
+		break;
+	case PX_SYNTAX_MACHINE_OPCODE_SHLC:
+		PX_Machine_Execute_Opcode_shlc(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
 		break;
 	case PX_SYNTAX_MACHINE_OPCODE_SHR:
 		PX_Machine_Execute_Opcode_shr(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
 		break;
+	case PX_SYNTAX_MACHINE_OPCODE_SHRC:
+		PX_Machine_Execute_Opcode_shrc(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
+		break;
 	case PX_SYNTAX_MACHINE_OPCODE_NOT:
 		PX_Machine_Execute_Opcode_not(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
+		break;
+	case PX_SYNTAX_MACHINE_OPCODE_INV:
+		PX_Machine_Execute_Opcode_inv(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
+		break;
+	case PX_SYNTAX_MACHINE_OPCODE_ANDL:
+	case PX_SYNTAX_MACHINE_OPCODE_ORL:
+		PX_Machine_Execute_Opcode_andl_orl(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
 		break;
 	case PX_SYNTAX_MACHINE_OPCODE_FADD:
 		PX_Machine_Execute_Opcode_fadd(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
 		break;
+	case PX_SYNTAX_MACHINE_OPCODE_FADDC:
+		PX_Machine_Execute_Opcode_faddc(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
+		break;
 	case PX_SYNTAX_MACHINE_OPCODE_FSUB:
 		PX_Machine_Execute_Opcode_fsub(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
+		break;
+	case PX_SYNTAX_MACHINE_OPCODE_FSUBC:
+		PX_Machine_Execute_Opcode_fsubc(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
 		break;
 	case PX_SYNTAX_MACHINE_OPCODE_FMUL:
 		PX_Machine_Execute_Opcode_fmul(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
 		break;
+	case PX_SYNTAX_MACHINE_OPCODE_FMULC:
+		PX_Machine_Execute_Opcode_fmulc(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
+		break;
 	case PX_SYNTAX_MACHINE_OPCODE_FDIV:
 		PX_Machine_Execute_Opcode_fdiv(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
+		break;
+	case PX_SYNTAX_MACHINE_OPCODE_FDIVC:
+		PX_Machine_Execute_Opcode_fdivc(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
 		break;
 	case PX_SYNTAX_MACHINE_OPCODE_FNEG:
 		PX_Machine_Execute_Opcode_fneg(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
 		break;
-	case PX_SYNTAX_MACHINE_OPCODE_CMP:
-		PX_Machine_Execute_Opcode_cmp(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
+	case PX_SYNTAX_MACHINE_OPCODE_GT:
+	case PX_SYNTAX_MACHINE_OPCODE_GE:
+	case PX_SYNTAX_MACHINE_OPCODE_LT:
+	case PX_SYNTAX_MACHINE_OPCODE_LE:
+	case PX_SYNTAX_MACHINE_OPCODE_EQ:
+	case PX_SYNTAX_MACHINE_OPCODE_NEQ:
+	case PX_SYNTAX_MACHINE_OPCODE_UGT:
+	case PX_SYNTAX_MACHINE_OPCODE_UGE:
+	case PX_SYNTAX_MACHINE_OPCODE_ULT:
+	case PX_SYNTAX_MACHINE_OPCODE_ULE:
+		PX_Machine_Execute_Opcode_setcc_i(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
+		break;
+	case PX_SYNTAX_MACHINE_OPCODE_FGT:
+	case PX_SYNTAX_MACHINE_OPCODE_FGE:
+	case PX_SYNTAX_MACHINE_OPCODE_FLT:
+	case PX_SYNTAX_MACHINE_OPCODE_FLE:
+	case PX_SYNTAX_MACHINE_OPCODE_FEQ:
+	case PX_SYNTAX_MACHINE_OPCODE_FNEQ:
+		PX_Machine_Execute_Opcode_setcc_f(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
 		break;
 	case PX_SYNTAX_MACHINE_OPCODE_JMP:
 		PX_Machine_Execute_Opcode_jmp(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
 		break;
-	case PX_SYNTAX_MACHINE_OPCODE_JE:
-		PX_Machine_Execute_Opcode_je(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
+	case PX_SYNTAX_MACHINE_OPCODE_JZ:
+		PX_Machine_Execute_Opcode_jz(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
 		break;
-	case PX_SYNTAX_MACHINE_OPCODE_JNE:
-		PX_Machine_Execute_Opcode_jne(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
-		break;
-	case PX_SYNTAX_MACHINE_OPCODE_JL:
-		PX_Machine_Execute_Opcode_jl(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
-		break;
-	case PX_SYNTAX_MACHINE_OPCODE_JLE:
-		PX_Machine_Execute_Opcode_jle(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
-		break;
-	case PX_SYNTAX_MACHINE_OPCODE_JG:
-		PX_Machine_Execute_Opcode_jg(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
-		break;
-	case PX_SYNTAX_MACHINE_OPCODE_JGE:
-		PX_Machine_Execute_Opcode_jge(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
+	case PX_SYNTAX_MACHINE_OPCODE_JNZ:
+		PX_Machine_Execute_Opcode_jnz(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
 		break;
 	case PX_SYNTAX_MACHINE_OPCODE_CALL:
 		PX_Machine_Execute_Opcode_call(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
@@ -2058,89 +2096,8 @@ px_void PX_Machine_Run_Thread_ISA(PX_Machine* pmac, PX_Machine_Thread* pthread,p
 	case PX_SYNTAX_MACHINE_OPCODE_JMPR:
 		PX_Machine_Execute_Opcode_jmpr(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
 		break;
-	case PX_SYNTAX_MACHINE_OPCODE_ADDSP:
-		PX_Machine_Execute_Opcode_addsp(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
-		break;
-	case PX_SYNTAX_MACHINE_OPCODE_SUBSP:
-		PX_Machine_Execute_Opcode_subsp(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
-		break;
-	case PX_SYNTAX_MACHINE_OPCODE_FCMP:
-		PX_Machine_Execute_Opcode_fcmp(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
-		break;
-	case PX_SYNTAX_MACHINE_OPCODE_FCOMI:
-		PX_Machine_Execute_Opcode_fcomi(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
-		break;
 	case PX_SYNTAX_MACHINE_OPCODE_RET:
 		PX_Machine_Execute_Opcode_ret(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
-		break;
-	case PX_SYNTAX_MACHINE_OPCODE_EE_ADD:
-		PX_Machine_Execute_Opcode_ee_add(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
-		break;
-	case PX_SYNTAX_MACHINE_OPCODE_EE_SUB:
-		PX_Machine_Execute_Opcode_ee_sub(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
-		break;
-	case PX_SYNTAX_MACHINE_OPCODE_EE_MUL:
-		PX_Machine_Execute_Opcode_ee_mul(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
-		break;
-	case PX_SYNTAX_MACHINE_OPCODE_EE_DIV:
-		PX_Machine_Execute_Opcode_ee_div(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
-		break;
-	case PX_SYNTAX_MACHINE_OPCODE_EE_FADD:
-		PX_Machine_Execute_Opcode_ee_fadd(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
-		break;
-	case PX_SYNTAX_MACHINE_OPCODE_EE_FSUB:
-		PX_Machine_Execute_Opcode_ee_fsub(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
-		break;
-	case PX_SYNTAX_MACHINE_OPCODE_EE_FMUL:
-		PX_Machine_Execute_Opcode_ee_fmul(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
-		break;
-	case PX_SYNTAX_MACHINE_OPCODE_EE_FDIV:
-		PX_Machine_Execute_Opcode_ee_fdiv(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
-		break;
-	case PX_SYNTAX_MACHINE_OPCODE_EE_IDIV:
-		PX_Machine_Execute_Opcode_ee_idiv(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
-		break;
-	case PX_SYNTAX_MACHINE_OPCODE_EE_AND:
-		PX_Machine_Execute_Opcode_ee_and(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
-		break;
-	case PX_SYNTAX_MACHINE_OPCODE_EE_NOT:
-		PX_Machine_Execute_Opcode_ee_not(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
-		break;
-	case PX_SYNTAX_MACHINE_OPCODE_EE_OR:
-		PX_Machine_Execute_Opcode_ee_or(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
-		break;
-	case PX_SYNTAX_MACHINE_OPCODE_EE_POP:
-		PX_Machine_Execute_Opcode_ee_pop(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
-		break;
-	case PX_SYNTAX_MACHINE_OPCODE_EE_PUSH:
-		PX_Machine_Execute_Opcode_ee_push(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
-		break;
-	case PX_SYNTAX_MACHINE_OPCODE_EE_SHL:
-		PX_Machine_Execute_Opcode_ee_shl(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
-		break;
-	case PX_SYNTAX_MACHINE_OPCODE_EE_SHR:
-		PX_Machine_Execute_Opcode_ee_shr(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
-		break;
-	case PX_SYNTAX_MACHINE_OPCODE_EE_XOR:
-		PX_Machine_Execute_Opcode_ee_xor(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
-		break;
-	case PX_SYNTAX_MACHINE_OPCODE_EE_CALL:
-		PX_Machine_Execute_Opcode_ee_call(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
-		break;
-	case PX_SYNTAX_MACHINE_OPCODE_EE_MOD:
-		PX_Machine_Execute_Opcode_ee_mod(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
-		break;
-	case PX_SYNTAX_MACHINE_OPCODE_EE_NEG:
-		PX_Machine_Execute_Opcode_ee_neg(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
-		break;
-	case PX_SYNTAX_MACHINE_OPCODE_EE_FNEG:
-		PX_Machine_Execute_Opcode_ee_fneg(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
-		break;
-	case PX_SYNTAX_MACHINE_OPCODE_EE_CMP:
-		PX_Machine_Execute_Opcode_ee_cmp(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
-		break;
-	case PX_SYNTAX_MACHINE_OPCODE_EE_FCMP:
-		PX_Machine_Execute_Opcode_ee_fcmp(pmac, pthread, &pmac->runtime_memory[pthread->ip]);
 		break;
 	default:
 	{
@@ -2287,7 +2244,7 @@ const px_char* PX_Machine_Pause(PX_Machine* pMachine)
 const px_char* PX_Machine_Reset(PX_Machine* pMachine)
 {
 	pMachine->state = PX_MACHINE_STATE_IDLE;
-	if (pMachine->message.buffer)
+	if (PX_StringGetText(&pMachine->message))
 		PX_StringClear(&pMachine->message);
 	//clear threads
 	PX_VectorClear(&pMachine->threads);
@@ -2357,7 +2314,26 @@ px_string* PX_Machine_GetMessage(PX_Machine* pMachine)
 {
 	return &pMachine->message;
 }
-
+static px_bool PX_Machine_Execute_Opcode_get_config(PX_Machine* pMachine, px_abi* ppayload_abi, px_abi* preturn_abi)
+{
+	if (!PX_AbiSet_string(preturn_abi, "return", "ok"))
+		return PX_FALSE;
+	if (!PX_AbiSet_dword(preturn_abi, "text_size", pMachine->text_size))
+		return PX_FALSE;
+	if (!PX_AbiSet_dword(preturn_abi, "rdata_size", pMachine->rdata_size))
+		return PX_FALSE;
+	if (!PX_AbiSet_dword(preturn_abi, "thread_stack_size", pMachine->thread_stack_size))
+		return PX_FALSE;
+	if (!PX_AbiSet_dword(preturn_abi, "gp", pMachine->gp))
+		return PX_FALSE;
+	if (!PX_AbiSet_dword(preturn_abi, "rp", pMachine->rp))
+		return PX_FALSE;
+	if (!PX_AbiSet_dword(preturn_abi, "address_start", 0))
+		return PX_FALSE;
+	if (!PX_AbiSet_dword(preturn_abi, "address_end", pMachine->runtime_memory_size))
+		return PX_FALSE;
+	return PX_TRUE;
+}
 
 
 static px_bool PX_Machine_Execute_Opcode_get_state(PX_Machine* pMachine, px_abi* ppayload_abi, px_abi* preturn_abi)
@@ -2420,6 +2396,7 @@ static px_bool PX_Machine_Execute_Opcode_load(PX_Machine* pMachine, px_abi* ppay
 	if (text_size > (px_dword)0x7fffffff || rdata_size > (px_dword)0x7fffffff - text_size)
 		return PX_AbiSet_string(preturn_abi, "return", "load: bin segment too large");
 
+	
 	load_size = (px_uint)(text_size + rdata_size);
 	stack_size = pMachine->thread_stack_size ? pMachine->thread_stack_size : PX_MACHINE_DEFAULT_THREAD_STACK_SIZE;
 	if (stack_size > (px_uint)0x7fffffff - load_size)
@@ -2463,7 +2440,11 @@ static px_bool PX_Machine_Execute_Opcode_load(PX_Machine* pMachine, px_abi* ppay
 	pMachine->thread_stack_size = stack_size;
 	pMachine->T = 0;
 	pMachine->state = PX_MACHINE_STATE_PAUSE;
-	if (pMachine->message.buffer)
+	pMachine->text_size = text_size;
+	pMachine->rdata_size = rdata_size;
+	pMachine->rp = text_size;
+	pMachine->gp = load_size;
+	if (PX_StringGetText(&pMachine->message))
 		PX_StringClear(&pMachine->message);
 
 	if (!PX_AbiSet_string(preturn_abi, "return", "ok"))
@@ -2619,6 +2600,12 @@ static px_bool PX_Machine_Execute_Opcode_read_memory(PX_Machine* pMachine, px_ab
 
 	if (*paddress + *psize > pMachine->runtime_memory_size || *paddress + *psize < *paddress)
 		return PX_AbiSet_string(preturn_abi, "return", "read_memory: address out of range");
+
+	if (!PX_AbiSet_dword(preturn_abi, "address", *paddress))
+		return PX_FALSE;
+
+	if (!PX_AbiSet_dword(preturn_abi, "size", *psize))
+		return PX_FALSE;
 
 	if (!PX_AbiSet_data(preturn_abi, "data", pMachine->runtime_memory + *paddress, (px_int)*psize))
 		return PX_FALSE;
@@ -2826,6 +2813,8 @@ px_bool PX_Machine_Execute(PX_Machine* pMachine, const px_byte abi_payload[], px
 
 	if (PX_strequ(popcode, "get_state"))
 		return PX_Machine_Execute_Opcode_get_state(pMachine, &payload_abi, abi_writer_return);
+	if (PX_strequ(popcode, "get_config"))
+		return PX_Machine_Execute_Opcode_get_config(pMachine, &payload_abi, abi_writer_return);
 	else if (PX_strequ(popcode, "load"))
 		return PX_Machine_Execute_Opcode_load(pMachine, &payload_abi, abi_writer_return);
 	else if (PX_strequ(popcode, "run"))

@@ -1497,7 +1497,6 @@ px_int PX_MP3DecoderRead_44100HZ_2Channel(PX_MP3Decoder* mp3, px_double samples[
     px_int i;
     px_int readcount=0;
     px_int rIndex = 0;
-    px_int wIndex=0;
     px_int samples_read;
     mp3dec_frame_info_t info;
     px_float sources_fifo[PX_MP3_MAX_SAMPLES_PER_FRAME * 2];
@@ -1533,7 +1532,6 @@ px_int PX_MP3DecoderRead_44100HZ_2Channel(PX_MP3Decoder* mp3, px_double samples[
 
         mp3->offset += info.frame_bytes;
 
-        wIndex = 0;
         rIndex = 0;
         while (rIndex<samples_read)
         {

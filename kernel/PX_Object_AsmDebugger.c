@@ -41,7 +41,7 @@ px_void PX_Object_AsmDebuggerPrintVar(PX_Object_AsmDebugger* pAsm, px_variable* 
 	case PX_VARIABLE_TYPE_STRING:
 		PX_sprintf1(content, sizeof(content), "%1:string", PX_STRINGFORMAT_STRING(name));
 		PX_Object_LabelSetText(pAsm->label_name, content);
-		PX_Object_AutoTextSetText(pAsm->autotext_data, pvar->_string.buffer);
+		PX_Object_AutoTextSetText(pAsm->autotext_data, PX_StringGetText(&pvar->_string));
 		break;
 	case PX_VARIABLE_TYPE_HANDLE:
 		PX_sprintf1(content, sizeof(content), "%1(handle)", PX_STRINGFORMAT_STRING(name));
@@ -76,29 +76,29 @@ PX_OBJECT_RENDER_FUNCTION(PX_Object_AsmDebuggerSourceOnRender)
 	}
 
 
-	if (pline->source.buffer[0]==';')
+	if (PX_StringGetText(&pline->source)[0]==';')
 	{
 		clr = PX_COLOR(255, 192, 192, 192);
 	}
-	else if (PX_memequ(pline->source.buffer, "_", sizeof("_") - 1))
+	else if (PX_memequ(PX_StringGetText(&pline->source), "_", sizeof("_") - 1))
 	{
 		clr = PX_COLOR(255, 64, 230, 180);
 	}
-	else if (PX_memequ(pline->source.buffer, "EXPORT FUNCTION", sizeof("EXPORT FUNCTION") - 1) || PX_memequ(pline->source.buffer, "FUNCTION", sizeof("FUNCTION") - 1))
+	else if (PX_memequ(PX_StringGetText(&pline->source), "EXPORT FUNCTION", sizeof("EXPORT FUNCTION") - 1) || PX_memequ(PX_StringGetText(&pline->source), "FUNCTION", sizeof("FUNCTION") - 1))
 	{
 		clr = PX_COLOR(255, 255, 64, 96);
 	}
-	else if(PX_memequ(pline->source.buffer, "RET", sizeof("RET") - 1))
+	else if(PX_memequ(PX_StringGetText(&pline->source), "RET", sizeof("RET") - 1))
 	{
 		clr = PX_COLOR(255, 255, 192, 96);
 	}
-	else if (PX_memequ(pline->source.buffer, "CALL", sizeof("CALL") - 1))
+	else if (PX_memequ(PX_StringGetText(&pline->source), "CALL", sizeof("CALL") - 1))
 	{
 		clr = PX_COLOR(255, 64, 128, 255);
 	}
 	PX_sprintf1(num, sizeof(num), "%1:",PX_STRINGFORMAT_INT(PX_Object_ListItemGetIndex(pObject)+1));
 	PX_FontModuleDrawText(psurface, pDesc->fm, (px_int)pObject->x + 50, (px_int)pObject->y + (px_int)(pObject->Height / 2), PX_ALIGN_RIGHTMID, num, PX_COLOR(255,192,128,255));
-	PX_FontModuleDrawText(psurface, pDesc->fm, (px_int)pObject->x + 64, (px_int)pObject->y + (px_int)(pObject->Height / 2), PX_ALIGN_LEFTMID, pline->source.buffer, clr);
+	PX_FontModuleDrawText(psurface, pDesc->fm, (px_int)pObject->x + 64, (px_int)pObject->y + (px_int)(pObject->Height / 2), PX_ALIGN_LEFTMID, PX_StringGetText(&pline->source), clr);
 }
 
 px_bool PX_Object_AsmDebuggerSourceOnCreate(px_memorypool* mp, PX_Object* ItemObject, px_void* userptr)
@@ -444,7 +444,7 @@ px_bool PX_Object_AsmDebuggerAttach(PX_Object *pObject,PX_VM_DebuggerMap* bin_ma
 	pDesc->vm = vm;
 	pDesc->bin_map_to_source = bin_map_to_source;
 
-	while (bin_map_to_source->source.buffer[offset])
+	while (PX_StringGetText(&bin_map_to_source->source)[offset])
 	{
 		PX_Object_AsmDebugger_Line line;
 		PX_memset(&line, 0, sizeof(line));
@@ -452,14 +452,14 @@ px_bool PX_Object_AsmDebuggerAttach(PX_Object *pObject,PX_VM_DebuggerMap* bin_ma
 		PX_StringInitialize(pObject->mp, &line.source);
 		while (PX_TRUE)
 		{
-			if (bin_map_to_source->source.buffer[offset] == '\n' || bin_map_to_source->source.buffer[offset] == '\0')
+			if (PX_StringGetText(&bin_map_to_source->source)[offset] == '\n' || PX_StringGetText(&bin_map_to_source->source)[offset] == '\0')
 			{
 				offset++;
 				break;
 			}
 			else
 			{
-				PX_StringCatChar(&line.source, bin_map_to_source->source.buffer[offset]);
+				PX_StringCatChar(&line.source, PX_StringGetText(&bin_map_to_source->source)[offset]);
 			}
 			offset++;
 		}

@@ -62,6 +62,8 @@ typedef struct
 	px_uint    memory_breakpoint_size[2];//0 for unused
 	px_byte    memory_breakpoint_mask[2];//1 for read, 2 for write
 	px_dword   last_request_id;
+
+	px_dword   text_size,rdata_size,rp,gp;
 }PX_Machine;
 
 px_bool PX_Machine_Initialize(px_memorypool* mp, PX_Machine* pMachine);

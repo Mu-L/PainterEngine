@@ -1299,10 +1299,6 @@ px_void PX_TextureGetVisibleRange(px_texture *ptexture,px_int *pLeft,px_int *pRi
 px_void PX_TextureRenderPixelShader(px_surface *psurface,px_texture *tex,px_int x,px_int y,PX_ALIGN refPoint,PX_TexturePixelShader shader,px_void *ptr)
 {
 	px_int left,right,top,bottom,i,j;
-	px_color *pdata;
-	px_color clr;
-
-	pdata=(px_color *)tex->surfaceBuffer;
 	switch (refPoint)
 	{
 	case PX_ALIGN_LEFTTOP:
@@ -1396,7 +1392,6 @@ px_void PX_TextureRenderPixelShader(px_surface *psurface,px_texture *tex,px_int 
 	{
 		for (i=left;i<=right;i++)
 		{
-			clr=pdata[j*tex->width+i];
 			shader(psurface, tex,x+i,y+j,i,j,ptr);
 		}
 	}
@@ -3954,8 +3949,8 @@ px_bool PX_TextureScaleToTexture( px_texture* resTexture,  px_texture* out)
 	px_float SampleWidth = (px_float)(resTexture->width) / (newWidth);
 	px_float SampleHeight = (px_float)(resTexture->height) / (newHeight);
 	px_float SampleX, SampleY, SampleArea, u, v, cellw, cellh, mixa, mixr, mixg, mixb;
-	px_color* Dst, * Src = (px_color*)resTexture->surfaceBuffer;
-	px_color SampleColor, MixColor;
+	px_color* Dst;
+	px_color SampleColor;
 	px_int xoft, yoft, horz, vcl;
 
 	if (newWidth < 0 || newHeight < 0)
@@ -3975,9 +3970,6 @@ px_bool PX_TextureScaleToTexture( px_texture* resTexture,  px_texture* out)
 	{
 		for (xoft = 0; xoft < newWidth; xoft++)
 		{
-			//reset sample color
-			MixColor._argb.ucolor = 0;
-
 			SampleX = xoft * SampleWidth;
 			SampleY = yoft * SampleHeight;
 			mixa = 0;

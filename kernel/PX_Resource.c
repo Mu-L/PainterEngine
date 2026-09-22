@@ -338,7 +338,7 @@ const px_char* PX_ResourceLibraryGetText(PX_ResourceLibrary* lib, const px_char 
 	px_string* pstring = PX_ResourceLibraryGetString(lib, key);
 	if (pstring)
 	{
-		return pstring->buffer;
+		return PX_StringGetText(pstring);
 	}
 	return PX_NULL;
 }

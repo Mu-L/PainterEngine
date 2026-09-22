@@ -10,12 +10,17 @@ PX_SYNTAX_FUNCTION(PX_Syntax_declare_token_prefix)
 			px_int ptr_level = 1;
 			px_char nextchar;
 			px_abi* newabi;
+			px_int index = PX_Syntax_GetCurrentLexemeBeginSourceIndex(pSyntax);
+			px_int begin = PX_Syntax_GetCurrentLexemeBegin(pSyntax);
+			px_int end = begin;
 			while (PX_TRUE)
 			{
 				nextchar = PX_Syntax_PreviewNextChar(pSyntax);
 				if (nextchar=='*')
 				{
 					PX_Syntax_GetNextChar(pSyntax);
+					if(PX_Syntax_GetCurrentLexemeBeginSourceIndex(pSyntax)==index)
+						end = PX_Syntax_GetCurrentLexemeEnd(pSyntax);
 					ptr_level++;
 				}
 				else
@@ -23,7 +28,7 @@ PX_SYNTAX_FUNCTION(PX_Syntax_declare_token_prefix)
 					break;
 				}
 			}
-			newabi= PX_Syntax_NewAbi(pSyntax, "declare_token_prefix", pSyntax->reg_lifetime);
+			newabi= PX_Syntax_NewAbi(pSyntax, "declare_token_prefix");
 			if (!newabi)
 			{
 				PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_declare_token_prefix Memory Error1");
@@ -41,6 +46,13 @@ PX_SYNTAX_FUNCTION(PX_Syntax_declare_token_prefix)
 				PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_declare_token_prefix Memory Error3");
 				return PX_FALSE;
 			}
+			if (!PX_Syntax_NewStaticMapToken(pSyntax, index, begin, index, end, PX_COLOR(255,184,255,159), "declare_token_prefix"))
+			{
+				PX_AbiFree(newabi);
+				PX_Syntax_Terminate(pSyntax, "runtime:error:PX_Syntax_declare_token_prefix Memory Error4");
+				return PX_FALSE;
+			}
+			
 			return PX_TRUE;
 		}
 	}

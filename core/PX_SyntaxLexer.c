@@ -220,6 +220,7 @@ px_bool PX_SyntaxLexer_Initialize(px_memorypool* mp,px_syntaxlexer *plexer)
 	PX_memset(plexer->spacer,0,sizeof(plexer->spacer));
 	PX_memset(plexer->container,0,sizeof(plexer->container));
 	PX_memset(plexer->comment,0,sizeof(plexer->comment));
+
 	return PX_VectorInitialize(mp, &plexer->sources, sizeof(PX_SyntaxLexer_Source), 0);
 }
 
@@ -236,7 +237,11 @@ px_bool PX_SyntaxLexer_IsEnd(px_syntaxlexer * plexer)
 		PX_ASSERTIFX(pcall->source_index >= plexer->sources.size, "Error: Call source not exist");
 		psource = PX_VECTORAT(PX_SyntaxLexer_Source, &plexer->sources, pcall->source_index);
 		PX_ASSERTIFX(psource == PX_NULL, "Error: Call source data crash");
-		return psource->source[pcall->read_offset] == '\0';
+		if(psource->source[pcall->read_offset] == '\0')
+		{
+			return PX_TRUE;
+		}
+		return PX_FALSE;
 	}
 	return PX_FALSE;
 }
@@ -358,7 +363,7 @@ PX_SYNTAXLEXER_LEXEME_TYPE PX_SyntaxLexer_GetNextLexeme(px_syntaxlexer *plexer)
 			plexer->lexeme_begin = PX_SyntaxLexer_GetCurrentSourceOffset(plexer);
 			plexer->lexeme_end = PX_SyntaxLexer_GetCurrentSourceOffset(plexer);
 			plexer->symbol = '\0';
-			PX_StringCatChar(&plexer->current_lexeme, '\0');
+			PX_StringCatCharFast(&plexer->current_lexeme, '\0');
 			plexer->current_lexeme_type = PX_SYNTAXLEXER_LEXEME_TYPE_END;
 			return PX_SYNTAXLEXER_LEXEME_TYPE_END;
 		}
@@ -401,7 +406,7 @@ PX_SYNTAXLEXER_LEXEME_TYPE PX_SyntaxLexer_GetNextLexeme(px_syntaxlexer *plexer)
 					plexer->lexeme_end_source_index = PX_SyntaxLexer_GetCurrentSourceIndex(plexer);
 					return PX_SYNTAXLEXER_LEXEME_TYPE_ERR;
 				}
-				PX_StringCatChar(&plexer->current_lexeme, PX_SyntaxLexerGetCurrentSourceChar(plexer));
+				PX_StringCatCharFast(&plexer->current_lexeme, PX_SyntaxLexerGetCurrentSourceChar(plexer));
 				
 				//plexer->SourceOffset++;
 				PX_SyntaxLexer_Forward(plexer, 1);
@@ -447,14 +452,14 @@ PX_SYNTAXLEXER_LEXEME_TYPE PX_SyntaxLexer_GetNextLexeme(px_syntaxlexer *plexer)
 				
 				if (PX_SyntaxLexerIsContainerTransfer(plexer, chrst, PX_SyntaxLexerGetCurrentSourceChar(plexer)) && PX_memequ(PX_SyntaxLexerGetCurrentSourcePointer(plexer)+1, chrst, PX_strlen(chrst)))
 				{
-					PX_StringCatChar(&plexer->current_lexeme, PX_SyntaxLexerGetCurrentSourceChar(plexer));
+					PX_StringCatCharFast(&plexer->current_lexeme, PX_SyntaxLexerGetCurrentSourceChar(plexer));
 					PX_SyntaxLexer_Forward(plexer, 1);
-					PX_StringCatChar(&plexer->current_lexeme, PX_SyntaxLexerGetCurrentSourceChar(plexer));
+					PX_StringCatCharFast(&plexer->current_lexeme, PX_SyntaxLexerGetCurrentSourceChar(plexer));
 					PX_SyntaxLexer_Forward(plexer, 1);
 				}
 				else
 				{
-					PX_StringCatChar(&plexer->current_lexeme, PX_SyntaxLexerGetCurrentSourceChar(plexer));
+					PX_StringCatCharFast(&plexer->current_lexeme, PX_SyntaxLexerGetCurrentSourceChar(plexer));
 					PX_SyntaxLexer_Forward(plexer, 1);
 				}
 			}
@@ -474,7 +479,7 @@ PX_SYNTAXLEXER_LEXEME_TYPE PX_SyntaxLexer_GetNextLexeme(px_syntaxlexer *plexer)
 			plexer->lexeme_end = PX_SyntaxLexer_GetCurrentSourceOffset(plexer);
 			plexer->lexeme_end_source_index =PX_SyntaxLexer_GetCurrentSourceIndex(plexer);
 			plexer->symbol = PX_SyntaxLexerGetCurrentSourceChar(plexer);
-			PX_StringCatChar(&plexer->current_lexeme, PX_SyntaxLexerGetCurrentSourceChar(plexer));
+			PX_StringCatCharFast(&plexer->current_lexeme, PX_SyntaxLexerGetCurrentSourceChar(plexer));
 			PX_SyntaxLexer_Forward(plexer, 1);
 			//printf("<Spacer>\n");
 			plexer->current_lexeme_type = PX_SYNTAXLEXER_LEXEME_TYPE_SPACER;
@@ -488,7 +493,7 @@ PX_SYNTAXLEXER_LEXEME_TYPE PX_SyntaxLexer_GetNextLexeme(px_syntaxlexer *plexer)
 			plexer->lexeme_end = PX_SyntaxLexer_GetCurrentSourceOffset(plexer);
 			plexer->lexeme_end_source_index =PX_SyntaxLexer_GetCurrentSourceIndex(plexer);
 			plexer->symbol = PX_SyntaxLexerGetCurrentSourceChar(plexer);
-			PX_StringCatChar(&plexer->current_lexeme, PX_SyntaxLexerGetCurrentSourceChar(plexer));
+			PX_StringCatCharFast(&plexer->current_lexeme, PX_SyntaxLexerGetCurrentSourceChar(plexer));
 			PX_SyntaxLexer_Forward(plexer, 1);
 			//printf("<New line>\n");
 			plexer->current_lexeme_type = PX_SYNTAXLEXER_LEXEME_TYPE_NEWLINE;
@@ -511,7 +516,7 @@ PX_SYNTAXLEXER_LEXEME_TYPE PX_SyntaxLexer_GetNextLexeme(px_syntaxlexer *plexer)
 				}
 			}
 
-			PX_StringCatChar(&plexer->current_lexeme, PX_SyntaxLexerGetCurrentSourceChar(plexer));
+			PX_StringCatCharFast(&plexer->current_lexeme, PX_SyntaxLexerGetCurrentSourceChar(plexer));
 			//printf("<Delimiter> %c\n",plexer->Sources[plexer->SourceOffset]);
 			PX_SyntaxLexer_Forward(plexer, 1);
 			plexer->current_lexeme_type = PX_SYNTAXLEXER_LEXEME_TYPE_DELIMITER;
@@ -547,7 +552,7 @@ PX_SYNTAXLEXER_LEXEME_TYPE PX_SyntaxLexer_GetNextLexeme(px_syntaxlexer *plexer)
 			if ( PX_SyntaxLexerIsContainerStart(plexer, PX_SyntaxLexerGetCurrentSourcePointer(plexer)))
 				break;
 
-			PX_StringCatChar(&plexer->current_lexeme, PX_SyntaxLexerGetCurrentSourceChar(plexer));
+			PX_StringCatCharFast(&plexer->current_lexeme, PX_SyntaxLexerGetCurrentSourceChar(plexer));
 			plexer->lexeme_end = PX_SyntaxLexer_GetCurrentSourceOffset(plexer);
 			plexer->lexeme_end_source_index =PX_SyntaxLexer_GetCurrentSourceIndex(plexer);
 	
@@ -556,12 +561,14 @@ PX_SYNTAXLEXER_LEXEME_TYPE PX_SyntaxLexer_GetNextLexeme(px_syntaxlexer *plexer)
 		//printf("<Token> %s\n",m_CurLexeme);
 		if (plexer->lexeme_token_case == PX_SYNTAX_LEXER_LEXEME_CASE_UPPER)
 		{
-			PX_strupr(plexer->current_lexeme.buffer);
+			PX_strupr(PX_StringBeginRWBuffer(&plexer->current_lexeme));
+			PX_StringEndRWBuffer(&plexer->current_lexeme);
 		}
 
 		if (plexer->lexeme_token_case == PX_SYNTAX_LEXER_LEXEME_CASE_LOWER)
 		{
-			PX_strlwr(plexer->current_lexeme.buffer);
+			PX_strlwr(PX_StringBeginRWBuffer(&plexer->current_lexeme));
+			PX_StringEndRWBuffer(&plexer->current_lexeme);
 		}
 		plexer->current_lexeme_type = PX_SYNTAXLEXER_LEXEME_TYPE_TOKEN;
 		return PX_SYNTAXLEXER_LEXEME_TYPE_TOKEN;
@@ -587,7 +594,7 @@ px_bool PX_SyntaxLexer_ReadString(px_syntaxlexer *plexer,px_string *str,px_uint 
 		{
 			return PX_FALSE;
 		}
-		PX_StringCatChar(str, PX_SyntaxLexerGetCurrentSourceChar(plexer));
+		PX_StringCatCharFast(str, PX_SyntaxLexerGetCurrentSourceChar(plexer));
 		PX_SyntaxLexer_Forward(plexer, 1);
 		size--;
 	}
@@ -612,7 +619,7 @@ px_void PX_SyntaxLexer_GetIncludedString(px_syntaxlexer *plexer,px_string *str)
 
 const px_char* PX_SyntaxLexer_GetCurrentLexeme(px_syntaxlexer *plexer)
 {
-	return plexer->current_lexeme.buffer;
+	return PX_StringGetText(&plexer->current_lexeme);
 }
 
 const px_char* PX_SyntaxLexer_GetCurrentSourcePointer(px_syntaxlexer* plexer)
@@ -884,6 +891,10 @@ px_int PX_SyntaxLexer_AddSource(px_syntaxlexer* plexer, const px_char* name, con
 	}
 
 	new_source.last_descriptor_index = -1;
+	if (!PX_MapInitialize(plexer->mp, &new_source.descriptor_map))
+	{
+		goto _ERROR;
+	}
 
 	if (!PX_VectorInitialize(plexer->mp, &new_source.descriptor, sizeof(px_abi), 32))
 	{
@@ -1037,7 +1048,7 @@ px_char PX_SyntaxLexer_GetNextChar(px_syntaxlexer *plexer)
 	plexer->lexeme_begin_source_index =PX_SyntaxLexer_GetCurrentSourceIndex(plexer);
 	plexer->lexeme_end = PX_SyntaxLexer_GetCurrentSourceOffset(plexer);
 	plexer->lexeme_end_source_index =PX_SyntaxLexer_GetCurrentSourceIndex(plexer);
-	PX_StringCatChar(&plexer->current_lexeme, ch);
+	PX_StringCatCharFast(&plexer->current_lexeme, ch);
 	if(!PX_SyntaxLexer_IsEnd(plexer))
 		PX_SyntaxLexer_Forward(plexer, 1);
 	return ch;
@@ -1096,7 +1107,7 @@ px_int PX_SyntaxLexer_GetCurrentDelimiterType(px_syntaxlexer *plexer)
 
 const px_char* PX_SyntaxLexer_GetLexeme(px_syntaxlexer* plexer)
 {
-	return plexer->current_lexeme.buffer;
+	return PX_StringGetText(&plexer->current_lexeme);
 }
 
 PX_SYNTAXLEXER_LEXEME_TYPE PX_SyntaxLexer_GetLexemeType(px_syntaxlexer* plexer)
@@ -1145,6 +1156,7 @@ px_void PX_SyntaxLexer_Clear(px_syntaxlexer* plexer)
 			PX_AbiFree(pabi);
 		}
 		PX_VectorFree(&psource->descriptor);
+		PX_MapFree(&psource->descriptor_map);
 	}
 	PX_VectorClear(&plexer->sources);
 	PX_StringClear(&plexer->current_lexeme);
@@ -1217,8 +1229,8 @@ PX_SyntaxLexer_Source* PX_SyntaxLexer_GetCurrentSource(px_syntaxlexer* plexer)
 
 px_char PX_SyntaxLexerGetDelimiter(px_syntaxlexer* plexer)
 {
-	PX_ASSERTIF(!plexer->current_lexeme.buffer);
-	return plexer->current_lexeme.buffer[0];
+	PX_ASSERTIF(!PX_StringGetText(&plexer->current_lexeme));
+	return PX_StringGetText(&plexer->current_lexeme)[0];
 }
 
 px_bool PX_SyntaxLexerIsContainerTransfer(px_syntaxlexer *plexer,const px_char startch[],px_char ch)

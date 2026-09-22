@@ -28,7 +28,7 @@ PX_SYNTAX_FUNCTION(PX_Syntax_comment)
 				}
 				end_source_index = PX_Syntax_GetCurrentSourceIndex(pSyntax);
 				end = PX_Syntax_GetCurrentLexerOffset(pSyntax);
-				PX_Syntax_NewMapToken(pSyntax, begin_source_index, begin, end_source_index, end, PX_COLOR(255, 128, 128, 128), 0);
+				PX_Syntax_NewStaticMapToken(pSyntax, begin_source_index, begin, end_source_index, end, PX_COLOR(255, 128, 128, 128), "comment context.");
 				return PX_TRUE;
 			}
 			else if (nextchar == '*')
@@ -50,14 +50,14 @@ PX_SYNTAX_FUNCTION(PX_Syntax_comment)
 						nextchar = PX_Syntax_PreviewNextChar(pSyntax);
 						if (nextchar == '/')
 						{
+							end = PX_Syntax_GetCurrentLexerOffset(pSyntax);
+							end_source_index = PX_Syntax_GetCurrentSourceIndex(pSyntax);
 							PX_Syntax_LexerForward(pSyntax,1); // consume the '/'
 							break;
 						}
 					}
 				}
-				end_source_index = PX_Syntax_GetCurrentSourceIndex(pSyntax);
-				end = PX_Syntax_GetCurrentLexerOffset(pSyntax);
-				PX_Syntax_NewMapToken(pSyntax, begin_source_index, begin, end_source_index, end, PX_COLOR(255, 128, 128, 128), 0);
+				PX_Syntax_NewStaticMapToken(pSyntax, begin_source_index, begin, end_source_index, end, PX_COLOR(255, 128, 128, 128), "comment context.");
 				return PX_TRUE;
 			}
 		}

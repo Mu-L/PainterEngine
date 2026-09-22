@@ -52,4 +52,6 @@ px_void *PX_SocketGetUserPtr(PX_Socket* pSocket);
 px_bool PX_SocketIsConnecting(PX_Socket* pSocket);
 px_void PX_SocketClose(PX_Socket* pSocket);
 px_void PX_SocketFree(PX_Socket* pSocket);
+px_bool PX_SocketRequestEx(const px_char host[], px_word port, const px_byte* data, px_dword send_data_size, px_memory* response);
+px_bool PX_SocketRequest(PX_Socket* pSocket, const px_byte* data, px_dword send_data_size, px_memory* response);
 #endif // !PX_SOCKET_H

@@ -46,7 +46,7 @@ px_bool PX_ExecuterVM_LastPrint(PX_VM *Ins,px_void *userptr)
 		PX_VM_RET(Ins,PX_Variable_int(0));
 		return PX_TRUE;
 	}
-	PX_Object_ExecuterLastPrintText(pObject,PX_VM_STACK(Ins,0)._string.buffer);
+	PX_Object_ExecuterLastPrintText(pObject,PX_StringGetText(&PX_VM_STACK(Ins,0)._string));
 	PX_VM_RET(Ins,PX_Variable_int(PX_Object_PrinterGetLastCreateId(pExecuter->printer)));
 	return PX_TRUE;
 }
@@ -64,7 +64,7 @@ px_bool PX_ExecuterVM_Print(PX_VM *Ins,px_void *userptr)
 	}
 	if (pExecuter->preslib)
 	{
-		PX_Resource* pRes = PX_ResourceLibraryGet(pExecuter->preslib, PX_VM_STACK(Ins, 0)._string.buffer);
+		PX_Resource* pRes = PX_ResourceLibraryGet(pExecuter->preslib, PX_StringGetText(&PX_VM_STACK(Ins, 0)._string));
 		if (pRes)
 		{
 			if (pRes->Type == PX_RESOURCE_TYPE_TEXTURE)
@@ -76,7 +76,7 @@ px_bool PX_ExecuterVM_Print(PX_VM *Ins,px_void *userptr)
 		}
 	}
 
-	PX_Object_ExecuterPrintText(pObject,PX_VM_STACK(Ins,0)._string.buffer);
+	PX_Object_ExecuterPrintText(pObject,PX_StringGetText(&PX_VM_STACK(Ins,0)._string));
 	PX_VM_RET(Ins, PX_Variable_int(PX_Object_PrinterGetLastCreateId(pExecuter->printer)));
 	return PX_TRUE;
 }
@@ -160,7 +160,7 @@ px_bool PX_ExecuterVM_CreateThread(PX_VM *Ins,px_void *userptr)
 		return PX_TRUE;
 	}
 
-	if(!PX_VMBeginThreadFunction(&pExecute->vm,PX_VMGetFreeThreadId(Ins),PX_VM_STACK(Ins,0)._string.buffer,PX_NULL,0))
+	if(!PX_VMBeginThreadFunction(&pExecute->vm,PX_VMGetFreeThreadId(Ins),PX_StringGetText(&PX_VM_STACK(Ins,0)._string),PX_NULL,0))
 	{
 		PX_VM_RET(Ins,PX_Variable_int(0));
 	}

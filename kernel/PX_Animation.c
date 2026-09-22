@@ -493,7 +493,7 @@ px_bool PX_AnimationShellCompile(px_memorypool* mp, const px_char script[], px_v
 			continue;
 		}
 
-		if (PX_strequ(lexer.CurLexeme.buffer, PX_2DX_MNEMONIC_TEXTURE))
+		if (PX_strequ(PX_StringGetText(&lexer.CurLexeme), PX_2DX_MNEMONIC_TEXTURE))
 		{
 			type = PX_2dx_NextLexer(&lexer);
 			if (type != PX_LEXER_LEXEME_TYPE_CONATINER)
@@ -502,7 +502,7 @@ px_bool PX_AnimationShellCompile(px_memorypool* mp, const px_char script[], px_v
 			}
 			
 			PX_LexerGetIncludedString(&lexer, &lexer.CurLexeme);
-			PX_strcpy(textureInfo.path, lexer.CurLexeme.buffer,sizeof(textureInfo.path));
+			PX_strcpy(textureInfo.path, PX_StringGetText(&lexer.CurLexeme),sizeof(textureInfo.path));
 
 			type = PX_2dx_NextLexer(&lexer);
 			if (type != PX_LEXER_LEXEME_TYPE_TOKEN)
@@ -510,7 +510,7 @@ px_bool PX_AnimationShellCompile(px_memorypool* mp, const px_char script[], px_v
 				goto _LEXER_ERROR;
 			}
 
-			PX_strcpy(textureInfo.bin_map_to_source, lexer.CurLexeme.buffer, sizeof(textureInfo.path));
+			PX_strcpy(textureInfo.bin_map_to_source, PX_StringGetText(&lexer.CurLexeme), sizeof(textureInfo.path));
 
 			type = PX_2dx_NextLexer(&lexer);
 			if (type != PX_LEXER_LEXEME_TYPE_NEWLINE)
@@ -522,7 +522,7 @@ px_bool PX_AnimationShellCompile(px_memorypool* mp, const px_char script[], px_v
 			continue;
 		}
 
-		if (PX_strequ(lexer.CurLexeme.buffer, PX_2DX_MNEMONIC_FRAME))
+		if (PX_strequ(PX_StringGetText(&lexer.CurLexeme), PX_2DX_MNEMONIC_FRAME))
 		{
 			type = PX_2dx_NextLexer(&lexer);
 			if (type != PX_LEXER_LEXEME_TYPE_TOKEN)
@@ -541,14 +541,14 @@ px_bool PX_AnimationShellCompile(px_memorypool* mp, const px_char script[], px_v
 			continue;
 		}
 
-		if (PX_strequ(lexer.CurLexeme.buffer, PX_2DX_MNEMONIC_SLEEP))
+		if (PX_strequ(PX_StringGetText(&lexer.CurLexeme), PX_2DX_MNEMONIC_SLEEP))
 		{
 			type = PX_2dx_NextLexer(&lexer);
 			if (type != PX_LEXER_LEXEME_TYPE_TOKEN)
 			{
 				goto _LEXER_ERROR;
 			}
-			if (!PX_strIsInt(lexer.CurLexeme.buffer))
+			if (!PX_strIsInt(PX_StringGetText(&lexer.CurLexeme)))
 			{
 				goto _LEXER_ERROR;
 			}
@@ -564,14 +564,14 @@ px_bool PX_AnimationShellCompile(px_memorypool* mp, const px_char script[], px_v
 			continue;
 		}
 
-		if (PX_strequ(lexer.CurLexeme.buffer, PX_2DX_MNEMONIC_LOOP))
+		if (PX_strequ(PX_StringGetText(&lexer.CurLexeme), PX_2DX_MNEMONIC_LOOP))
 		{
 			type = PX_2dx_NextLexer(&lexer);
 			if (type != PX_LEXER_LEXEME_TYPE_TOKEN)
 			{
 				goto _LEXER_ERROR;
 			}
-			if (!PX_strIsInt(lexer.CurLexeme.buffer))
+			if (!PX_strIsInt(PX_StringGetText(&lexer.CurLexeme)))
 			{
 				goto _LEXER_ERROR;
 			}
@@ -588,7 +588,7 @@ px_bool PX_AnimationShellCompile(px_memorypool* mp, const px_char script[], px_v
 		}
 
 
-		if (PX_strequ(lexer.CurLexeme.buffer, PX_2DX_MNEMONIC_TAG))
+		if (PX_strequ(PX_StringGetText(&lexer.CurLexeme), PX_2DX_MNEMONIC_TAG))
 		{
 			type = PX_2dx_NextLexer(&lexer);
 
@@ -597,7 +597,7 @@ px_bool PX_AnimationShellCompile(px_memorypool* mp, const px_char script[], px_v
 				goto _LEXER_ERROR;
 			}
 
-			PX_strcpy(taginfo.tag, lexer.CurLexeme.buffer,sizeof(taginfo.tag));
+			PX_strcpy(taginfo.tag, PX_StringGetText(&lexer.CurLexeme),sizeof(taginfo.tag));
 
 			type = PX_2dx_NextLexer(&lexer);
 			if (type != PX_LEXER_LEXEME_TYPE_NEWLINE)
@@ -610,7 +610,7 @@ px_bool PX_AnimationShellCompile(px_memorypool* mp, const px_char script[], px_v
 			continue;
 		}
 
-		if (PX_strequ(lexer.CurLexeme.buffer, PX_2DX_MNEMONIC_GOTO))
+		if (PX_strequ(PX_StringGetText(&lexer.CurLexeme), PX_2DX_MNEMONIC_GOTO))
 		{
 			type = PX_2dx_NextLexer(&lexer);
 			if (type != PX_LEXER_LEXEME_TYPE_TOKEN)
@@ -627,7 +627,7 @@ px_bool PX_AnimationShellCompile(px_memorypool* mp, const px_char script[], px_v
 			continue;
 		}
 
-		if (PX_strequ(lexer.CurLexeme.buffer, PX_2DX_MNEMONIC_ANIMATION))
+		if (PX_strequ(PX_StringGetText(&lexer.CurLexeme), PX_2DX_MNEMONIC_ANIMATION))
 		{
 			type = PX_2dx_NextLexer(&lexer);
 
@@ -636,7 +636,7 @@ px_bool PX_AnimationShellCompile(px_memorypool* mp, const px_char script[], px_v
 				goto _LEXER_ERROR;
 			}
 
-			PX_strcpy(taginfo.tag, lexer.CurLexeme.buffer,sizeof(taginfo.tag));
+			PX_strcpy(taginfo.tag, PX_StringGetText(&lexer.CurLexeme),sizeof(taginfo.tag));
 
 			type = PX_2dx_NextLexer(&lexer);
 			if (type != PX_LEXER_LEXEME_TYPE_NEWLINE)
@@ -649,7 +649,7 @@ px_bool PX_AnimationShellCompile(px_memorypool* mp, const px_char script[], px_v
 			continue;
 		}
 
-		if (PX_strequ(lexer.CurLexeme.buffer, PX_2DX_MNEMONIC_END))
+		if (PX_strequ(PX_StringGetText(&lexer.CurLexeme), PX_2DX_MNEMONIC_END))
 		{
 			type = PX_2dx_NextLexer(&lexer);
 
@@ -661,13 +661,13 @@ px_bool PX_AnimationShellCompile(px_memorypool* mp, const px_char script[], px_v
 			continue;
 		}
 		
-		if (PX_strequ(lexer.CurLexeme.buffer, PX_2DX_MNEMONIC_CLIPX)||\
-			PX_strequ(lexer.CurLexeme.buffer, PX_2DX_MNEMONIC_CLIPY) ||\
-			PX_strequ(lexer.CurLexeme.buffer, PX_2DX_MNEMONIC_CLIPW) ||\
-			PX_strequ(lexer.CurLexeme.buffer, PX_2DX_MNEMONIC_CLIPH) ||\
-			PX_strequ(lexer.CurLexeme.buffer, PX_2DX_MNEMONIC_CLIPI) || \
-			PX_strequ(lexer.CurLexeme.buffer, PX_2DX_MNEMONIC_CLIPINC)||\
-			PX_strequ(lexer.CurLexeme.buffer, PX_2DX_MNEMONIC_CLIPDEC) \
+		if (PX_strequ(PX_StringGetText(&lexer.CurLexeme), PX_2DX_MNEMONIC_CLIPX)||\
+			PX_strequ(PX_StringGetText(&lexer.CurLexeme), PX_2DX_MNEMONIC_CLIPY) ||\
+			PX_strequ(PX_StringGetText(&lexer.CurLexeme), PX_2DX_MNEMONIC_CLIPW) ||\
+			PX_strequ(PX_StringGetText(&lexer.CurLexeme), PX_2DX_MNEMONIC_CLIPH) ||\
+			PX_strequ(PX_StringGetText(&lexer.CurLexeme), PX_2DX_MNEMONIC_CLIPI) || \
+			PX_strequ(PX_StringGetText(&lexer.CurLexeme), PX_2DX_MNEMONIC_CLIPINC)||\
+			PX_strequ(PX_StringGetText(&lexer.CurLexeme), PX_2DX_MNEMONIC_CLIPDEC) \
 			)
 		{
 			type = PX_2dx_NextLexer(&lexer);
@@ -706,7 +706,7 @@ px_bool PX_AnimationShellCompile(px_memorypool* mp, const px_char script[], px_v
 			continue;
 		}
 
-		if (PX_strequ(lexer.CurLexeme.buffer, PX_2DX_MNEMONIC_TEXTURE))
+		if (PX_strequ(PX_StringGetText(&lexer.CurLexeme), PX_2DX_MNEMONIC_TEXTURE))
 		{
 			PX_2dx_NextLexer(&lexer);
 			PX_2dx_NextLexer(&lexer);
@@ -714,7 +714,7 @@ px_bool PX_AnimationShellCompile(px_memorypool* mp, const px_char script[], px_v
 			continue;
 		}
 
-		if (PX_strequ(lexer.CurLexeme.buffer, PX_2DX_MNEMONIC_FRAME))
+		if (PX_strequ(PX_StringGetText(&lexer.CurLexeme), PX_2DX_MNEMONIC_FRAME))
 		{
 			type = PX_2dx_NextLexer(&lexer);
 			if (type != PX_LEXER_LEXEME_TYPE_TOKEN)
@@ -724,7 +724,7 @@ px_bool PX_AnimationShellCompile(px_memorypool* mp, const px_char script[], px_v
 
 			for (i = 0; i < texinfos->size; i++)
 			{
-				if (PX_strequ(PX_VECTORAT(PX_2dxMake_textureInfo, texinfos, i)->bin_map_to_source, lexer.CurLexeme.buffer))
+				if (PX_strequ(PX_VECTORAT(PX_2dxMake_textureInfo, texinfos, i)->bin_map_to_source, PX_StringGetText(&lexer.CurLexeme)))
 				{
 					instr.opcode = PX_2DX_OPCODE_FRAME;
 					instr.param = i;
@@ -742,23 +742,23 @@ px_bool PX_AnimationShellCompile(px_memorypool* mp, const px_char script[], px_v
 			continue;
 		}
 
-		if (PX_strequ(lexer.CurLexeme.buffer, PX_2DX_MNEMONIC_SLEEP))
+		if (PX_strequ(PX_StringGetText(&lexer.CurLexeme), PX_2DX_MNEMONIC_SLEEP))
 		{
 			type = PX_2dx_NextLexer(&lexer);
 			if (type != PX_LEXER_LEXEME_TYPE_TOKEN)
 			{
 				goto _LEXER_ERROR;
 			}
-			if (!PX_strIsInt(lexer.CurLexeme.buffer))
+			if (!PX_strIsInt(PX_StringGetText(&lexer.CurLexeme)))
 			{
 				goto _LEXER_ERROR;
 			}
 
 			instr.opcode = PX_2DX_OPCODE_SLEEP;
 
-			if (PX_atoi(lexer.CurLexeme.buffer) > 0 && PX_atoi(lexer.CurLexeme.buffer) < 65535)
+			if (PX_atoi(PX_StringGetText(&lexer.CurLexeme)) > 0 && PX_atoi(PX_StringGetText(&lexer.CurLexeme)) < 65535)
 			{
-				instr.param = PX_atoi(lexer.CurLexeme.buffer);
+				instr.param = PX_atoi(PX_StringGetText(&lexer.CurLexeme));
 			}
 			else
 			{
@@ -775,31 +775,31 @@ px_bool PX_AnimationShellCompile(px_memorypool* mp, const px_char script[], px_v
 			continue;
 		}
 
-		if (PX_strequ(lexer.CurLexeme.buffer, PX_2DX_MNEMONIC_LOOP)||\
-			PX_strequ(lexer.CurLexeme.buffer, PX_2DX_MNEMONIC_CLIPX) || \
-			PX_strequ(lexer.CurLexeme.buffer, PX_2DX_MNEMONIC_CLIPY) || \
-			PX_strequ(lexer.CurLexeme.buffer, PX_2DX_MNEMONIC_CLIPW) || \
-			PX_strequ(lexer.CurLexeme.buffer, PX_2DX_MNEMONIC_CLIPH) || \
-			PX_strequ(lexer.CurLexeme.buffer, PX_2DX_MNEMONIC_CLIPI) || \
-			PX_strequ(lexer.CurLexeme.buffer, PX_2DX_MNEMONIC_CLIPINC) || \
-			PX_strequ(lexer.CurLexeme.buffer, PX_2DX_MNEMONIC_CLIPDEC) \
+		if (PX_strequ(PX_StringGetText(&lexer.CurLexeme), PX_2DX_MNEMONIC_LOOP)||\
+			PX_strequ(PX_StringGetText(&lexer.CurLexeme), PX_2DX_MNEMONIC_CLIPX) || \
+			PX_strequ(PX_StringGetText(&lexer.CurLexeme), PX_2DX_MNEMONIC_CLIPY) || \
+			PX_strequ(PX_StringGetText(&lexer.CurLexeme), PX_2DX_MNEMONIC_CLIPW) || \
+			PX_strequ(PX_StringGetText(&lexer.CurLexeme), PX_2DX_MNEMONIC_CLIPH) || \
+			PX_strequ(PX_StringGetText(&lexer.CurLexeme), PX_2DX_MNEMONIC_CLIPI) || \
+			PX_strequ(PX_StringGetText(&lexer.CurLexeme), PX_2DX_MNEMONIC_CLIPINC) || \
+			PX_strequ(PX_StringGetText(&lexer.CurLexeme), PX_2DX_MNEMONIC_CLIPDEC) \
 			)
 		{
-			if (PX_strequ(lexer.CurLexeme.buffer, PX_2DX_MNEMONIC_LOOP))
+			if (PX_strequ(PX_StringGetText(&lexer.CurLexeme), PX_2DX_MNEMONIC_LOOP))
 				instr.opcode = PX_2DX_OPCODE_LOOP;
-			else if (PX_strequ(lexer.CurLexeme.buffer, PX_2DX_MNEMONIC_CLIPX))
+			else if (PX_strequ(PX_StringGetText(&lexer.CurLexeme), PX_2DX_MNEMONIC_CLIPX))
 				instr.opcode = PX_2DX_OPCODE_CLIPX;
-			else if (PX_strequ(lexer.CurLexeme.buffer, PX_2DX_MNEMONIC_CLIPY))
+			else if (PX_strequ(PX_StringGetText(&lexer.CurLexeme), PX_2DX_MNEMONIC_CLIPY))
 				instr.opcode = PX_2DX_OPCODE_CLIPY;
-			else if (PX_strequ(lexer.CurLexeme.buffer, PX_2DX_MNEMONIC_CLIPW))
+			else if (PX_strequ(PX_StringGetText(&lexer.CurLexeme), PX_2DX_MNEMONIC_CLIPW))
 				instr.opcode = PX_2DX_OPCODE_CLIPW;
-			else if (PX_strequ(lexer.CurLexeme.buffer, PX_2DX_MNEMONIC_CLIPH))
+			else if (PX_strequ(PX_StringGetText(&lexer.CurLexeme), PX_2DX_MNEMONIC_CLIPH))
 				instr.opcode = PX_2DX_OPCODE_CLIPH;
-			else if (PX_strequ(lexer.CurLexeme.buffer, PX_2DX_MNEMONIC_CLIPI))
+			else if (PX_strequ(PX_StringGetText(&lexer.CurLexeme), PX_2DX_MNEMONIC_CLIPI))
 				instr.opcode = PX_2DX_OPCODE_CLIPI;
-			else if (PX_strequ(lexer.CurLexeme.buffer, PX_2DX_MNEMONIC_CLIPINC))
+			else if (PX_strequ(PX_StringGetText(&lexer.CurLexeme), PX_2DX_MNEMONIC_CLIPINC))
 				instr.opcode = PX_2DX_OPCODE_CLIPINC;
-			else if (PX_strequ(lexer.CurLexeme.buffer, PX_2DX_MNEMONIC_CLIPDEC))
+			else if (PX_strequ(PX_StringGetText(&lexer.CurLexeme), PX_2DX_MNEMONIC_CLIPDEC))
 				instr.opcode = PX_2DX_OPCODE_CLIPDEC;
 
 			type = PX_2dx_NextLexer(&lexer);
@@ -807,18 +807,18 @@ px_bool PX_AnimationShellCompile(px_memorypool* mp, const px_char script[], px_v
 			{
 				goto _LEXER_ERROR;
 			}
-			if (!PX_strIsInt(lexer.CurLexeme.buffer))
+			if (!PX_strIsInt(PX_StringGetText(&lexer.CurLexeme)))
 			{
 				goto _LEXER_ERROR;
 			}
 
 			
 
-			if (PX_atoi(lexer.CurLexeme.buffer) >= 0 && PX_atoi(lexer.CurLexeme.buffer) <= 65535)
+			if (PX_atoi(PX_StringGetText(&lexer.CurLexeme)) >= 0 && PX_atoi(PX_StringGetText(&lexer.CurLexeme)) <= 65535)
 			{
-				instr.param = PX_atoi(lexer.CurLexeme.buffer);
+				instr.param = PX_atoi(PX_StringGetText(&lexer.CurLexeme));
 			}
-			else if (PX_atoi(lexer.CurLexeme.buffer) == -1)
+			else if (PX_atoi(PX_StringGetText(&lexer.CurLexeme)) == -1)
 			{
 				instr.param = 0xffff;
 			}
@@ -838,14 +838,14 @@ px_bool PX_AnimationShellCompile(px_memorypool* mp, const px_char script[], px_v
 		}
 
 
-		if (PX_strequ(lexer.CurLexeme.buffer, PX_2DX_MNEMONIC_TAG))
+		if (PX_strequ(PX_StringGetText(&lexer.CurLexeme), PX_2DX_MNEMONIC_TAG))
 		{
 			PX_2dx_NextLexer(&lexer);
 			PX_2dx_NextLexer(&lexer);
 			continue;
 		}
 
-		if (PX_strequ(lexer.CurLexeme.buffer, PX_2DX_MNEMONIC_GOTO))
+		if (PX_strequ(PX_StringGetText(&lexer.CurLexeme), PX_2DX_MNEMONIC_GOTO))
 		{
 			type = PX_2dx_NextLexer(&lexer);
 			if (type != PX_LEXER_LEXEME_TYPE_TOKEN)
@@ -855,7 +855,7 @@ px_bool PX_AnimationShellCompile(px_memorypool* mp, const px_char script[], px_v
 
 			for (i = 0; i < taginfos->size; i++)
 			{
-				if (PX_strequ(PX_VECTORAT(PX_2dxMake_tagInfo, taginfos, i)->tag, lexer.CurLexeme.buffer))
+				if (PX_strequ(PX_VECTORAT(PX_2dxMake_tagInfo, taginfos, i)->tag, PX_StringGetText(&lexer.CurLexeme)))
 				{
 					instr.opcode = PX_2DX_OPCODE_GOTO;
 					instr.param = PX_VECTORAT(PX_2dxMake_tagInfo, taginfos, i)->addr;
@@ -874,7 +874,7 @@ px_bool PX_AnimationShellCompile(px_memorypool* mp, const px_char script[], px_v
 		}
 
 
-		if (PX_strequ(lexer.CurLexeme.buffer, PX_2DX_MNEMONIC_ANIMATION))
+		if (PX_strequ(PX_StringGetText(&lexer.CurLexeme), PX_2DX_MNEMONIC_ANIMATION))
 		{
 			if (lastAnimationAddr != -1)
 			{
@@ -889,7 +889,7 @@ px_bool PX_AnimationShellCompile(px_memorypool* mp, const px_char script[], px_v
 
 			for (i = 0; i < taginfos->size; i++)
 			{
-				if (PX_strequ(PX_VECTORAT(PX_2dxMake_tagInfo, taginfos, i)->tag, lexer.CurLexeme.buffer))
+				if (PX_strequ(PX_VECTORAT(PX_2dxMake_tagInfo, taginfos, i)->tag, PX_StringGetText(&lexer.CurLexeme)))
 				{
 					lastAnimationAddr = PX_VECTORAT(PX_2dxMake_tagInfo, taginfos, i)->addr;
 					break;
@@ -904,7 +904,7 @@ px_bool PX_AnimationShellCompile(px_memorypool* mp, const px_char script[], px_v
 			continue;
 		}
 
-		if (PX_strequ(lexer.CurLexeme.buffer, PX_2DX_MNEMONIC_END))
+		if (PX_strequ(PX_StringGetText(&lexer.CurLexeme), PX_2DX_MNEMONIC_END))
 		{
 			if (lastAnimationAddr == -1)
 			{
@@ -1057,7 +1057,7 @@ const px_char* PX_AnimationGetCurrentPlayAnimationName(PX_Animation* animation)
 	if (animation->linker&& animation->reg_currentAnimation>=0&& animation->reg_currentAnimation< (px_dword)animation->linker->animation.size)
 	{
 		PX_Animationlibrary_tagInfo* tag = PX_VECTORAT(PX_Animationlibrary_tagInfo, &animation->linker->animation, animation->reg_currentAnimation);
-		return tag->name.buffer;
+		return PX_StringGetText(&tag->name);
 	}
 		
 	return PX_NULL;
@@ -1086,7 +1086,7 @@ px_bool PX_AnimationSetCurrentPlayAnimationByName(PX_Animation *animation,const 
 		for (i=0;i<animation->linker->animation.size;i++)
 		{
 			PX_Animationlibrary_tagInfo *tag=PX_VECTORAT(PX_Animationlibrary_tagInfo,&animation->linker->animation,i);
-			if (PX_strequ2(name,tag->name.buffer))
+			if (PX_strequ2(name,PX_StringGetText(&tag->name)))
 			{
 				animation->ip=tag->ip;
 				animation->reg_reservedTime=0;
@@ -1127,7 +1127,7 @@ px_int PX_AnimationLibraryGetPlayAnimationIndexByName(PX_AnimationLibrary* pLib,
 		for (i = 0; i < pLib->animation.size; i++)
 		{
 			PX_Animationlibrary_tagInfo* tag = PX_VECTORAT(PX_Animationlibrary_tagInfo, &pLib->animation, i);
-			if (PX_strequ2(name, tag->name.buffer))
+			if (PX_strequ2(name, PX_StringGetText(&tag->name)))
 			{
 				return i;
 			}
@@ -1143,7 +1143,7 @@ px_int PX_AnimationGetPlayAnimationIndexByName(PX_Animation *animation,const px_
 		for (i=0;i<animation->linker->animation.size;i++)
 		{
 			PX_Animationlibrary_tagInfo *tag=PX_VECTORAT(PX_Animationlibrary_tagInfo,&animation->linker->animation,i);
-			if (PX_strequ(name,tag->name.buffer))
+			if (PX_strequ(name,PX_StringGetText(&tag->name)))
 			{
 				return i;
 			}

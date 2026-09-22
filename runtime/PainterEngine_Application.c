@@ -10,6 +10,8 @@ px_int screen_width;
 px_int screen_height;
 px_int surface_width;
 px_int surface_height;
+px_int PainterEngine_argc;
+px_char **PainterEngine_argv;
 px_surface* render_surface;
 PX_ResourceLibrary *resource_library;
 PX_SoundPlay* soundplay;
@@ -549,5 +551,15 @@ px_void PX_ApplicationRender(PX_Application *pApp,px_dword elapsed)
 px_void PX_ApplicationPostEvent(PX_Application *pApp,PX_Object_Event e)
 {
 	PX_ObjectPostEvent(pApp->object_root,e);
+}
+
+px_int PainterEngine_GetArgc()
+{
+	return PainterEngine_argc;
+}
+
+px_char** PainterEngine_GetArgv()
+{
+	return PainterEngine_argv;
 }
 

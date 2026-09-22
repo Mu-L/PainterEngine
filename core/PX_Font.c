@@ -2400,9 +2400,7 @@ px_int PX_FontDrawText(px_surface *psurface,px_int x,px_int y,PX_ALIGN align,con
 {
 	px_uchar TempChar;
 	px_int resX=x;
-	px_int xlen=0;
 	px_int frWidth,frHeight;
-	const px_char *CalcText=Text;
 	
 	PX_FontTextGetRenderWidthHeight(Text,&frWidth,&frHeight);
 
@@ -2926,7 +2924,6 @@ px_void PX_FontModuleTextGetRenderWidthHeight(PX_FontModule *module,const px_cha
 		{
 			px_dword unicode_code = 0;
 			px_int f_size,advance,height;
-			PX_FontModule_Charactor* pChar = PX_NULL;
 
 			if (!(f_size = PX_FontModuleGetOneCharacterDesc(module, pTextPointer,&unicode_code, &advance, &height)))
 			{
@@ -3011,7 +3008,7 @@ px_int PX_FontModuleDrawCharacter(px_surface* psurface, PX_FontModule* mod, px_i
 }
 px_int PX_FontModuleDrawText(px_surface *psurface,PX_FontModule *mod,px_int x,px_int y,PX_ALIGN align,const px_char *Text,px_color Color)
 {
-	px_int dx,dy,content_width=0;
+	px_int dx,dy;
 	px_int frWidth,frHeight;
 	const px_char *pTextPointer=Text;
 

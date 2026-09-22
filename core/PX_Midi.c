@@ -54,7 +54,6 @@ px_void PX_MidiUpdate_handleOpcode(PX_Midi* pmidi, px_int iTrack)
 		case 0x90:
 		case 0xA0:
 		{
-			px_int track = (pl & 0x0f);
 			px_byte note;
 			px_byte v;
 			pTrack->lastPlayload = pl;
@@ -79,7 +78,6 @@ px_void PX_MidiUpdate_handleOpcode(PX_Midi* pmidi, px_int iTrack)
 		break;
 		case 0xC0:
 		{
-			px_int track = (pl & 0x0f);
 			pTrack->lastPlayload = pl;
 			pTrack->instrument = pTrack->payload[pTrack->ip];
 			pTrack->ip++;
@@ -104,8 +102,9 @@ px_void PX_MidiUpdate_handleOpcode(PX_Midi* pmidi, px_int iTrack)
 			pTrack->lastPlayload = pl;
 			if (pl == 0xff)
 			{
-				px_int type = pTrack->payload[pTrack->ip++];
-				px_int size = pTrack->payload[pTrack->ip++];
+				px_int size;
+				pTrack->ip++;
+				size = pTrack->payload[pTrack->ip++];
 				pTrack->ip += size;
 			}
 			else
@@ -463,7 +462,6 @@ PX_Midi_Note PX_MidiReadNote(PX_Midi* pmidi, px_int iTrack)
 		break;
 		case 0xC0:
 		{
-			px_int track = (pl & 0x0f);
 			pTrack->lastPlayload = pl;
 			pTrack->instrument = pTrack->payload[pTrack->ip];
 			pTrack->ip++;
@@ -488,8 +486,9 @@ PX_Midi_Note PX_MidiReadNote(PX_Midi* pmidi, px_int iTrack)
 			pTrack->lastPlayload = pl;
 			if (pl == 0xff)
 			{
-				px_int type = pTrack->payload[pTrack->ip++];
-				px_int size = pTrack->payload[pTrack->ip++];
+				px_int size;
+				pTrack->ip++;
+				size = pTrack->payload[pTrack->ip++];
 				pTrack->ip += size;
 			}
 			else
@@ -594,13 +593,10 @@ px_int PX_MidiNoteGetDurationTick(PX_Midi* pmidi, px_int iTrack, px_int note)
 				case 0x90:
 				case 0xA0:
 				{
-					px_int track = (pl & 0x0f);
 					px_byte bnote;
-					px_byte v;
 					lastpayload = pl;
 					bnote = pTrack->payload[ip];
 					ip++;
-					v = pTrack->payload[ip];
 					ip++;
 					if (ip >= pTrack->payloadSize)
 						nextType = PX_MIDI_NEXT_TYPE_END;
@@ -622,7 +618,6 @@ px_int PX_MidiNoteGetDurationTick(PX_Midi* pmidi, px_int iTrack, px_int note)
 				break;
 				case 0xC0:
 				{
-					px_int track = (pl & 0x0f);
 					lastpayload = pl;
 					ip++;
 				}
@@ -646,8 +641,9 @@ px_int PX_MidiNoteGetDurationTick(PX_Midi* pmidi, px_int iTrack, px_int note)
 					lastpayload = pl;
 					if (pl == 0xff)
 					{
-						px_int type = pTrack->payload[ip++];
-						px_int size = pTrack->payload[ip++];
+						px_int size;
+						ip++;
+						size = pTrack->payload[ip++];
 						ip += size;
 					}
 					else

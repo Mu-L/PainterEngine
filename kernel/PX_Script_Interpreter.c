@@ -103,7 +103,7 @@ px_bool PX_ScriptCompilerLoad(PX_SCRIPT_LIBRARY *lib,const px_char *code)
 		PX_LOG("Unexpected token\n");
 		return PX_FALSE;
 	}
-	if (!PX_strequ(lexer.CurLexeme.buffer,"#NAME"))
+	if (!PX_strequ(PX_StringGetText(&lexer.CurLexeme),"#NAME"))
 	{
 		PX_LOG("#Name Missing\n");
 		PX_LexerFree(&lexer);
@@ -126,7 +126,7 @@ px_bool PX_ScriptCompilerLoad(PX_SCRIPT_LIBRARY *lib,const px_char *code)
 	PX_StringInitialize(lib->mp,&scode.name);
 
 	
-	PX_StringCat(&scode.name,lexer.CurLexeme.buffer);
+	PX_StringCat(&scode.name,PX_StringGetText(&lexer.CurLexeme));
 	PX_LexerGetIncludedString(&lexer,&scode.name);
 
 	if(PX_LexerGetNextLexeme(&lexer)!=PX_LEXER_LEXEME_TYPE_NEWLINE)
@@ -144,7 +144,7 @@ px_bool PX_ScriptCompilerLoad(PX_SCRIPT_LIBRARY *lib,const px_char *code)
 
 	for (i=0;i<lib->codeLibraries.size;i++)
 	{
-		if (PX_strequ(scode.name.buffer,PX_VECTORAT(PX_SCRIPT_CODE,&lib->codeLibraries,i)->name.buffer))
+		if (PX_strequ(PX_StringGetText(&scode.name),PX_StringGetText(&PX_VECTORAT(PX_SCRIPT_CODE,&lib->codeLibraries,i)->name)))
 		{
 			 PX_StringFree(&scode.name);
 			 PX_StringFree(&scode.code);
@@ -196,7 +196,7 @@ static px_bool PX_ScriptParseInclude(PX_ScriptInterpreter *analysis,px_string *c
 	PX_LexerSetTokenCase(&lexer,PX_LEXER_LEXEME_CASE_UPPER);
 
 
-	if(!PX_LexerSetSourcePointer(&lexer,codes->buffer))
+	if(!PX_LexerSetSourcePointer(&lexer,PX_StringGetText(codes)))
 		goto _ERROR;
 
 	while (PX_TRUE)
@@ -215,7 +215,7 @@ static px_bool PX_ScriptParseInclude(PX_ScriptInterpreter *analysis,px_string *c
 		}
 		if (type==PX_LEXER_LEXEME_TYPE_TOKEN)
 		{
-			if (PX_strequ(lexer.CurLexeme.buffer,"#INCLUDE"))
+			if (PX_strequ(PX_StringGetText(&lexer.CurLexeme),"#INCLUDE"))
 			{
 					if (PX_ScriptTranslatorNextToken(&lexer)==PX_LEXER_LEXEME_TYPE_CONATINER)
 					{
@@ -228,7 +228,7 @@ static px_bool PX_ScriptParseInclude(PX_ScriptInterpreter *analysis,px_string *c
 						bfound=PX_FALSE;
 						for (i=0;i<lib->codeLibraries.size;i++)
 						{
-							if (PX_strequ(lexer.CurLexeme.buffer,PX_VECTORAT(PX_SCRIPT_CODE,&lib->codeLibraries,i)->name.buffer))
+							if (PX_strequ(PX_StringGetText(&lexer.CurLexeme),PX_StringGetText(&PX_VECTORAT(PX_SCRIPT_CODE,&lib->codeLibraries,i)->name)))
 							{
 								if (PX_VECTORAT(PX_SCRIPT_CODE,&lib->codeLibraries,i)->bInclude!=PX_FALSE)
 								{
@@ -253,7 +253,7 @@ static px_bool PX_ScriptParseInclude(PX_ScriptInterpreter *analysis,px_string *c
 									}
 									
 								}
-								allocsize=lexerState.offset+PX_strlen(PX_VECTORAT(PX_SCRIPT_CODE,&lib->codeLibraries,i)->code.buffer)+PX_strlen(lexer.Sources+PX_LexerGetState(&lexer).offset-1)+1;
+								allocsize=lexerState.offset+PX_strlen(PX_StringGetText(&PX_VECTORAT(PX_SCRIPT_CODE,&lib->codeLibraries,i)->code))+PX_strlen(lexer.Sources+PX_LexerGetState(&lexer).offset-1)+1;
 								exchangeBuffer=(px_char *)MP_Malloc(lib->mp,allocsize);
 
 								if (exchangeBuffer==PX_NULL)
@@ -262,15 +262,15 @@ static px_bool PX_ScriptParseInclude(PX_ScriptInterpreter *analysis,px_string *c
 									goto _ERROR;
 								}
 
-								PX_memcpy(exchangeBuffer,codes->buffer,lexerState.offset);
+								PX_memcpy(exchangeBuffer,PX_StringGetText(codes),lexerState.offset);
 								exchangeBuffer[lexerState.offset]=0;
-								PX_strcat(exchangeBuffer,PX_VECTORAT(PX_SCRIPT_CODE,&lib->codeLibraries,i)->code.buffer);
+								PX_strcat(exchangeBuffer,PX_StringGetText(&PX_VECTORAT(PX_SCRIPT_CODE,&lib->codeLibraries,i)->code));
 								PX_strcat(exchangeBuffer,lexer.Sources+PX_LexerGetState(&lexer).offset-1);
 
 								PX_StringClear(codes);
 								PX_StringCat(codes,exchangeBuffer);
 
-								PX_LexerSetSourcePointer(&lexer,codes->buffer);
+								PX_LexerSetSourcePointer(&lexer,PX_StringGetText(codes));
 								PX_LexerSetState(lexerState);
 
 								MP_Free(lib->mp,exchangeBuffer);
@@ -347,7 +347,7 @@ static px_bool PX_ScriptParseDefine(PX_ScriptInterpreter *analysis,px_string *co
 	PX_LexerSetTokenCase(&lexer,PX_LEXER_LEXEME_CASE_UPPER);
 
 
-	if(!PX_LexerSetSourcePointer(&lexer,codes->buffer))
+	if(!PX_LexerSetSourcePointer(&lexer,PX_StringGetText(codes)))
 		goto _ERROR;
 
 	while (PX_TRUE)
@@ -364,7 +364,7 @@ static px_bool PX_ScriptParseDefine(PX_ScriptInterpreter *analysis,px_string *co
 		}
 		if (type==PX_LEXER_LEXEME_TYPE_TOKEN)
 		{
-			if (PX_strequ(lexer.CurLexeme.buffer,"#DEFINE"))
+			if (PX_strequ(PX_StringGetText(&lexer.CurLexeme),"#DEFINE"))
 			{
 				startIndex=lexer.SourceOffset-7;
 				if (PX_ScriptTranslatorNextToken(&lexer)!=PX_LEXER_LEXEME_TYPE_TOKEN)
@@ -376,7 +376,7 @@ static px_bool PX_ScriptParseDefine(PX_ScriptInterpreter *analysis,px_string *co
 				
 
 				PX_StringInitialize(lib->mp,&defst.name);
-				PX_StringCat(&defst.name,lexer.CurLexeme.buffer);
+				PX_StringCat(&defst.name,PX_StringGetText(&lexer.CurLexeme));
 				
 				if (PX_LexerGetNextLexeme(&lexer)!=PX_LEXER_LEXEME_TYPE_SPACER)
 				{
@@ -404,7 +404,7 @@ static px_bool PX_ScriptParseDefine(PX_ScriptInterpreter *analysis,px_string *co
 				PX_VectorPushback(&defines,&defst);
 
 				PX_StringReplaceRange(codes,startIndex,lexer.SourceOffset,"");
-				PX_LexerSetSourcePointer(&lexer,codes->buffer);
+				PX_LexerSetSourcePointer(&lexer,PX_StringGetText(codes));
 				lexer.SourceOffset=startIndex;
 			}
 		}
@@ -428,12 +428,12 @@ static px_bool PX_ScriptParseDefine(PX_ScriptInterpreter *analysis,px_string *co
 		{
 			for (i=0;i<defines.size;i++)
 			{
-				if (PX_strequ(lexer.CurLexeme.buffer,PX_VECTORAT(PX_SCRIPT_TRANSLATOR_DEFINE_ST,&defines,i)->name.buffer))
+				if (PX_strequ(PX_StringGetText(&lexer.CurLexeme),PX_StringGetText(&PX_VECTORAT(PX_SCRIPT_TRANSLATOR_DEFINE_ST,&defines,i)->name)))
 				{
-					startIndex=lexer.SourceOffset-PX_strlen(lexer.CurLexeme.buffer);
-					PX_StringReplaceRange(codes,startIndex,lexer.SourceOffset-1,PX_VECTORAT(PX_SCRIPT_TRANSLATOR_DEFINE_ST,&defines,i)->token.buffer);
-					PX_LexerSetSourcePointer(&lexer,codes->buffer);
-					lexer.SourceOffset=startIndex+PX_strlen(PX_VECTORAT(PX_SCRIPT_TRANSLATOR_DEFINE_ST,&defines,i)->token.buffer);
+					startIndex=lexer.SourceOffset-PX_strlen(PX_StringGetText(&lexer.CurLexeme));
+					PX_StringReplaceRange(codes,startIndex,lexer.SourceOffset-1,PX_StringGetText(&PX_VECTORAT(PX_SCRIPT_TRANSLATOR_DEFINE_ST,&defines,i)->token));
+					PX_LexerSetSourcePointer(&lexer,PX_StringGetText(codes));
+					lexer.SourceOffset=startIndex+PX_strlen(PX_StringGetText(&PX_VECTORAT(PX_SCRIPT_TRANSLATOR_DEFINE_ST,&defines,i)->token));
 					break;
 				}
 			}
@@ -671,7 +671,7 @@ static px_bool PX_ScriptParse_AST_PushToken(PX_ScriptInterpreter *analysis,px_ve
 		for (i=0;i<_inset->members.size;i++)
 		{
 			psetmem=PX_VECTORAT(PX_SCRIPT_SETMEMBER,&_inset->members,i);
-			if (PX_strequ(psetmem->defvar.Mnemonic.buffer,atom.code.buffer))
+			if (PX_strequ(PX_StringGetText(&psetmem->defvar.Mnemonic),PX_StringGetText(&atom.code)))
 			{
 				*_outset=PX_NULL;
 				switch(psetmem->defvar.type)
@@ -841,7 +841,7 @@ static px_bool PX_ScriptParse_AST_PushToken(PX_ScriptInterpreter *analysis,px_ve
 			for (i=0;i<analysis->v_variablesStackTable.size;i++)
 			{
 				pvar=PX_VECTORAT(PX_SCRIPT_VARIABLES,&analysis->v_variablesStackTable,i);
-				if (PX_strequ(pvar->Mnemonic.buffer,atom.code.buffer))
+				if (PX_strequ(PX_StringGetText(&pvar->Mnemonic),PX_StringGetText(&atom.code)))
 				{
 					operand.region=PX_SCRIPT_VARIABLE_REGION_LOCAL;
 					goto _CONTINUE;
@@ -851,7 +851,7 @@ static px_bool PX_ScriptParse_AST_PushToken(PX_ScriptInterpreter *analysis,px_ve
 			for (i=0;i<analysis->v_variablesGlobalTable.size;i++)
 			{
 				pvar=PX_VECTORAT(PX_SCRIPT_VARIABLES,&analysis->v_variablesGlobalTable,i);
-				if (PX_strequ(pvar->Mnemonic.buffer,atom.code.buffer))
+				if (PX_strequ(PX_StringGetText(&pvar->Mnemonic),PX_StringGetText(&atom.code)))
 				{
 					operand.region=PX_SCRIPT_VARIABLE_REGION_GLOBAL;
 					goto _CONTINUE;
@@ -1024,32 +1024,32 @@ static px_bool PX_ScriptParse_AST_PushToken(PX_ScriptInterpreter *analysis,px_ve
 	else if(atom.opclass==PX_SCRIPT_TRANSLATOR_OP_CLASS_CONST)
 	{
 		//Hexadecimal
-		if (atom.code.buffer[0]=='0'&&atom.code.buffer[1]=='X')
+		if (PX_StringGetText(&atom.code)[0]=='0'&&PX_StringGetText(&atom.code)[1]=='X')
 		{
 			operand.region=PX_SCRIPT_VARIABLE_REGION_GLOBAL;
 			operand.operandType=PX_SCRIPT_AST_OPERAND_TYPE_INT_CONST;
-			operand._int=PX_htoi(atom.code.buffer+2);
+			operand._int=PX_htoi(PX_StringGetText(&atom.code)+2);
 			PX_VectorPushback(tk,&operand);
 			return PX_TRUE;
 		}
 		else
 		{
-			if (!PX_strIsNumeric(atom.code.buffer))
+			if (!PX_strIsNumeric(PX_StringGetText(&atom.code)))
 			{
 				return PX_FALSE;
 			}
 			operand.region=PX_SCRIPT_VARIABLE_REGION_GLOBAL;
-			if (PX_strIsFloat(atom.code.buffer))
+			if (PX_strIsFloat(PX_StringGetText(&atom.code)))
 			{
 				operand.operandType=PX_SCRIPT_AST_OPERAND_TYPE_FLOAT_CONST;
-				operand._float=PX_atof(atom.code.buffer);
+				operand._float=PX_atof(PX_StringGetText(&atom.code));
 				PX_VectorPushback(tk,&operand);
 				return PX_TRUE;
 			}
 			else
 			{
 				operand.operandType=PX_SCRIPT_AST_OPERAND_TYPE_INT_CONST;
-				operand._int=PX_atoi(atom.code.buffer);
+				operand._int=PX_atoi(PX_StringGetText(&atom.code));
 				PX_VectorPushback(tk,&operand);
 				return PX_TRUE;
 			}
@@ -1059,19 +1059,19 @@ static px_bool PX_ScriptParse_AST_PushToken(PX_ScriptInterpreter *analysis,px_ve
 	else if(atom.opclass==PX_SCRIPT_TRANSLATOR_OP_CLASS_CONTAINER)
 	{
 		operand.region=PX_SCRIPT_VARIABLE_REGION_GLOBAL;
-		if(atom.code.buffer[0]=='"')
+		if(PX_StringGetText(&atom.code)[0]=='"')
 		{
 			operand.operandType=PX_SCRIPT_AST_OPERAND_TYPE_STRING_CONST;
 			operand._contaniner=atom.code.buffer;
 		}
-		else if(atom.code.buffer[0]=='\'')
+		else if(PX_StringGetText(&atom.code)[0]=='\'')
 		{
-			if (atom.code.buffer[2]!='\'')
+			if (PX_StringGetText(&atom.code)[2]!='\'')
 			{
 				return PX_FALSE;
 			}
 			operand.operandType=PX_SCRIPT_AST_OPERAND_TYPE_INT_CONST;
-			operand._int=atom.code.buffer[1];
+			operand._int=PX_StringGetText(&atom.code)[1];
 		}
 		else
 		{
@@ -1236,7 +1236,7 @@ static PX_SCRIPT_STRUCT *PX_ScriptParseGetStructInfo(PX_ScriptInterpreter *analy
 	for (i=0;i<analysis->v_struct.size;i++)
 	{
 		pset=PX_VECTORAT(PX_SCRIPT_STRUCT,&analysis->v_struct,i);
-		if (PX_strequ(name,pset->Name.buffer))
+		if (PX_strequ(name,PX_StringGetText(&pset->Name)))
 		{
 			return pset;
 		}
@@ -1250,7 +1250,7 @@ static px_int PX_ScriptParseGetSetIndex(PX_ScriptInterpreter *analysis,px_char *
 	for (i=0;i<analysis->v_struct.size;i++)
 	{
 		pset=PX_VECTORAT(PX_SCRIPT_STRUCT,&analysis->v_struct,i);
-		if (PX_strequ(name,pset->Name.buffer))
+		if (PX_strequ(name,PX_StringGetText(&pset->Name)))
 		{
 			return i;
 		}
@@ -1330,19 +1330,19 @@ static px_bool PX_ScriptParseAST_MapTokenToR2(PX_ScriptInterpreter *analysis,PX_
 			if(operand.region==PX_SCRIPT_VARIABLE_REGION_LOCAL)
 			{
 				PX_StringFormat1(&fmrString,"MOV R2,LOCAL[%1]\n",PX_STRINGFORMAT_INT(operand._oft));
-				PX_StringCat(out,fmrString.buffer);
+				PX_StringCat(out,PX_StringGetText(&fmrString));
 			}
 			else if(operand.region==PX_SCRIPT_VARIABLE_REGION_GLOBAL)
 			{
 				PX_StringFormat1(&fmrString,"MOV R2,GLOBAL[%1]\n",PX_STRINGFORMAT_INT(operand._oft));
-				PX_StringCat(out,fmrString.buffer);
+				PX_StringCat(out,PX_StringGetText(&fmrString));
 			}
 			else if(operand.region==PX_SCRIPT_VARIABLE_REGION_POP)
 			{
 				PX_StringSet(&fmrString,"POP R2\n");
-				PX_StringCat(out,fmrString.buffer);
+				PX_StringCat(out,PX_StringGetText(&fmrString));
 				PX_StringSet(&fmrString,"MOV R2,GLOBAL[R2]\n");
-				PX_StringCat(out,fmrString.buffer);
+				PX_StringCat(out,PX_StringGetText(&fmrString));
 			}
 			else
 			{
@@ -1361,17 +1361,17 @@ static px_bool PX_ScriptParseAST_MapTokenToR2(PX_ScriptInterpreter *analysis,PX_
 			if(operand.region==PX_SCRIPT_VARIABLE_REGION_LOCAL)
 			{
 				PX_StringFormat1(&fmrString,"MOV R2,BP\nSUB R2,%1\n",PX_STRINGFORMAT_INT(operand._oft));
-				PX_StringCat(out,fmrString.buffer);
+				PX_StringCat(out,PX_StringGetText(&fmrString));
 			}
 			else if(operand.region==PX_SCRIPT_VARIABLE_REGION_GLOBAL)
 			{
 				PX_StringFormat1(&fmrString,"MOV R2,%1\n",PX_STRINGFORMAT_INT(operand._oft));
-				PX_StringCat(out,fmrString.buffer);
+				PX_StringCat(out,PX_StringGetText(&fmrString));
 			}
 			else if(operand.region==PX_SCRIPT_VARIABLE_REGION_POP)
 			{
 				PX_StringSet(&fmrString,"POP R2\n");
-				PX_StringCat(out,fmrString.buffer);
+				PX_StringCat(out,PX_StringGetText(&fmrString));
 			}
 			else
 			{
@@ -1396,17 +1396,17 @@ static px_bool PX_ScriptParseAST_MapTokenToR2(PX_ScriptInterpreter *analysis,PX_
 			if(operand.region==PX_SCRIPT_VARIABLE_REGION_GLOBAL)
 			{
 				PX_StringFormat1(&fmrString,"MOV R2,%1\n",PX_STRINGFORMAT_INT(operand._oft));
-				PX_StringCat(out,fmrString.buffer);
+				PX_StringCat(out,PX_StringGetText(&fmrString));
 			}
 			else if(operand.region==PX_SCRIPT_VARIABLE_REGION_LOCAL)
 			{
 				PX_StringFormat1(&fmrString,"MOV R2,BP\nSUB R2,%1\n",PX_STRINGFORMAT_INT(operand._oft));//
-				PX_StringCat(out,fmrString.buffer);
+				PX_StringCat(out,PX_StringGetText(&fmrString));
 			}
 			else if(operand.region==PX_SCRIPT_VARIABLE_REGION_POP)
 			{
 				PX_StringSet(&fmrString,"POP R2\n");
-				PX_StringCat(out,fmrString.buffer);
+				PX_StringCat(out,PX_StringGetText(&fmrString));
 			}
 			else
 			{
@@ -1425,12 +1425,12 @@ static px_bool PX_ScriptParseAST_MapTokenToR2(PX_ScriptInterpreter *analysis,PX_
 			if(operand.region==PX_SCRIPT_VARIABLE_REGION_GLOBAL)
 			{
 				PX_StringFormat1(&fmrString,"MOV R2,%1\n",PX_STRINGFORMAT_INT(operand._int));
-				PX_StringCat(out,fmrString.buffer);
+				PX_StringCat(out,PX_StringGetText(&fmrString));
 			}
 			else if(operand.region==PX_SCRIPT_VARIABLE_REGION_POP)
 			{
 				PX_StringSet(&fmrString,"POP R2\n");
-				PX_StringCat(out,fmrString.buffer);
+				PX_StringCat(out,PX_StringGetText(&fmrString));
 			}
 			else
 			{
@@ -1450,12 +1450,12 @@ static px_bool PX_ScriptParseAST_MapTokenToR2(PX_ScriptInterpreter *analysis,PX_
 			if(operand.region==PX_SCRIPT_VARIABLE_REGION_GLOBAL)
 			{
 				PX_StringFormat1(&fmrString,"MOV R2,%1.7\n",PX_STRINGFORMAT_FLOAT(operand._float));
-				PX_StringCat(out,fmrString.buffer);
+				PX_StringCat(out,PX_StringGetText(&fmrString));
 			}
 			else if(operand.region==PX_SCRIPT_VARIABLE_REGION_POP)
 			{
 				PX_StringSet(&fmrString,"POP R2\n");
-				PX_StringCat(out,fmrString.buffer);
+				PX_StringCat(out,PX_StringGetText(&fmrString));
 			}
 			else
 			{
@@ -1476,12 +1476,12 @@ static px_bool PX_ScriptParseAST_MapTokenToR2(PX_ScriptInterpreter *analysis,PX_
 			if(operand.region==PX_SCRIPT_VARIABLE_REGION_GLOBAL)
 			{
 				PX_StringFormat1(&fmrString,"MOV R2,%1\n",PX_STRINGFORMAT_STRING(operand._contaniner));
-				PX_StringCat(out,fmrString.buffer);
+				PX_StringCat(out,PX_StringGetText(&fmrString));
 			}
 			else if(operand.region==PX_SCRIPT_VARIABLE_REGION_POP)
 			{
 				PX_StringSet(&fmrString,"POP R2\n");
-				PX_StringCat(out,fmrString.buffer);
+				PX_StringCat(out,PX_StringGetText(&fmrString));
 			}
 			else
 			{
@@ -1506,12 +1506,12 @@ static px_bool PX_ScriptParseAST_MapTokenToR2(PX_ScriptInterpreter *analysis,PX_
 					{
 						PX_StringCat(out,"POP R3\n");
 						PX_StringFormat1(&fmrString,"STRCHR R2,LOCAL[%1],R3\n",PX_STRINGFORMAT_INT(operand._oft));
-						PX_StringCat(out,fmrString.buffer);
+						PX_StringCat(out,PX_StringGetText(&fmrString));
 					}
 					else
 					{
 						PX_StringFormat2(&fmrString,"STRCHR R2,LOCAL[%1],%2\n",PX_STRINGFORMAT_INT(operand._oft),PX_STRINGFORMAT_INT(operand.bAtomPopIndex));
-						PX_StringCat(out,fmrString.buffer);
+						PX_StringCat(out,PX_StringGetText(&fmrString));
 					}
 					PX_StringFree(&fmrString);
 				}
@@ -1523,12 +1523,12 @@ static px_bool PX_ScriptParseAST_MapTokenToR2(PX_ScriptInterpreter *analysis,PX_
 					{
 						PX_StringCat(out,"POP R3\n");
 						PX_StringFormat1(&fmrString,"STRCHR R2,GLOBAL[%1],R3\n",PX_STRINGFORMAT_INT(operand._oft));
-						PX_StringCat(out,fmrString.buffer);
+						PX_StringCat(out,PX_StringGetText(&fmrString));
 					}
 					else
 					{
 						PX_StringFormat2(&fmrString,"STRCHR R2,GLOBAL[%1],%2\n",PX_STRINGFORMAT_INT(operand._oft),PX_STRINGFORMAT_INT(operand.bAtomPopIndex));
-						PX_StringCat(out,fmrString.buffer);
+						PX_StringCat(out,PX_StringGetText(&fmrString));
 					}
 					PX_StringFree(&fmrString);
 				}
@@ -1542,13 +1542,13 @@ static px_bool PX_ScriptParseAST_MapTokenToR2(PX_ScriptInterpreter *analysis,PX_
 						PX_StringCat(out,"POP R1\n");
 						PX_StringCat(out,"POP R3\n");
 						PX_StringSet(&fmrString,"STRCHR R2,GLOBAL[R1],R3\n");
-						PX_StringCat(out,fmrString.buffer);
+						PX_StringCat(out,PX_StringGetText(&fmrString));
 					}
 					else
 					{
 						PX_StringCat(out,"POP R1\n");
 						PX_StringFormat1(&fmrString,"STRCHR R2,STRSET GLOBAL[R1],%1\n",PX_STRINGFORMAT_INT(operand._oft));
-						PX_StringCat(out,fmrString.buffer);
+						PX_StringCat(out,PX_StringGetText(&fmrString));
 					}	
 					PX_StringFree(&fmrString);
 				}
@@ -1571,12 +1571,12 @@ static px_bool PX_ScriptParseAST_MapTokenToR2(PX_ScriptInterpreter *analysis,PX_
 					{
 						PX_StringCat(out,"POP R3\n");
 						PX_StringFormat1(&fmrString,"MEMBYTE R2,LOCAL[%1],R3\n",PX_STRINGFORMAT_INT(operand._oft));
-						PX_StringCat(out,fmrString.buffer);
+						PX_StringCat(out,PX_StringGetText(&fmrString));
 					}
 					else
 					{
 						PX_StringFormat2(&fmrString,"MEMBYTE R2,LOCAL[%1],%2\n",PX_STRINGFORMAT_INT(operand._oft),PX_STRINGFORMAT_INT(operand.bAtomPopIndex));
-						PX_StringCat(out,fmrString.buffer);
+						PX_StringCat(out,PX_StringGetText(&fmrString));
 					}
 					PX_StringFree(&fmrString);
 				}
@@ -1588,12 +1588,12 @@ static px_bool PX_ScriptParseAST_MapTokenToR2(PX_ScriptInterpreter *analysis,PX_
 					{
 						PX_StringCat(out,"POP R3\n");
 						PX_StringFormat1(&fmrString,"MEMBYTE R2,GLOBAL[%1],R3\n",PX_STRINGFORMAT_INT(operand._oft));
-						PX_StringCat(out,fmrString.buffer);
+						PX_StringCat(out,PX_StringGetText(&fmrString));
 					}
 					else
 					{
 						PX_StringFormat2(&fmrString,"MEMBYTE R2,GLOBAL[%1],%2\n",PX_STRINGFORMAT_INT(operand._oft),PX_STRINGFORMAT_INT(operand.bAtomPopIndex));
-						PX_StringCat(out,fmrString.buffer);
+						PX_StringCat(out,PX_StringGetText(&fmrString));
 					}
 					PX_StringFree(&fmrString);
 				}
@@ -1607,13 +1607,13 @@ static px_bool PX_ScriptParseAST_MapTokenToR2(PX_ScriptInterpreter *analysis,PX_
 						PX_StringCat(out,"POP R1\n");
 						PX_StringCat(out,"POP R3\n");
 						PX_StringSet(&fmrString,"MEMBYTE R2,GLOBAL[R1],R3\n");
-						PX_StringCat(out,fmrString.buffer);
+						PX_StringCat(out,PX_StringGetText(&fmrString));
 					}
 					else
 					{
 						PX_StringCat(out,"POP R1\n");
 						PX_StringFormat1(&fmrString,"MEMBYTE R2,STRSET GLOBAL[R1],%1\n",PX_STRINGFORMAT_INT(operand._oft));
-						PX_StringCat(out,fmrString.buffer);
+						PX_StringCat(out,PX_StringGetText(&fmrString));
 					}	
 					PX_StringFree(&fmrString);
 				}
@@ -1658,19 +1658,19 @@ static px_bool PX_ScriptParseAST_MapTokenToR1(PX_ScriptInterpreter *analysis,PX_
 			if(operand.region==PX_SCRIPT_VARIABLE_REGION_LOCAL)
 			{
 				PX_StringFormat1(&fmrString,"MOV R1,LOCAL[%1]\n",PX_STRINGFORMAT_INT(operand._oft));
-				PX_StringCat(out,fmrString.buffer);
+				PX_StringCat(out,PX_StringGetText(&fmrString));
 			}
 			else if(operand.region==PX_SCRIPT_VARIABLE_REGION_GLOBAL)
 			{
 				PX_StringFormat1(&fmrString,"MOV R1,GLOBAL[%1]\n",PX_STRINGFORMAT_INT(operand._oft));
-				PX_StringCat(out,fmrString.buffer);
+				PX_StringCat(out,PX_StringGetText(&fmrString));
 			}
 			else if(operand.region==PX_SCRIPT_VARIABLE_REGION_POP)
 			{
 				PX_StringSet(&fmrString,"POP R1\n");
-				PX_StringCat(out,fmrString.buffer);
+				PX_StringCat(out,PX_StringGetText(&fmrString));
 				PX_StringSet(&fmrString,"MOV R1,GLOBAL[R1]\n");
-				PX_StringCat(out,fmrString.buffer);
+				PX_StringCat(out,PX_StringGetText(&fmrString));
 			}
 			else
 			{
@@ -1690,17 +1690,17 @@ static px_bool PX_ScriptParseAST_MapTokenToR1(PX_ScriptInterpreter *analysis,PX_
 			if(operand.region==PX_SCRIPT_VARIABLE_REGION_LOCAL)
 			{
 				PX_StringFormat1(&fmrString,"MOV R1,BP\nSUB R1,%1\n",PX_STRINGFORMAT_INT(operand._oft));
-				PX_StringCat(out,fmrString.buffer);
+				PX_StringCat(out,PX_StringGetText(&fmrString));
 			}
 			else if(operand.region==PX_SCRIPT_VARIABLE_REGION_GLOBAL)
 			{
 				PX_StringFormat1(&fmrString,"MOV R1,%1\n",PX_STRINGFORMAT_INT(operand._oft));
-				PX_StringCat(out,fmrString.buffer);
+				PX_StringCat(out,PX_StringGetText(&fmrString));
 			}
 			else if(operand.region==PX_SCRIPT_VARIABLE_REGION_POP)
 			{
 				PX_StringSet(&fmrString,"POP R1\n");
-				PX_StringCat(out,fmrString.buffer);
+				PX_StringCat(out,PX_StringGetText(&fmrString));
 			}
 			else
 			{
@@ -1725,17 +1725,17 @@ static px_bool PX_ScriptParseAST_MapTokenToR1(PX_ScriptInterpreter *analysis,PX_
 			if(operand.region==PX_SCRIPT_VARIABLE_REGION_GLOBAL)
 			{
 				PX_StringFormat1(&fmrString,"MOV R1,%1\n",PX_STRINGFORMAT_INT(operand._oft));
-				PX_StringCat(out,fmrString.buffer);
+				PX_StringCat(out,PX_StringGetText(&fmrString));
 			}
 			else if(operand.region==PX_SCRIPT_VARIABLE_REGION_LOCAL)
 			{
 				PX_StringFormat1(&fmrString,"MOV R1,BP\nSUB R1,%1\n",PX_STRINGFORMAT_INT(operand._oft));//
-				PX_StringCat(out,fmrString.buffer);
+				PX_StringCat(out,PX_StringGetText(&fmrString));
 			}
 			else if(operand.region==PX_SCRIPT_VARIABLE_REGION_POP)
 			{
 				PX_StringSet(&fmrString,"POP R1\n");
-				PX_StringCat(out,fmrString.buffer);
+				PX_StringCat(out,PX_StringGetText(&fmrString));
 			}
 			else
 			{
@@ -1755,12 +1755,12 @@ static px_bool PX_ScriptParseAST_MapTokenToR1(PX_ScriptInterpreter *analysis,PX_
 			if(operand.region==PX_SCRIPT_VARIABLE_REGION_GLOBAL)
 			{
 				PX_StringFormat1(&fmrString,"MOV R1,%1\n",PX_STRINGFORMAT_INT(operand._int));
-				PX_StringCat(out,fmrString.buffer);
+				PX_StringCat(out,PX_StringGetText(&fmrString));
 			}
 			else if(operand.region==PX_SCRIPT_VARIABLE_REGION_POP)
 			{
 				PX_StringSet(&fmrString,"POP R1\n");
-				PX_StringCat(out,fmrString.buffer);
+				PX_StringCat(out,PX_StringGetText(&fmrString));
 			}
 			else
 			{
@@ -1780,12 +1780,12 @@ static px_bool PX_ScriptParseAST_MapTokenToR1(PX_ScriptInterpreter *analysis,PX_
 			if(operand.region==PX_SCRIPT_VARIABLE_REGION_GLOBAL)
 			{
 				PX_StringFormat1(&fmrString,"MOV R1,%1.7\n",PX_STRINGFORMAT_FLOAT(operand._float));
-				PX_StringCat(out,fmrString.buffer);
+				PX_StringCat(out,PX_StringGetText(&fmrString));
 			}
 			else if(operand.region==PX_SCRIPT_VARIABLE_REGION_POP)
 			{
 				PX_StringSet(&fmrString,"POP R1\n");
-				PX_StringCat(out,fmrString.buffer);
+				PX_StringCat(out,PX_StringGetText(&fmrString));
 			}
 			else
 			{
@@ -1807,12 +1807,12 @@ static px_bool PX_ScriptParseAST_MapTokenToR1(PX_ScriptInterpreter *analysis,PX_
 			if(operand.region==PX_SCRIPT_VARIABLE_REGION_GLOBAL)
 			{
 				PX_StringFormat1(&fmrString,"MOV R1,%1\n",PX_STRINGFORMAT_STRING(operand._contaniner));
-				PX_StringCat(out,fmrString.buffer);
+				PX_StringCat(out,PX_StringGetText(&fmrString));
 			}
 			else if(operand.region==PX_SCRIPT_VARIABLE_REGION_POP)
 			{
 				PX_StringSet(&fmrString,"POP R1\n");
-				PX_StringCat(out,fmrString.buffer);
+				PX_StringCat(out,PX_StringGetText(&fmrString));
 			}
 			else
 			{
@@ -1838,12 +1838,12 @@ static px_bool PX_ScriptParseAST_MapTokenToR1(PX_ScriptInterpreter *analysis,PX_
 					{
 						PX_StringCat(out,"POP R3\n");
 						PX_StringFormat1(&fmrString,"STRCHR R1,LOCAL[%1],R3\n",PX_STRINGFORMAT_INT(operand._oft));
-						PX_StringCat(out,fmrString.buffer);
+						PX_StringCat(out,PX_StringGetText(&fmrString));
 					}
 					else
 					{
 						PX_StringFormat2(&fmrString,"STRCHR R1,LOCAL[%1],%2\n",PX_STRINGFORMAT_INT(operand._oft),PX_STRINGFORMAT_INT(operand.bAtomPopIndex));
-						PX_StringCat(out,fmrString.buffer);
+						PX_StringCat(out,PX_StringGetText(&fmrString));
 					}
 					PX_StringFree(&fmrString);
 				}
@@ -1855,12 +1855,12 @@ static px_bool PX_ScriptParseAST_MapTokenToR1(PX_ScriptInterpreter *analysis,PX_
 					{
 						PX_StringCat(out,"POP R3\n");
 						PX_StringFormat1(&fmrString,"STRCHR R1,GLOBAL[%1],R3\n",PX_STRINGFORMAT_INT(operand._oft));
-						PX_StringCat(out,fmrString.buffer);
+						PX_StringCat(out,PX_StringGetText(&fmrString));
 					}
 					else
 					{
 						PX_StringFormat2(&fmrString,"STRCHR R1,GLOBAL[%1],%2\n",PX_STRINGFORMAT_INT(operand._oft),PX_STRINGFORMAT_INT(operand.bAtomPopIndex));
-						PX_StringCat(out,fmrString.buffer);
+						PX_StringCat(out,PX_StringGetText(&fmrString));
 					}
 					PX_StringFree(&fmrString);
 				}
@@ -1874,13 +1874,13 @@ static px_bool PX_ScriptParseAST_MapTokenToR1(PX_ScriptInterpreter *analysis,PX_
 						PX_StringCat(out,"POP R1\n");
 						PX_StringCat(out,"POP R3\n");
 						PX_StringSet(&fmrString,"STRCHR R1,GLOBAL[R1],R3\n");
-						PX_StringCat(out,fmrString.buffer);
+						PX_StringCat(out,PX_StringGetText(&fmrString));
 					}
 					else
 					{
 						PX_StringCat(out,"POP R1\n");
 						PX_StringFormat1(&fmrString,"STRCHR R1,STRSET GLOBAL[R1],%1\n",PX_STRINGFORMAT_INT(operand._oft));
-						PX_StringCat(out,fmrString.buffer);
+						PX_StringCat(out,PX_StringGetText(&fmrString));
 					}	
 					PX_StringFree(&fmrString);
 				}
@@ -1904,12 +1904,12 @@ static px_bool PX_ScriptParseAST_MapTokenToR1(PX_ScriptInterpreter *analysis,PX_
 					{
 						PX_StringCat(out,"POP R3\n");
 						PX_StringFormat1(&fmrString,"MEMBYTE R1,LOCAL[%1],R3\n",PX_STRINGFORMAT_INT(operand._oft));
-						PX_StringCat(out,fmrString.buffer);
+						PX_StringCat(out,PX_StringGetText(&fmrString));
 					}
 					else
 					{
 						PX_StringFormat2(&fmrString,"MEMBYTE R1,LOCAL[%1],%2\n",PX_STRINGFORMAT_INT(operand._oft),PX_STRINGFORMAT_INT(operand.bAtomPopIndex));
-						PX_StringCat(out,fmrString.buffer);
+						PX_StringCat(out,PX_StringGetText(&fmrString));
 					}
 					PX_StringFree(&fmrString);
 				}
@@ -1921,12 +1921,12 @@ static px_bool PX_ScriptParseAST_MapTokenToR1(PX_ScriptInterpreter *analysis,PX_
 					{
 						PX_StringCat(out,"POP R3\n");
 						PX_StringFormat1(&fmrString,"MEMBYTE R1,GLOBAL[%1],R3\n",PX_STRINGFORMAT_INT(operand._oft));
-						PX_StringCat(out,fmrString.buffer);
+						PX_StringCat(out,PX_StringGetText(&fmrString));
 					}
 					else
 					{
 						PX_StringFormat2(&fmrString,"MEMBYTE R1,GLOBAL[%1],%2\n",PX_STRINGFORMAT_INT(operand._oft),PX_STRINGFORMAT_INT(operand.bAtomPopIndex));
-						PX_StringCat(out,fmrString.buffer);
+						PX_StringCat(out,PX_StringGetText(&fmrString));
 					}
 					PX_StringFree(&fmrString);
 				}
@@ -1940,13 +1940,13 @@ static px_bool PX_ScriptParseAST_MapTokenToR1(PX_ScriptInterpreter *analysis,PX_
 						PX_StringCat(out,"POP R1\n");
 						PX_StringCat(out,"POP R3\n");
 						PX_StringSet(&fmrString,"MEMBYTE R1,GLOBAL[R1],R3\n");
-						PX_StringCat(out,fmrString.buffer);
+						PX_StringCat(out,PX_StringGetText(&fmrString));
 					}
 					else
 					{
 						PX_StringCat(out,"POP R1\n");
 						PX_StringFormat1(&fmrString,"MEMBYTE R1,STRSET GLOBAL[R1],%1\n",PX_STRINGFORMAT_INT(operand._oft));
-						PX_StringCat(out,fmrString.buffer);
+						PX_StringCat(out,PX_StringGetText(&fmrString));
 					}	
 					PX_StringFree(&fmrString);
 				}
@@ -1988,7 +1988,7 @@ static px_bool PX_ScriptParseLastInstr_DOT(PX_ScriptInterpreter *analysis,px_vec
 	{
 		PX_StringInitialize(analysis->mp,&fmrString);
 		PX_StringFormat1(&fmrString,"POP R1\nADD R1,%1\nPUSH R1\n",PX_STRINGFORMAT_INT(operand2._oft));
-		PX_StringCat(out,fmrString.buffer);
+		PX_StringCat(out,PX_StringGetText(&fmrString));
 		PX_StringFree(&fmrString);
 		operand2._oft=0;
 		operand2.region=operand1.region;
@@ -2070,9 +2070,9 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 						{
 							PX_StringInitialize(analysis->mp,&fmrString);
 							PX_StringFormat1(&fmrString,"MOV LOCAL[%1],R2\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-							PX_StringCat(out,fmrString.buffer);
+							PX_StringCat(out,PX_StringGetText(&fmrString));
 							PX_StringFormat1(&fmrString,"PUSH LOCAL[%1]\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-							PX_StringCat(out,fmrString.buffer);
+							PX_StringCat(out,PX_StringGetText(&fmrString));
 							PX_StringFree(&fmrString);
 						}
 						break;
@@ -2080,9 +2080,9 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 						{
 							PX_StringInitialize(analysis->mp,&fmrString);
 							PX_StringFormat1(&fmrString,"MOV GLOBAL[%1],R2\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-							PX_StringCat(out,fmrString.buffer);
+							PX_StringCat(out,PX_StringGetText(&fmrString));
 							PX_StringFormat1(&fmrString,"PUSH GLOBAL[%1]\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-							PX_StringCat(out,fmrString.buffer);
+							PX_StringCat(out,PX_StringGetText(&fmrString));
 							PX_StringFree(&fmrString);
 						}
 						break;
@@ -2091,9 +2091,9 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 							PX_StringInitialize(analysis->mp,&fmrString);
 							PX_StringCat(out,"POP R1\n");
 							PX_StringSet(&fmrString,"MOV GLOBAL[R1],R2\n");
-							PX_StringCat(out,fmrString.buffer);
+							PX_StringCat(out,PX_StringGetText(&fmrString));
 							PX_StringSet(&fmrString,"PUSH GLOBAL[R1]\n");
-							PX_StringCat(out,fmrString.buffer);
+							PX_StringCat(out,PX_StringGetText(&fmrString));
 							PX_StringFree(&fmrString);
 						}
 						break;
@@ -2117,16 +2117,16 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 							{
 								PX_StringCat(out,"POP R3\n");
 								PX_StringFormat1(&fmrString,"STRSET LOCAL[%1],R3,R2\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 								PX_StringFormat1(&fmrString,"PUSH LOCAL[%1]\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 							}
 							else
 							{
 								PX_StringFormat2(&fmrString,"STRSET LOCAL[%1],%2,R2\n",PX_STRINGFORMAT_INT(operandLeft._oft),PX_STRINGFORMAT_INT(operandLeft.AtomIndex));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 								PX_StringFormat1(&fmrString,"PUSH LOCAL[%1]\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 							}
 							PX_StringFree(&fmrString);
 						}
@@ -2138,16 +2138,16 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 							{
 								PX_StringCat(out,"POP R3\n");
 								PX_StringFormat1(&fmrString,"STRSET GLOBAL[%1],R3,R2\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 								PX_StringFormat1(&fmrString,"PUSH GLOBAL[%1]\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 							}
 							else
 							{
 								PX_StringFormat2(&fmrString,"STRSET GLOBAL[%1],%2,R2\n",PX_STRINGFORMAT_INT(operandLeft._oft),PX_STRINGFORMAT_INT(operandLeft.AtomIndex));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 								PX_StringFormat1(&fmrString,"PUSH GLOBAL[%1]\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 							}
 							PX_StringFree(&fmrString);
 						}
@@ -2161,17 +2161,17 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 								PX_StringCat(out,"POP R1\n");
 								PX_StringCat(out,"POP R3\n");
 								PX_StringSet(&fmrString,"STRSET GLOBAL[R1],R3,R2\n");
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 								PX_StringSet(&fmrString,"PUSH GLOBAL[R1]\n");
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 							}
 							else
 							{
 								PX_StringCat(out,"POP R1\n");
 								PX_StringFormat1(&fmrString,"STRSET GLOBAL[R1],%1,R2\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 								PX_StringSet(&fmrString,"PUSH GLOBAL[R1]\n");
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 							}	
 							PX_StringFree(&fmrString);
 						}
@@ -2196,16 +2196,16 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 							{
 								PX_StringCat(out,"POP R3\n");
 								PX_StringFormat1(&fmrString,"MEMSET LOCAL[%1],R3,R2\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 								PX_StringFormat1(&fmrString,"PUSH LOCAL[%1]\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 							}
 							else
 							{
 								PX_StringFormat2(&fmrString,"MEMSET LOCAL[%1],%2,R2\n",PX_STRINGFORMAT_INT(operandLeft._oft),PX_STRINGFORMAT_INT(operandLeft.AtomIndex));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 								PX_StringFormat1(&fmrString,"PUSH LOCAL[%1]\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 							}
 							PX_StringFree(&fmrString);
 						}
@@ -2217,16 +2217,16 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 							{
 								PX_StringCat(out,"POP R3\n");
 								PX_StringFormat1(&fmrString,"MEMSET GLOBAL[%1],R3,R2\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 								PX_StringFormat1(&fmrString,"PUSH GLOBAL[%1]\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 							}
 							else
 							{
 								PX_StringFormat2(&fmrString,"MEMSET GLOBAL[%1],%2,R2\n",PX_STRINGFORMAT_INT(operandLeft._oft),PX_STRINGFORMAT_INT(operandLeft.AtomIndex));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 								PX_StringFormat1(&fmrString,"PUSH GLOBAL[%1]\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 							}
 
 							PX_StringFree(&fmrString);
@@ -2241,17 +2241,17 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 								PX_StringCat(out,"POP R1\n");
 								PX_StringCat(out,"POP R3\n");
 								PX_StringSet(&fmrString,"MEMSET GLOBAL[R1],R3,R2\n");
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 								PX_StringSet(&fmrString,"PUSH GLOBAL[R1]\n");
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 							}
 							else
 							{
 								PX_StringCat(out,"POP R1\n");
 								PX_StringFormat1(&fmrString,"MEMSET GLOBAL[R1],%1,R2\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 								PX_StringSet(&fmrString,"PUSH GLOBAL[R1]\n");
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 							}	
 							PX_StringFree(&fmrString);
 						}
@@ -2287,9 +2287,9 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 				{
 					PX_StringInitialize(analysis->mp, &fmrString);
 					PX_StringFormat1(&fmrString, "MOV LOCAL[%1],R2\n", PX_STRINGFORMAT_INT(operandLeft._oft));
-					PX_StringCat(out, fmrString.buffer);
+					PX_StringCat(out, PX_StringGetText(&fmrString));
 					PX_StringFormat1(&fmrString, "PUSH LOCAL[%1]\n", PX_STRINGFORMAT_INT(operandLeft._oft));
-					PX_StringCat(out, fmrString.buffer);
+					PX_StringCat(out, PX_StringGetText(&fmrString));
 					PX_StringFree(&fmrString);
 				}
 				break;
@@ -2297,9 +2297,9 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 				{
 					PX_StringInitialize(analysis->mp, &fmrString);
 					PX_StringFormat1(&fmrString, "MOV GLOBAL[%1],R2\n", PX_STRINGFORMAT_INT(operandLeft._oft));
-					PX_StringCat(out, fmrString.buffer);
+					PX_StringCat(out, PX_StringGetText(&fmrString));
 					PX_StringFormat1(&fmrString, "PUSH GLOBAL[%1]\n", PX_STRINGFORMAT_INT(operandLeft._oft));
-					PX_StringCat(out, fmrString.buffer);
+					PX_StringCat(out, PX_StringGetText(&fmrString));
 					PX_StringFree(&fmrString);
 				}
 				break;
@@ -2308,9 +2308,9 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 					PX_StringInitialize(analysis->mp, &fmrString);
 					PX_StringCat(out, "POP R1\n");
 					PX_StringSet(&fmrString, "MOV GLOBAL[R1],R2\n");
-					PX_StringCat(out, fmrString.buffer);
+					PX_StringCat(out, PX_StringGetText(&fmrString));
 					PX_StringSet(&fmrString, "PUSH GLOBAL[R1]\n");
-					PX_StringCat(out, fmrString.buffer);
+					PX_StringCat(out, PX_StringGetText(&fmrString));
 					PX_StringFree(&fmrString);
 				}
 				break;
@@ -2356,9 +2356,9 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 						{
 							PX_StringInitialize(analysis->mp,&fmrString);
 							PX_StringFormat1(&fmrString,"MOV LOCAL[%1],R2\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-							PX_StringCat(out,fmrString.buffer);
+							PX_StringCat(out,PX_StringGetText(&fmrString));
 							PX_StringFormat1(&fmrString,"PUSH LOCAL[%1]\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-							PX_StringCat(out,fmrString.buffer);
+							PX_StringCat(out,PX_StringGetText(&fmrString));
 							PX_StringFree(&fmrString);
 						}
 						break;
@@ -2366,9 +2366,9 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 						{
 							PX_StringInitialize(analysis->mp,&fmrString);
 							PX_StringFormat1(&fmrString,"MOV GLOBAL[%1],R2\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-							PX_StringCat(out,fmrString.buffer);
+							PX_StringCat(out,PX_StringGetText(&fmrString));
 							PX_StringFormat1(&fmrString,"PUSH GLOBAL[%1]\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-							PX_StringCat(out,fmrString.buffer);
+							PX_StringCat(out,PX_StringGetText(&fmrString));
 							PX_StringFree(&fmrString);
 						}
 						break;
@@ -2377,9 +2377,9 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 							PX_StringInitialize(analysis->mp,&fmrString);
 							PX_StringCat(out,"POP R1\n");
 							PX_StringSet(&fmrString,"MOV GLOBAL[R1],R2\n");
-							PX_StringCat(out,fmrString.buffer);
+							PX_StringCat(out,PX_StringGetText(&fmrString));
 							PX_StringSet(&fmrString,"PUSH GLOBAL[R1]\n");
-							PX_StringCat(out,fmrString.buffer);
+							PX_StringCat(out,PX_StringGetText(&fmrString));
 							PX_StringFree(&fmrString);
 						}
 						break;
@@ -2451,19 +2451,19 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 			if(operandRight.region==PX_SCRIPT_VARIABLE_REGION_LOCAL)
 			{
 				PX_StringFormat1(&fmrString,"MOV R2,LOCAL[%1]\n",PX_STRINGFORMAT_INT(operandRight._oft));
-				PX_StringCat(out,fmrString.buffer);
+				PX_StringCat(out,PX_StringGetText(&fmrString));
 			}
 			else if(operandRight.region==PX_SCRIPT_VARIABLE_REGION_GLOBAL)
 			{
 				PX_StringFormat1(&fmrString,"MOV R2,GLOBAL[%1]\n",PX_STRINGFORMAT_INT(operandRight._oft));
-				PX_StringCat(out,fmrString.buffer);
+				PX_StringCat(out,PX_StringGetText(&fmrString));
 			}
 			else if(operandRight.region==PX_SCRIPT_VARIABLE_REGION_POP)
 			{
 				PX_StringSet(&fmrString,"POP R2\n");
-				PX_StringCat(out,fmrString.buffer);
+				PX_StringCat(out,PX_StringGetText(&fmrString));
 				PX_StringSet(&fmrString,"MOV R2,GLOBAL[R2]\n");
-				PX_StringCat(out,fmrString.buffer);
+				PX_StringCat(out,PX_StringGetText(&fmrString));
 			}
 			else
 			{
@@ -2478,9 +2478,9 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 				{
 					PX_StringInitialize(analysis->mp,&fmrString);
 					PX_StringFormat1(&fmrString,"MOV LOCAL[%1],R2\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-					PX_StringCat(out,fmrString.buffer);
+					PX_StringCat(out,PX_StringGetText(&fmrString));
 					PX_StringFormat1(&fmrString,"PUSH LOCAL[%1]\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-					PX_StringCat(out,fmrString.buffer);
+					PX_StringCat(out,PX_StringGetText(&fmrString));
 					PX_StringFree(&fmrString);
 				}
 				break;
@@ -2488,9 +2488,9 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 				{
 					PX_StringInitialize(analysis->mp,&fmrString);
 					PX_StringFormat1(&fmrString,"MOV GLOBAL[%1],R2\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-					PX_StringCat(out,fmrString.buffer);
+					PX_StringCat(out,PX_StringGetText(&fmrString));
 					PX_StringFormat1(&fmrString,"PUSH GLOBAL[%1]\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-					PX_StringCat(out,fmrString.buffer);
+					PX_StringCat(out,PX_StringGetText(&fmrString));
 					PX_StringFree(&fmrString);
 				}
 				break;
@@ -2499,9 +2499,9 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 					PX_StringInitialize(analysis->mp,&fmrString);
 					PX_StringCat(out,"POP R1\n");
 					PX_StringSet(&fmrString,"MOV GLOBAL[R1],R2\n");
-					PX_StringCat(out,fmrString.buffer);
+					PX_StringCat(out,PX_StringGetText(&fmrString));
 					PX_StringSet(&fmrString,"PUSH GLOBAL[R1]\n");
-					PX_StringCat(out,fmrString.buffer);
+					PX_StringCat(out,PX_StringGetText(&fmrString));
 					PX_StringFree(&fmrString);
 				}
 				break;
@@ -2536,9 +2536,9 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 
 
 			PX_StringFormat1(&fmrString,"DATACPY R1,R2,%1\n",PX_STRINGFORMAT_INT(operandLeft.pStruct->size));
-			PX_StringCat(out,fmrString.buffer);
+			PX_StringCat(out,PX_StringGetText(&fmrString));
 			PX_StringSet(&fmrString,"PUSH R1\n");
-			PX_StringCat(out,fmrString.buffer);
+			PX_StringCat(out,PX_StringGetText(&fmrString));
 			PX_StringFree(&fmrString);
 			pTop->operandType=PX_SCRIPT_AST_OPERAND_TYPE_STRUCT;
 			pTop->region=PX_SCRIPT_VARIABLE_REGION_POP;
@@ -2585,17 +2585,17 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 			if(operandRight.region==PX_SCRIPT_VARIABLE_REGION_GLOBAL)
 			{
 				PX_StringFormat1(&fmrString,"MOV R2,%1\n",PX_STRINGFORMAT_INT(operandRight._oft));
-				PX_StringCat(out,fmrString.buffer);
+				PX_StringCat(out,PX_StringGetText(&fmrString));
 			}
 			else if(operandRight.region==PX_SCRIPT_VARIABLE_REGION_LOCAL)
 			{
 				PX_StringFormat1(&fmrString,"MOV R2,BP\nSUB R2,%1\n",PX_STRINGFORMAT_INT(operandRight._oft));//
-				PX_StringCat(out,fmrString.buffer);
+				PX_StringCat(out,PX_StringGetText(&fmrString));
 			}
 			else if(operandRight.region==PX_SCRIPT_VARIABLE_REGION_POP)
 			{
 				PX_StringSet(&fmrString,"POP R2\n");
-				PX_StringCat(out,fmrString.buffer);
+				PX_StringCat(out,PX_StringGetText(&fmrString));
 			}
 			else
 			{
@@ -2608,26 +2608,26 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 			case PX_SCRIPT_VARIABLE_REGION_LOCAL:
 				{
 					PX_StringFormat1(&fmrString,"MOV LOCAL[%1],R2\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-					PX_StringCat(out,fmrString.buffer);
+					PX_StringCat(out,PX_StringGetText(&fmrString));
 					PX_StringFormat1(&fmrString,"PUSH LOCAL[%1]\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-					PX_StringCat(out,fmrString.buffer);
+					PX_StringCat(out,PX_StringGetText(&fmrString));
 				}
 				break;
 			case PX_SCRIPT_VARIABLE_REGION_GLOBAL:
 				{
 					PX_StringFormat1(&fmrString,"MOV GLOBAL[%1],R2\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-					PX_StringCat(out,fmrString.buffer);
+					PX_StringCat(out,PX_StringGetText(&fmrString));
 					PX_StringFormat1(&fmrString,"PUSH GLOBAL[%1]\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-					PX_StringCat(out,fmrString.buffer);
+					PX_StringCat(out,PX_StringGetText(&fmrString));
 				}
 				break;
 			case PX_SCRIPT_VARIABLE_REGION_POP:
 				{
 					PX_StringCat(out,"POP R1\n");
 					PX_StringSet(&fmrString,"MOV GLOBAL[R1],R2\n");
-					PX_StringCat(out,fmrString.buffer);
+					PX_StringCat(out,PX_StringGetText(&fmrString));
 					PX_StringSet(&fmrString,"PUSH GLOBAL[R1]\n");
-					PX_StringCat(out,fmrString.buffer);
+					PX_StringCat(out,PX_StringGetText(&fmrString));
 				}
 				break;
 				default:
@@ -2678,9 +2678,9 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 						{
 							PX_StringInitialize(analysis->mp,&fmrString);
 							PX_StringFormat1(&fmrString,"MOV LOCAL[%1],R2\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-							PX_StringCat(out,fmrString.buffer);
+							PX_StringCat(out,PX_StringGetText(&fmrString));
 							PX_StringFormat1(&fmrString,"PUSH LOCAL[%1]\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-							PX_StringCat(out,fmrString.buffer);
+							PX_StringCat(out,PX_StringGetText(&fmrString));
 							PX_StringFree(&fmrString);
 						}
 						break;
@@ -2688,9 +2688,9 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 						{
 							PX_StringInitialize(analysis->mp,&fmrString);
 							PX_StringFormat1(&fmrString,"MOV GLOBAL[%1],R2\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-							PX_StringCat(out,fmrString.buffer);
+							PX_StringCat(out,PX_StringGetText(&fmrString));
 							PX_StringFormat1(&fmrString,"PUSH GLOBAL[%1]\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-							PX_StringCat(out,fmrString.buffer);
+							PX_StringCat(out,PX_StringGetText(&fmrString));
 							PX_StringFree(&fmrString);
 						}
 						break;
@@ -2699,9 +2699,9 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 							PX_StringInitialize(analysis->mp,&fmrString);
 							PX_StringCat(out,"POP R1\n");
 							PX_StringSet(&fmrString,"MOV GLOBAL[R1],R2\n");
-							PX_StringCat(out,fmrString.buffer);
+							PX_StringCat(out,PX_StringGetText(&fmrString));
 							PX_StringSet(&fmrString,"PUSH GLOBAL[R1]\n");
-							PX_StringCat(out,fmrString.buffer);
+							PX_StringCat(out,PX_StringGetText(&fmrString));
 							PX_StringFree(&fmrString);
 						}
 						break;
@@ -2725,16 +2725,16 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 							{
 								PX_StringCat(out,"POP R3\n");
 								PX_StringFormat1(&fmrString,"STRSET LOCAL[%1],R3,R2\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 								PX_StringFormat1(&fmrString,"PUSH LOCAL[%1]\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 							}
 							else
 							{
 								PX_StringFormat2(&fmrString,"STRSET LOCAL[%1],%2,R2\n",PX_STRINGFORMAT_INT(operandLeft._oft),PX_STRINGFORMAT_INT(operandLeft.AtomIndex));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 								PX_StringFormat1(&fmrString,"PUSH LOCAL[%1]\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 							}
 							PX_StringFree(&fmrString);
 						}
@@ -2746,16 +2746,16 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 							{
 								PX_StringCat(out,"POP R3\n");
 								PX_StringFormat1(&fmrString,"STRSET GLOBAL[%1],R3,R2\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 								PX_StringFormat1(&fmrString,"PUSH GLOBAL[%1]\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 							}
 							else
 							{
 								PX_StringFormat2(&fmrString,"STRSET GLOBAL[%1],%2,R2\n",PX_STRINGFORMAT_INT(operandLeft._oft),PX_STRINGFORMAT_INT(operandLeft.AtomIndex));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 								PX_StringFormat1(&fmrString,"PUSH GLOBAL[%1]\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 							}
 							PX_StringFree(&fmrString);
 						}
@@ -2769,17 +2769,17 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 								PX_StringCat(out,"POP R1\n");
 								PX_StringCat(out,"POP R3\n");
 								PX_StringSet(&fmrString,"STRSET GLOBAL[R1],R3,R2\n");
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 								PX_StringSet(&fmrString,"PUSH GLOBAL[R1]\n");
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 							}
 							else
 							{
 								PX_StringCat(out,"POP R1\n");
 								PX_StringFormat1(&fmrString,"STRSET GLOBAL[R1],%1,R2\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 								PX_StringSet(&fmrString,"PUSH GLOBAL[R1]\n");
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 							}	
 							PX_StringFree(&fmrString);
 						}
@@ -2804,16 +2804,16 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 							{
 								PX_StringCat(out,"POP R3\n");
 								PX_StringFormat1(&fmrString,"MEMSET LOCAL[%1],R3,R2\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 								PX_StringFormat1(&fmrString,"PUSH LOCAL[%1]\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 							}
 							else
 							{
 								PX_StringFormat2(&fmrString,"MEMSET LOCAL[%1],%2,R2\n",PX_STRINGFORMAT_INT(operandLeft._oft),PX_STRINGFORMAT_INT(operandLeft.AtomIndex));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 								PX_StringFormat1(&fmrString,"PUSH LOCAL[%1]\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 							}
 							PX_StringFree(&fmrString);
 						}
@@ -2825,16 +2825,16 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 							{
 								PX_StringCat(out,"POP R3\n");
 								PX_StringFormat1(&fmrString,"MEMSET GLOBAL[%1],R3,R2\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 								PX_StringFormat1(&fmrString,"PUSH GLOBAL[%1]\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 							}
 							else
 							{
 								PX_StringFormat2(&fmrString,"MEMSET GLOBAL[%1],%2,R2\n",PX_STRINGFORMAT_INT(operandLeft._oft),PX_STRINGFORMAT_INT(operandLeft.AtomIndex));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 								PX_StringFormat1(&fmrString,"PUSH GLOBAL[%1]\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 							}
 							PX_StringFree(&fmrString);
 						}
@@ -2848,17 +2848,17 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 								PX_StringCat(out,"POP R1\n");
 								PX_StringCat(out,"POP R3\n");
 								PX_StringSet(&fmrString,"MEMSET GLOBAL[R1],R3,R2\n");
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 								PX_StringSet(&fmrString,"PUSH GLOBAL[R1]\n");
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 							}
 							else
 							{
 								PX_StringCat(out,"POP R1\n");
 								PX_StringFormat1(&fmrString,"MEMSET GLOBAL[R1],%1,R2\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 								PX_StringSet(&fmrString,"PUSH GLOBAL[R1]\n");
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 							}	
 							PX_StringFree(&fmrString);
 						}
@@ -2897,9 +2897,9 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 			{
 				PX_StringInitialize(analysis->mp, &fmrString);
 				PX_StringFormat1(&fmrString, "MOV LOCAL[%1],R2\n", PX_STRINGFORMAT_INT(operandLeft._oft));
-				PX_StringCat(out, fmrString.buffer);
+				PX_StringCat(out, PX_StringGetText(&fmrString));
 				PX_StringFormat1(&fmrString, "PUSH LOCAL[%1]\n", PX_STRINGFORMAT_INT(operandLeft._oft));
-				PX_StringCat(out, fmrString.buffer);
+				PX_StringCat(out, PX_StringGetText(&fmrString));
 				PX_StringFree(&fmrString);
 			}
 			break;
@@ -2907,9 +2907,9 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 			{
 				PX_StringInitialize(analysis->mp, &fmrString);
 				PX_StringFormat1(&fmrString, "MOV GLOBAL[%1],R2\n", PX_STRINGFORMAT_INT(operandLeft._oft));
-				PX_StringCat(out, fmrString.buffer);
+				PX_StringCat(out, PX_StringGetText(&fmrString));
 				PX_StringFormat1(&fmrString, "PUSH GLOBAL[%1]\n", PX_STRINGFORMAT_INT(operandLeft._oft));
-				PX_StringCat(out, fmrString.buffer);
+				PX_StringCat(out, PX_StringGetText(&fmrString));
 				PX_StringFree(&fmrString);
 			}
 			break;
@@ -2918,9 +2918,9 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 				PX_StringInitialize(analysis->mp, &fmrString);
 				PX_StringCat(out, "POP R1\n");
 				PX_StringSet(&fmrString, "MOV GLOBAL[R1],R2\n");
-				PX_StringCat(out, fmrString.buffer);
+				PX_StringCat(out, PX_StringGetText(&fmrString));
 				PX_StringSet(&fmrString, "PUSH GLOBAL[R1]\n");
-				PX_StringCat(out, fmrString.buffer);
+				PX_StringCat(out, PX_StringGetText(&fmrString));
 				PX_StringFree(&fmrString);
 			}
 			break;
@@ -2971,9 +2971,9 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 						{
 							PX_StringInitialize(analysis->mp,&fmrString);
 							PX_StringFormat1(&fmrString,"MOV LOCAL[%1],R2\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-							PX_StringCat(out,fmrString.buffer);
+							PX_StringCat(out,PX_StringGetText(&fmrString));
 							PX_StringFormat1(&fmrString,"PUSH LOCAL[%1]\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-							PX_StringCat(out,fmrString.buffer);
+							PX_StringCat(out,PX_StringGetText(&fmrString));
 							PX_StringFree(&fmrString);
 						}
 						break;
@@ -2981,9 +2981,9 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 						{
 							PX_StringInitialize(analysis->mp,&fmrString);
 							PX_StringFormat1(&fmrString,"MOV GLOBAL[%1],R2\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-							PX_StringCat(out,fmrString.buffer);
+							PX_StringCat(out,PX_StringGetText(&fmrString));
 							PX_StringFormat1(&fmrString,"PUSH GLOBAL[%1]\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-							PX_StringCat(out,fmrString.buffer);
+							PX_StringCat(out,PX_StringGetText(&fmrString));
 							PX_StringFree(&fmrString);
 						}
 						break;
@@ -2992,9 +2992,9 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 							PX_StringInitialize(analysis->mp,&fmrString);
 							PX_StringCat(out,"POP R1\n");
 							PX_StringSet(&fmrString,"MOV GLOBAL[R1],R2\n");
-							PX_StringCat(out,fmrString.buffer);
+							PX_StringCat(out,PX_StringGetText(&fmrString));
 							PX_StringSet(&fmrString,"PUSH GLOBAL[R1]\n");
-							PX_StringCat(out,fmrString.buffer);
+							PX_StringCat(out,PX_StringGetText(&fmrString));
 							PX_StringFree(&fmrString);
 						}
 						break;
@@ -3031,12 +3031,12 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 				if(operandRight.region==PX_SCRIPT_VARIABLE_REGION_GLOBAL)
 				{
 					PX_StringFormat1(&fmrString,"MOV R2,%1\n",PX_STRINGFORMAT_STRING(operandRight._contaniner));
-					PX_StringCat(out,fmrString.buffer);
+					PX_StringCat(out,PX_StringGetText(&fmrString));
 				}
 				else if(operandRight.region==PX_SCRIPT_VARIABLE_REGION_POP)
 				{
 					PX_StringSet(&fmrString,"POP R2\n");
-					PX_StringCat(out,fmrString.buffer);
+					PX_StringCat(out,PX_StringGetText(&fmrString));
 				}
 				else
 				{
@@ -3053,9 +3053,9 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 					{
 						PX_StringInitialize(analysis->mp,&fmrString);
 						PX_StringFormat1(&fmrString,"MOV LOCAL[%1],R2\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-						PX_StringCat(out,fmrString.buffer);
+						PX_StringCat(out,PX_StringGetText(&fmrString));
 						PX_StringFormat1(&fmrString,"PUSH LOCAL[%1]\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-						PX_StringCat(out,fmrString.buffer);
+						PX_StringCat(out,PX_StringGetText(&fmrString));
 						PX_StringFree(&fmrString);
 					}
 					break;
@@ -3063,9 +3063,9 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 					{
 						PX_StringInitialize(analysis->mp,&fmrString);
 						PX_StringFormat1(&fmrString,"MOV GLOBAL[%1],R2\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-						PX_StringCat(out,fmrString.buffer);
+						PX_StringCat(out,PX_StringGetText(&fmrString));
 						PX_StringFormat1(&fmrString,"PUSH GLOBAL[%1]\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-						PX_StringCat(out,fmrString.buffer);
+						PX_StringCat(out,PX_StringGetText(&fmrString));
 						PX_StringFree(&fmrString);
 					}
 					break;
@@ -3074,9 +3074,9 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 						PX_StringInitialize(analysis->mp,&fmrString);
 						PX_StringCat(out,"POP R1\n");
 						PX_StringSet(&fmrString,"MOV GLOBAL[R1],R2\n");
-						PX_StringCat(out,fmrString.buffer);
+						PX_StringCat(out,PX_StringGetText(&fmrString));
 						PX_StringSet(&fmrString,"PUSH GLOBAL[R1]\n");
-						PX_StringCat(out,fmrString.buffer);
+						PX_StringCat(out,PX_StringGetText(&fmrString));
 						PX_StringFree(&fmrString);
 					}
 					break;
@@ -3111,9 +3111,9 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 						{
 							PX_StringInitialize(analysis->mp,&fmrString);
 							PX_StringFormat1(&fmrString,"MOV LOCAL[%1],R2\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-							PX_StringCat(out,fmrString.buffer);
+							PX_StringCat(out,PX_StringGetText(&fmrString));
 							PX_StringFormat1(&fmrString,"PUSH LOCAL[%1]\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-							PX_StringCat(out,fmrString.buffer);
+							PX_StringCat(out,PX_StringGetText(&fmrString));
 							PX_StringFree(&fmrString);
 						}
 						break;
@@ -3121,9 +3121,9 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 						{
 							PX_StringInitialize(analysis->mp,&fmrString);
 							PX_StringFormat1(&fmrString,"MOV GLOBAL[%1],R2\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-							PX_StringCat(out,fmrString.buffer);
+							PX_StringCat(out,PX_StringGetText(&fmrString));
 							PX_StringFormat1(&fmrString,"PUSH GLOBAL[%1]\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-							PX_StringCat(out,fmrString.buffer);
+							PX_StringCat(out,PX_StringGetText(&fmrString));
 							PX_StringFree(&fmrString);
 						}
 						break;
@@ -3132,9 +3132,9 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 							PX_StringInitialize(analysis->mp,&fmrString);
 							PX_StringCat(out,"POP R1\n");
 							PX_StringSet(&fmrString,"MOV GLOBAL[R1],R2\n");
-							PX_StringCat(out,fmrString.buffer);
+							PX_StringCat(out,PX_StringGetText(&fmrString));
 							PX_StringSet(&fmrString,"PUSH GLOBAL[R1]\n");
-							PX_StringCat(out,fmrString.buffer);
+							PX_StringCat(out,PX_StringGetText(&fmrString));
 							PX_StringFree(&fmrString);
 						}
 						break;
@@ -3154,16 +3154,16 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 							{
 								PX_StringCat(out,"POP R3\n");
 								PX_StringFormat1(&fmrString,"STRSET LOCAL[%1],R3,R2\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 								PX_StringFormat1(&fmrString,"PUSH LOCAL[%1]\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 							}
 							else
 							{
 								PX_StringFormat2(&fmrString,"STRSET LOCAL[%1],%2,R2\n",PX_STRINGFORMAT_INT(operandLeft._oft),PX_STRINGFORMAT_INT(operandLeft.bAtomPopIndex));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 								PX_StringFormat1(&fmrString,"PUSH LOCAL[%1]\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 							}
 							PX_StringFree(&fmrString);
 						}
@@ -3175,16 +3175,16 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 							{
 								PX_StringCat(out,"POP R3\n");
 								PX_StringFormat1(&fmrString,"STRSET GLOBAL[%1],R3,R2\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 								PX_StringFormat1(&fmrString,"PUSH GLOBAL[%1]\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 							}
 							else
 							{
 								PX_StringFormat2(&fmrString,"STRSET GLOBAL[%1],%2,R2\n",PX_STRINGFORMAT_INT(operandLeft._oft),PX_STRINGFORMAT_INT(operandLeft.bAtomPopIndex));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 								PX_StringFormat1(&fmrString,"PUSH GLOBAL[%1]\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 							}
 							PX_StringFree(&fmrString);
 						}
@@ -3198,17 +3198,17 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 								PX_StringCat(out,"POP R1\n");
 								PX_StringCat(out,"POP R3\n");
 								PX_StringSet(&fmrString,"STRSET GLOBAL[R1],R3,R2\n");
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 								PX_StringSet(&fmrString,"PUSH GLOBAL[R1]\n");
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 							}
 							else
 							{
 								PX_StringCat(out,"POP R1\n");
 								PX_StringFormat1(&fmrString,"STRSET GLOBAL[R1],%1,R2\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 								PX_StringSet(&fmrString,"PUSH GLOBAL[R1]\n");
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 							}	
 							PX_StringFree(&fmrString);
 						}
@@ -3228,16 +3228,16 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 							{
 								PX_StringCat(out,"POP R3\n");
 								PX_StringFormat1(&fmrString,"MEMSET LOCAL[%1],R3,R2\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 								PX_StringFormat1(&fmrString,"PUSH LOCAL[%1]\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 							}
 							else
 							{
 								PX_StringFormat2(&fmrString,"MEMSET LOCAL[%1],%2,R2\n",PX_STRINGFORMAT_INT(operandLeft._oft),PX_STRINGFORMAT_INT(operandLeft.bAtomPopIndex));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 								PX_StringFormat1(&fmrString,"PUSH LOCAL[%1]\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 							}
 							PX_StringFree(&fmrString);
 						}
@@ -3249,16 +3249,16 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 							{
 								PX_StringCat(out,"POP R3\n");
 								PX_StringFormat1(&fmrString,"MEMSET GLOBAL[%1],R3,R2\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 								PX_StringFormat1(&fmrString,"PUSH GLOBAL[%1]\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 							}
 							else
 							{
 								PX_StringFormat2(&fmrString,"MEMSET GLOBAL[%1],%2,R2\n",PX_STRINGFORMAT_INT(operandLeft._oft),PX_STRINGFORMAT_INT(operandLeft.bAtomPopIndex));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 								PX_StringFormat1(&fmrString,"PUSH GLOBAL[%1]\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 							}
 							PX_StringFree(&fmrString);
 						}
@@ -3272,17 +3272,17 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 								PX_StringCat(out,"POP R1\n");
 								PX_StringCat(out,"POP R3\n");
 								PX_StringSet(&fmrString,"MEMSET GLOBAL[R1],R3,R2\n");
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 								PX_StringSet(&fmrString,"PUSH GLOBAL[R1]\n");
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 							}
 							else
 							{
 								PX_StringCat(out,"POP R1\n");
 								PX_StringFormat1(&fmrString,"MEMSET GLOBAL[R1],%1,R2\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 								PX_StringSet(&fmrString,"PUSH GLOBAL[R1]\n");
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 							}	
 							PX_StringFree(&fmrString);
 						}
@@ -3318,9 +3318,9 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 							{
 								PX_StringInitialize(analysis->mp,&fmrString);
 								PX_StringFormat1(&fmrString,"MOV LOCAL[%1],R2\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 								PX_StringFormat1(&fmrString,"PUSH LOCAL[%1]\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 								PX_StringFree(&fmrString);
 							}
 							break;
@@ -3328,9 +3328,9 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 							{
 								PX_StringInitialize(analysis->mp,&fmrString);
 								PX_StringFormat1(&fmrString,"MOV GLOBAL[%1],R2\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 								PX_StringFormat1(&fmrString,"PUSH GLOBAL[%1]\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 								PX_StringFree(&fmrString);
 							}
 							break;
@@ -3339,9 +3339,9 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 								PX_StringInitialize(analysis->mp,&fmrString);
 								PX_StringCat(out,"POP R1\n");
 								PX_StringSet(&fmrString,"MOV GLOBAL[R1],R2\n");
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 								PX_StringSet(&fmrString,"PUSH GLOBAL[R1]\n");
-								PX_StringCat(out,fmrString.buffer);
+								PX_StringCat(out,PX_StringGetText(&fmrString));
 								PX_StringFree(&fmrString);
 							}
 							break;
@@ -3361,16 +3361,16 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 								{
 									PX_StringCat(out,"POP R3\n");
 									PX_StringFormat1(&fmrString,"MEMSET LOCAL[%1],R3,R2\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-									PX_StringCat(out,fmrString.buffer);
+									PX_StringCat(out,PX_StringGetText(&fmrString));
 									PX_StringFormat1(&fmrString,"PUSH LOCAL[%1]\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-									PX_StringCat(out,fmrString.buffer);
+									PX_StringCat(out,PX_StringGetText(&fmrString));
 								}
 								else
 								{
 									PX_StringFormat2(&fmrString,"MEMSET LOCAL[%1],%2,R2\n",PX_STRINGFORMAT_INT(operandLeft._oft),PX_STRINGFORMAT_INT(operandLeft.bAtomPopIndex));
-									PX_StringCat(out,fmrString.buffer);
+									PX_StringCat(out,PX_StringGetText(&fmrString));
 									PX_StringFormat1(&fmrString,"PUSH LOCAL[%1]\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-									PX_StringCat(out,fmrString.buffer);
+									PX_StringCat(out,PX_StringGetText(&fmrString));
 								}
 								PX_StringFree(&fmrString);
 							}
@@ -3382,16 +3382,16 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 								{
 									PX_StringCat(out,"POP R3\n");
 									PX_StringFormat1(&fmrString,"MEMSET GLOBAL[%1],R3,R2\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-									PX_StringCat(out,fmrString.buffer);
+									PX_StringCat(out,PX_StringGetText(&fmrString));
 									PX_StringFormat1(&fmrString,"PUSH GLOBAL[%1]\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-									PX_StringCat(out,fmrString.buffer);
+									PX_StringCat(out,PX_StringGetText(&fmrString));
 								}
 								else
 								{
 									PX_StringFormat2(&fmrString,"MEMSET GLOBAL[%1],%2,R2\n",PX_STRINGFORMAT_INT(operandLeft._oft),PX_STRINGFORMAT_INT(operandLeft.bAtomPopIndex));
-									PX_StringCat(out,fmrString.buffer);
+									PX_StringCat(out,PX_StringGetText(&fmrString));
 									PX_StringFormat1(&fmrString,"PUSH GLOBAL[%1]\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-									PX_StringCat(out,fmrString.buffer);
+									PX_StringCat(out,PX_StringGetText(&fmrString));
 								}
 								PX_StringFree(&fmrString);
 							}
@@ -3405,17 +3405,17 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 									PX_StringCat(out,"POP R1\n");
 									PX_StringCat(out,"POP R3\n");
 									PX_StringSet(&fmrString,"MEMSET GLOBAL[R1],R3,R2\n");
-									PX_StringCat(out,fmrString.buffer);
+									PX_StringCat(out,PX_StringGetText(&fmrString));
 									PX_StringSet(&fmrString,"PUSH GLOBAL[R1]\n");
-									PX_StringCat(out,fmrString.buffer);
+									PX_StringCat(out,PX_StringGetText(&fmrString));
 								}
 								else
 								{
 									PX_StringCat(out,"POP R1\n");
 									PX_StringFormat1(&fmrString,"MEMSET GLOBAL[R1],%1,R2\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-									PX_StringCat(out,fmrString.buffer);
+									PX_StringCat(out,PX_StringGetText(&fmrString));
 									PX_StringSet(&fmrString,"PUSH GLOBAL[R1]\n");
-									PX_StringCat(out,fmrString.buffer);
+									PX_StringCat(out,PX_StringGetText(&fmrString));
 								}	
 								PX_StringFree(&fmrString);
 							}
@@ -3435,16 +3435,16 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 								{
 									PX_StringCat(out,"POP R3\n");
 									PX_StringFormat1(&fmrString,"STRSET LOCAL[%1],R3,R2\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-									PX_StringCat(out,fmrString.buffer);
+									PX_StringCat(out,PX_StringGetText(&fmrString));
 									PX_StringFormat1(&fmrString,"PUSH LOCAL[%1]\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-									PX_StringCat(out,fmrString.buffer);
+									PX_StringCat(out,PX_StringGetText(&fmrString));
 								}
 								else
 								{
 									PX_StringFormat2(&fmrString,"STRSET LOCAL[%1],%2,R2\n",PX_STRINGFORMAT_INT(operandLeft._oft),PX_STRINGFORMAT_INT(operandLeft.bAtomPopIndex));
-									PX_StringCat(out,fmrString.buffer);
+									PX_StringCat(out,PX_StringGetText(&fmrString));
 									PX_StringFormat1(&fmrString,"PUSH LOCAL[%1]\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-									PX_StringCat(out,fmrString.buffer);
+									PX_StringCat(out,PX_StringGetText(&fmrString));
 								}
 								PX_StringFree(&fmrString);
 							}
@@ -3456,16 +3456,16 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 								{
 									PX_StringCat(out,"POP R3\n");
 									PX_StringFormat1(&fmrString,"STRSET GLOBAL[%1],R3,R2\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-									PX_StringCat(out,fmrString.buffer);
+									PX_StringCat(out,PX_StringGetText(&fmrString));
 									PX_StringFormat1(&fmrString,"PUSH GLOBAL[%1]\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-									PX_StringCat(out,fmrString.buffer);
+									PX_StringCat(out,PX_StringGetText(&fmrString));
 								}
 								else
 								{
 									PX_StringFormat2(&fmrString,"STRSET GLOBAL[%1],%2,R2\n",PX_STRINGFORMAT_INT(operandLeft._oft),PX_STRINGFORMAT_INT(operandLeft.bAtomPopIndex));
-									PX_StringCat(out,fmrString.buffer);
+									PX_StringCat(out,PX_StringGetText(&fmrString));
 									PX_StringFormat1(&fmrString,"PUSH GLOBAL[%1]\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-									PX_StringCat(out,fmrString.buffer);
+									PX_StringCat(out,PX_StringGetText(&fmrString));
 								}
 								PX_StringFree(&fmrString);
 							}
@@ -3479,17 +3479,17 @@ static px_bool PX_ScriptParseLastInstr_EQUAL(PX_ScriptInterpreter *analysis,px_v
 									PX_StringCat(out,"POP R1\n");
 									PX_StringCat(out,"POP R3\n");
 									PX_StringSet(&fmrString,"STRSET GLOBAL[R1],R3,R2\n");
-									PX_StringCat(out,fmrString.buffer);
+									PX_StringCat(out,PX_StringGetText(&fmrString));
 									PX_StringSet(&fmrString,"PUSH GLOBAL[R1]\n");
-									PX_StringCat(out,fmrString.buffer);
+									PX_StringCat(out,PX_StringGetText(&fmrString));
 								}
 								else
 								{
 									PX_StringCat(out,"POP R1\n");
 									PX_StringFormat1(&fmrString,"MEMSET GLOBAL[R1],%1,R2\n",PX_STRINGFORMAT_INT(operandLeft._oft));
-									PX_StringCat(out,fmrString.buffer);
+									PX_StringCat(out,PX_StringGetText(&fmrString));
 									PX_StringSet(&fmrString,"PUSH GLOBAL[R1]\n");
-									PX_StringCat(out,fmrString.buffer);
+									PX_StringCat(out,PX_StringGetText(&fmrString));
 								}	
 								PX_StringFree(&fmrString);
 							}
@@ -3588,24 +3588,24 @@ static px_bool PX_ScriptParseLastInstr_IDX(PX_ScriptInterpreter *analysis,px_vec
 				resOperand.operandType=PX_SCRIPT_AST_OPERAND_TYPE_STRUCT;
 				resOperand.pStruct=operand1.pStruct;
 				PX_StringFormat1(&fmrString,"MUL R2,%1\n",PX_STRINGFORMAT_INT(operand1.pStruct->size));
-				PX_StringCat(out,fmrString.buffer);
+				PX_StringCat(out,PX_StringGetText(&fmrString));
 			}
 
 			if (operand1.region==PX_SCRIPT_VARIABLE_REGION_GLOBAL)
 			{
 				PX_StringFormat1(&fmrString,"ADD R2,GLOBAL[%1]\n",PX_STRINGFORMAT_INT(operand1._oft));
-				PX_StringCat(out,fmrString.buffer);
+				PX_StringCat(out,PX_StringGetText(&fmrString));
 			}
 			else if(operand1.region==PX_SCRIPT_VARIABLE_REGION_LOCAL)
 			{
 				PX_StringFormat1(&fmrString,"ADD R2,LOCAL[%1]\n",PX_STRINGFORMAT_INT(operand1._oft));
-				PX_StringCat(out,fmrString.buffer);
+				PX_StringCat(out,PX_StringGetText(&fmrString));
 			}
 			else if(operand1.region==PX_SCRIPT_VARIABLE_REGION_POP)
 			{
 				PX_StringCat(out,"POP R3\n");
 				PX_StringSet(&fmrString,"ADD R2,GLOBAL[R3]\n");
-				PX_StringCat(out,fmrString.buffer);
+				PX_StringCat(out,PX_StringGetText(&fmrString));
 			}
 			else
 			{
@@ -3652,7 +3652,7 @@ static px_bool PX_ScriptParseLastInstr_IDX(PX_ScriptInterpreter *analysis,px_vec
 					resOperand.operandType=PX_SCRIPT_AST_OPERAND_TYPE_STRUCT;
 					resOperand.pStruct=operand1.pStruct;
 					PX_StringFormat1(&fmrString,"MUL R2,%1\n",PX_STRINGFORMAT_INT(operand1.pStruct->size));
-					PX_StringCat(out,fmrString.buffer);
+					PX_StringCat(out,PX_StringGetText(&fmrString));
 				}
 				else
 				{
@@ -3662,18 +3662,18 @@ static px_bool PX_ScriptParseLastInstr_IDX(PX_ScriptInterpreter *analysis,px_vec
 				if (operand1.region==PX_SCRIPT_VARIABLE_REGION_GLOBAL)
 				{
 					PX_StringFormat1(&fmrString,"ADD R2,%1\n",PX_STRINGFORMAT_INT(operand1._oft));
-					PX_StringCat(out,fmrString.buffer);
+					PX_StringCat(out,PX_StringGetText(&fmrString));
 				}
 				else if(operand1.region==PX_SCRIPT_VARIABLE_REGION_LOCAL)
 				{
 					PX_StringFormat1(&fmrString,"SUB R2,%1\nADD R2,BP\n",PX_STRINGFORMAT_INT(operand1._oft));//
-					PX_StringCat(out,fmrString.buffer);
+					PX_StringCat(out,PX_StringGetText(&fmrString));
 				}
 				else if(operand1.region==PX_SCRIPT_VARIABLE_REGION_POP)
 				{
 					PX_StringCat(out,"POP R3\n");
 					PX_StringSet(&fmrString,"ADD R2,GLOBAL[R3]\n");
-					PX_StringCat(out,fmrString.buffer);
+					PX_StringCat(out,PX_StringGetText(&fmrString));
 				}
 				else
 				{
@@ -3697,13 +3697,13 @@ static px_bool PX_ScriptParseLastInstr_IDX(PX_ScriptInterpreter *analysis,px_vec
 				{
 					PX_StringCat(out,"PUSH R2\n");
 					PX_StringFormat1(&fmrString,"MOV R2,%1\n",PX_STRINGFORMAT_INT(operand1._oft));
-					PX_StringCat(out,fmrString.buffer);
+					PX_StringCat(out,PX_StringGetText(&fmrString));
 				}
 				else if(operand1.region==PX_SCRIPT_VARIABLE_REGION_LOCAL)
 				{
 					PX_StringCat(out,"PUSH R2\n");
 					PX_StringFormat1(&fmrString,"MOV R2,BP\nSUB R2,%1\n",PX_STRINGFORMAT_INT(operand1._oft));//
-					PX_StringCat(out,fmrString.buffer);
+					PX_StringCat(out,PX_StringGetText(&fmrString));
 				}
 				else if(operand1.region==PX_SCRIPT_VARIABLE_REGION_POP)
 				{
@@ -3752,7 +3752,7 @@ static px_bool PX_ScriptParseLastInstr_OFT(PX_ScriptInterpreter *analysis,px_vec
 	
 	PX_StringInitialize(analysis->mp,&fmrString);
 	PX_StringFormat1(&fmrString,"ADD R1,%1\nPUSH R1\n",PX_STRINGFORMAT_INT(operand2._oft));
-	PX_StringCat(out,fmrString.buffer);
+	PX_StringCat(out,PX_StringGetText(&fmrString));
 	PX_StringFree(&fmrString);
 
 	pTop=(PX_SCRIPT_AST_OPERAND *)PX_VECTORAT(PX_SCRIPT_AST_OPERAND,tk,tk->size-1);
@@ -3905,9 +3905,9 @@ static px_bool PX_ScriptParseLastInstr_ADR(PX_ScriptInterpreter *analysis,px_vec
 	{
 		PX_StringInitialize(analysis->mp,&fmrString);
 		PX_StringFormat1(&fmrString,"MOV R1,BP\nSUB R1,%1\n",PX_STRINGFORMAT_INT(operand1._oft));//
-		PX_StringCat(out,fmrString.buffer);
+		PX_StringCat(out,PX_StringGetText(&fmrString));
 		PX_StringSet(&fmrString,"PUSH R1\n");
-		PX_StringCat(out,fmrString.buffer);
+		PX_StringCat(out,PX_StringGetText(&fmrString));
 		PX_StringFree(&fmrString);
 
 		pTop->_int=operand1._int;
@@ -4298,7 +4298,7 @@ static px_bool PX_ScriptParseLastInstr_INC(PX_ScriptInterpreter *analysis,px_vec
 		{
 			PX_StringInitialize(analysis->mp,&fmrString);
 			PX_StringFormat1(&fmrString,"ADD GLOBAL[%1],1\n",PX_STRINGFORMAT_INT(operand1._oft));
-			PX_StringCat(out,fmrString.buffer);
+			PX_StringCat(out,PX_StringGetText(&fmrString));
 			PX_StringFree(&fmrString);
 		}
 		break;
@@ -4306,7 +4306,7 @@ static px_bool PX_ScriptParseLastInstr_INC(PX_ScriptInterpreter *analysis,px_vec
 		{
 			PX_StringInitialize(analysis->mp,&fmrString);
 			PX_StringFormat1(&fmrString,"ADD LOCAL[%1],1\n",PX_STRINGFORMAT_INT(operand1._oft));
-			PX_StringCat(out,fmrString.buffer);
+			PX_StringCat(out,PX_StringGetText(&fmrString));
 			PX_StringFree(&fmrString);
 		}
 		break;
@@ -4315,7 +4315,7 @@ static px_bool PX_ScriptParseLastInstr_INC(PX_ScriptInterpreter *analysis,px_vec
 			PX_StringInitialize(analysis->mp,&fmrString);
 			PX_StringCat(out,"POP R1\n");
 			PX_StringSet(&fmrString,"ADD GLOBAL[R1],1\n");
-			PX_StringCat(out,fmrString.buffer);
+			PX_StringCat(out,PX_StringGetText(&fmrString));
 			PX_StringCat(out,"PUSH R1\n");
 			PX_StringFree(&fmrString);
 		}
@@ -4618,7 +4618,7 @@ static px_bool PX_ScriptParseLastInstr_DEC(PX_ScriptInterpreter *analysis,px_vec
 		{
 			PX_StringInitialize(analysis->mp,&fmrString);
 			PX_StringFormat1(&fmrString,"SUB GLOBAL[%1],1\n",PX_STRINGFORMAT_INT(operand1._oft));
-			PX_StringCat(out,fmrString.buffer);
+			PX_StringCat(out,PX_StringGetText(&fmrString));
 			PX_StringFree(&fmrString);
 		}
 		break;
@@ -4626,7 +4626,7 @@ static px_bool PX_ScriptParseLastInstr_DEC(PX_ScriptInterpreter *analysis,px_vec
 		{
 			PX_StringInitialize(analysis->mp,&fmrString);
 			PX_StringFormat1(&fmrString,"SUB LOCAL[%1],1\n",PX_STRINGFORMAT_INT(operand1._oft));
-			PX_StringCat(out,fmrString.buffer);
+			PX_StringCat(out,PX_StringGetText(&fmrString));
 			PX_StringFree(&fmrString);
 		}
 		break;
@@ -4635,7 +4635,7 @@ static px_bool PX_ScriptParseLastInstr_DEC(PX_ScriptInterpreter *analysis,px_vec
 			PX_StringInitialize(analysis->mp,&fmrString);
 			PX_StringCat(out,"POP R1\n");
 			PX_StringSet(&fmrString,"SUB GLOBAL[R1],1\n");
-			PX_StringCat(out,fmrString.buffer);
+			PX_StringCat(out,PX_StringGetText(&fmrString));
 			PX_StringCat(out,"PUSH R1\n");
 			PX_StringFree(&fmrString);
 		}
@@ -6258,7 +6258,7 @@ static px_bool PX_ScriptParseExpressionStream(PX_ScriptInterpreter *analysis,px_
 			for (i=0;i<analysis->v_functions.size;i++)
 			{
 				pfunc=PX_VECTORAT(PX_SCRIPT_FUNCTION,&analysis->v_functions,i);
-				if (PX_strequ(pfunc->name,pVec[*offset].code.buffer))
+				if (PX_strequ(pfunc->name,PX_StringGetText(&pVec[*offset].code)))
 				{
 					break;
 				}
@@ -6512,12 +6512,12 @@ _EXPR_OUT:
 			case PX_SCRIPT_TRANSLATOR_FUNCTION_TYPE_INLINE:
 				PX_StringInitialize(analysis->mp,&fmrString);
 				PX_StringFormat1(&fmrString,"CALL %1\n",PX_STRINGFORMAT_STRING(pfunc->name));
-				PX_StringCat(out,fmrString.buffer);
+				PX_StringCat(out,PX_StringGetText(&fmrString));
 
 				if(pfunc->parametersCount)
 				{
 					PX_StringFormat1(&fmrString,"POPN %1\n",PX_STRINGFORMAT_INT(pfunc->parametersSize));
-					PX_StringCat(out,fmrString.buffer);
+					PX_StringCat(out,PX_StringGetText(&fmrString));
 				}
 				
 
@@ -6526,11 +6526,11 @@ _EXPR_OUT:
 			case PX_SCRIPT_TRANSLATOR_FUNCTION_TYPE_HOST:
 				PX_StringInitialize(analysis->mp,&fmrString);
 				PX_StringFormat1(&fmrString,"CALL $%1\n",PX_STRINGFORMAT_STRING(pfunc->name));
-				PX_StringCat(out,fmrString.buffer);
+				PX_StringCat(out,PX_StringGetText(&fmrString));
 				if(pfunc->parametersCount)
 				{
 					PX_StringFormat1(&fmrString,"POPN %1\n",PX_STRINGFORMAT_INT(pfunc->parametersSize));
-					PX_StringCat(out,fmrString.buffer);
+					PX_StringCat(out,PX_StringGetText(&fmrString));
 				}
 
 				PX_StringFree(&fmrString);
@@ -6834,7 +6834,7 @@ static px_bool PX_ScriptParseExpression(PX_ScriptInterpreter *analysis,px_char *
 	Op.opclass=PX_SCRIPT_TRANSLATOR_OP_CLASS_CONTAINER;
 	Op.oplevel=0;
 	PX_StringInitialize(analysis->mp,&Op.code);
-	PX_StringCat(&Op.code,lexer.CurLexeme.buffer);
+	PX_StringCat(&Op.code,PX_StringGetText(&lexer.CurLexeme));
 	PX_VectorPushback(&stream,&Op);
 
 	while (PX_TRUE)
@@ -6849,7 +6849,7 @@ static px_bool PX_ScriptParseExpression(PX_ScriptInterpreter *analysis,px_char *
 		{
 			//////////////////////////////////////////////////////////////////////////
 			//key word
-			if (PX_strequ(lexer.CurLexeme.buffer,"STRLEN"))
+			if (PX_strequ(PX_StringGetText(&lexer.CurLexeme),"STRLEN"))
 			{
 				if ((accept_type&PX_SCRIPT_EXPRESSION_ACCEPT_SINGLE)==0)
 				{
@@ -6864,10 +6864,10 @@ static px_bool PX_ScriptParseExpression(PX_ScriptInterpreter *analysis,px_char *
 				Op.opclass=PX_SCRIPT_TRANSLATOR_OP_CLASS_SINGLE;
 				Op.oplevel=1;
 				PX_StringInitialize(analysis->mp,&Op.code);
-				PX_StringCat(&Op.code,lexer.CurLexeme.buffer);
+				PX_StringCat(&Op.code,PX_StringGetText(&lexer.CurLexeme));
 				PX_VectorPushback(&stream,&Op);
 			}
-			else if (PX_strequ(lexer.CurLexeme.buffer,"MEMLEN"))
+			else if (PX_strequ(PX_StringGetText(&lexer.CurLexeme),"MEMLEN"))
 			{
 				if ((accept_type&PX_SCRIPT_EXPRESSION_ACCEPT_SINGLE)==0)
 				{
@@ -6883,10 +6883,10 @@ static px_bool PX_ScriptParseExpression(PX_ScriptInterpreter *analysis,px_char *
 				Op.opclass=PX_SCRIPT_TRANSLATOR_OP_CLASS_SINGLE;
 				Op.oplevel=1;
 				PX_StringInitialize(analysis->mp,&Op.code);
-				PX_StringCat(&Op.code,lexer.CurLexeme.buffer);
+				PX_StringCat(&Op.code,PX_StringGetText(&lexer.CurLexeme));
 				PX_VectorPushback(&stream,&Op);
 			}
-			else if (PX_strequ(lexer.CurLexeme.buffer,"INT"))
+			else if (PX_strequ(PX_StringGetText(&lexer.CurLexeme),"INT"))
 			{
 				if ((accept_type&PX_SCRIPT_EXPRESSION_ACCEPT_SINGLE)==0)
 				{
@@ -6902,10 +6902,10 @@ static px_bool PX_ScriptParseExpression(PX_ScriptInterpreter *analysis,px_char *
 				Op.opclass=PX_SCRIPT_TRANSLATOR_OP_CLASS_SINGLE;
 				Op.oplevel=1;
 				PX_StringInitialize(analysis->mp,&Op.code);
-				PX_StringCat(&Op.code,lexer.CurLexeme.buffer);
+				PX_StringCat(&Op.code,PX_StringGetText(&lexer.CurLexeme));
 				PX_VectorPushback(&stream,&Op);
 			}
-			else if (PX_strequ(lexer.CurLexeme.buffer,"FLOAT"))
+			else if (PX_strequ(PX_StringGetText(&lexer.CurLexeme),"FLOAT"))
 			{
 				if ((accept_type&PX_SCRIPT_EXPRESSION_ACCEPT_SINGLE)==0)
 				{
@@ -6921,10 +6921,10 @@ static px_bool PX_ScriptParseExpression(PX_ScriptInterpreter *analysis,px_char *
 				Op.opclass=PX_SCRIPT_TRANSLATOR_OP_CLASS_SINGLE;
 				Op.oplevel=1;
 				PX_StringInitialize(analysis->mp,&Op.code);
-				PX_StringCat(&Op.code,lexer.CurLexeme.buffer);
+				PX_StringCat(&Op.code,PX_StringGetText(&lexer.CurLexeme));
 				PX_VectorPushback(&stream,&Op);
 			}
-			else if (PX_strequ(lexer.CurLexeme.buffer,"STRING"))
+			else if (PX_strequ(PX_StringGetText(&lexer.CurLexeme),"STRING"))
 			{
 				if ((accept_type&PX_SCRIPT_EXPRESSION_ACCEPT_SINGLE)==0)
 				{
@@ -6939,10 +6939,10 @@ static px_bool PX_ScriptParseExpression(PX_ScriptInterpreter *analysis,px_char *
 				Op.opclass=PX_SCRIPT_TRANSLATOR_OP_CLASS_SINGLE;
 				Op.oplevel=1;
 				PX_StringInitialize(analysis->mp,&Op.code);
-				PX_StringCat(&Op.code,lexer.CurLexeme.buffer);
+				PX_StringCat(&Op.code,PX_StringGetText(&lexer.CurLexeme));
 				PX_VectorPushback(&stream,&Op);
 			}
-			else if (PX_strequ(lexer.CurLexeme.buffer,"MEMORY"))
+			else if (PX_strequ(PX_StringGetText(&lexer.CurLexeme),"MEMORY"))
 			{
 				if ((accept_type&PX_SCRIPT_EXPRESSION_ACCEPT_SINGLE)==0)
 				{
@@ -6957,7 +6957,7 @@ static px_bool PX_ScriptParseExpression(PX_ScriptInterpreter *analysis,px_char *
 				Op.opclass=PX_SCRIPT_TRANSLATOR_OP_CLASS_SINGLE;
 				Op.oplevel=1;
 				PX_StringInitialize(analysis->mp,&Op.code);
-				PX_StringCat(&Op.code,lexer.CurLexeme.buffer);
+				PX_StringCat(&Op.code,PX_StringGetText(&lexer.CurLexeme));
 				PX_VectorPushback(&stream,&Op);
 			}
 			else if (PX_ScriptParseIsValidToken(lexer.CurLexeme.buffer))
@@ -6969,7 +6969,7 @@ static px_bool PX_ScriptParseExpression(PX_ScriptInterpreter *analysis,px_char *
 				}
 
 				PX_StringInitialize(analysis->mp,&Op.code);
-				PX_StringCat(&Op.code,lexer.CurLexeme.buffer);
+				PX_StringCat(&Op.code,PX_StringGetText(&lexer.CurLexeme));
 
 				state=PX_LexerGetState(&lexer);
 				type=PX_ScriptTranslatorNextToken(&lexer);
@@ -6992,21 +6992,21 @@ static px_bool PX_ScriptParseExpression(PX_ScriptInterpreter *analysis,px_char *
 				PX_LexerSetState(state);
 
 			}
-			else if(PX_strIsNumeric(lexer.CurLexeme.buffer))
+			else if(PX_strIsNumeric(PX_StringGetText(&lexer.CurLexeme)))
 			{
 				accept_type=PX_SCRIPT_EXPRESSION_ACCEPT_BINARY|PX_SCRIPT_EXPRESSION_ACCEPT_BRACKET_END;
 				Op.type=PX_SCRIPT_TRANSLATOR_EXPRESSION_TOKEN;
 				Op.opclass=PX_SCRIPT_TRANSLATOR_OP_CLASS_CONST;
 				Op.oplevel=0;
 				PX_StringInitialize(analysis->mp,&Op.code);
-				PX_StringCat(&Op.code,lexer.CurLexeme.buffer);
+				PX_StringCat(&Op.code,PX_StringGetText(&lexer.CurLexeme));
 				PX_VectorPushback(&stream,&Op);
 			}
-			else if(lexer.CurLexeme.buffer[0]=='0'&&lexer.CurLexeme.buffer[1]=='X')
+			else if(PX_StringGetText(&lexer.CurLexeme)[0]=='0'&&PX_StringGetText(&lexer.CurLexeme)[1]=='X')
 			{
-				for (i=2;lexer.CurLexeme.buffer[i];i++)
+				for (i=2;PX_StringGetText(&lexer.CurLexeme)[i];i++)
 				{
-					if (lexer.CurLexeme.buffer[i]>='0'&&lexer.CurLexeme.buffer[i]<='F')
+					if (PX_StringGetText(&lexer.CurLexeme)[i]>='0'&&PX_StringGetText(&lexer.CurLexeme)[i]<='F')
 					{
 						continue;
 					}
@@ -7022,7 +7022,7 @@ static px_bool PX_ScriptParseExpression(PX_ScriptInterpreter *analysis,px_char *
 				Op.opclass=PX_SCRIPT_TRANSLATOR_OP_CLASS_CONST;
 				Op.oplevel=0;
 				PX_StringInitialize(analysis->mp,&Op.code);
-				PX_StringCat(&Op.code,lexer.CurLexeme.buffer);
+				PX_StringCat(&Op.code,PX_StringGetText(&lexer.CurLexeme));
 				PX_VectorPushback(&stream,&Op);
 			}
 			else
@@ -7043,7 +7043,7 @@ static px_bool PX_ScriptParseExpression(PX_ScriptInterpreter *analysis,px_char *
 			Op.opclass=PX_SCRIPT_TRANSLATOR_OP_CLASS_CONTAINER;
 			Op.oplevel=0;
 			PX_StringInitialize(analysis->mp,&Op.code);
-			PX_StringCat(&Op.code,lexer.CurLexeme.buffer);
+			PX_StringCat(&Op.code,PX_StringGetText(&lexer.CurLexeme));
 			PX_VectorPushback(&stream,&Op);
 			accept_type=PX_SCRIPT_EXPRESSION_ACCEPT_BINARY|PX_SCRIPT_EXPRESSION_ACCEPT_BRACKET_END;
 		}
@@ -7316,7 +7316,7 @@ static px_bool PX_ScriptParseExpression(PX_ScriptInterpreter *analysis,px_char *
 					}
 					Op.type=PX_SCRIPT_TRANSLATOR_EXPRESSION_OP_DOT;
 					Op.opclass=PX_SCRIPT_TRANSLATOR_OP_CLASS_SINGLE;
-					Op.oplevel=PX_ScriptParseGetOpLevel(lexer.CurLexeme.buffer,PX_FALSE);
+					Op.oplevel=PX_ScriptParseGetOpLevel(PX_StringGetText(&lexer.CurLexeme),PX_FALSE);
 					PX_StringInitialize(analysis->mp,&Op.code);
 					PX_StringCat(&Op.code,".");
 					PX_VectorPushback(&stream,&Op);
@@ -7436,7 +7436,7 @@ static px_bool PX_ScriptParseExpression(PX_ScriptInterpreter *analysis,px_char *
 					}
 					Op.type=PX_SCRIPT_TRANSLATOR_EXPRESSION_OP_MOD;
 					Op.opclass=PX_SCRIPT_TRANSLATOR_OP_CLASS_SINGLE;
-					Op.oplevel=PX_ScriptParseGetOpLevel(lexer.CurLexeme.buffer,PX_TRUE);
+					Op.oplevel=PX_ScriptParseGetOpLevel(PX_StringGetText(&lexer.CurLexeme),PX_TRUE);
 					PX_StringInitialize(analysis->mp,&Op.code);
 					PX_StringCat(&Op.code,"%");
 					PX_VectorPushback(&stream,&Op);
@@ -7777,7 +7777,7 @@ static px_bool PX_ScriptParseExpression(PX_ScriptInterpreter *analysis,px_char *
 	Op.opclass=PX_SCRIPT_TRANSLATOR_OP_CLASS_CONTAINER;
 	Op.oplevel=0;
 	PX_StringInitialize(analysis->mp,&Op.code);
-	PX_StringCat(&Op.code,lexer.CurLexeme.buffer);
+	PX_StringCat(&Op.code,PX_StringGetText(&lexer.CurLexeme));
 	PX_VectorPushback(&stream,&Op);
 	PX_StringCat(out,";");
 
@@ -7838,23 +7838,23 @@ static px_bool PX_ScriptParseVar(PX_ScriptInterpreter *analysis)
 		return PX_FALSE;
 	}
 
-	if (PX_strequ(analysis->lexer.CurLexeme.buffer,PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_INT))
+	if (PX_strequ(PX_StringGetText(&analysis->lexer.CurLexeme),PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_INT))
 	{
 		resType=PX_SCRIPT_PARSER_VAR_TYPE_INT;
 	}
-	else if (PX_strequ(analysis->lexer.CurLexeme.buffer, PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_HANDLE))
+	else if (PX_strequ(PX_StringGetText(&analysis->lexer.CurLexeme), PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_HANDLE))
 	{
 		resType = PX_SCRIPT_PARSER_VAR_TYPE_HANDLE;
 	}
-	else if (PX_strequ(analysis->lexer.CurLexeme.buffer,PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_FLOAT))
+	else if (PX_strequ(PX_StringGetText(&analysis->lexer.CurLexeme),PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_FLOAT))
 	{
 		resType=PX_SCRIPT_PARSER_VAR_TYPE_FLOAT;
 	}
-	else if (PX_strequ(analysis->lexer.CurLexeme.buffer,PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_STRING))
+	else if (PX_strequ(PX_StringGetText(&analysis->lexer.CurLexeme),PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_STRING))
 	{
 		resType=PX_SCRIPT_PARSER_VAR_TYPE_STRING;
 	}
-	else if (PX_strequ(analysis->lexer.CurLexeme.buffer,PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_MEMORY))
+	else if (PX_strequ(PX_StringGetText(&analysis->lexer.CurLexeme),PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_MEMORY))
 	{
 		resType=PX_SCRIPT_PARSER_VAR_TYPE_MEMORY;
 	}
@@ -7923,7 +7923,7 @@ static px_bool PX_ScriptParseVar(PX_ScriptInterpreter *analysis)
 		}
 
 		PX_StringInitialize(analysis->mp,&variable.Mnemonic);
-		PX_StringCat(&variable.Mnemonic,analysis->lexer.CurLexeme.buffer);
+		PX_StringCat(&variable.Mnemonic,PX_StringGetText(&analysis->lexer.CurLexeme));
 
 		type=PX_ScriptTranslatorNextToken(&analysis->lexer);
 
@@ -7977,12 +7977,12 @@ static px_bool PX_ScriptParseVar(PX_ScriptInterpreter *analysis)
 				goto _ERROR;
 			}
 
-			if(!PX_strIsNumeric(analysis->lexer.CurLexeme.buffer))
+			if(!PX_strIsNumeric(PX_StringGetText(&analysis->lexer.CurLexeme)))
 			{
 				PX_ScriptTranslatorError(analysis,"Invalid var token");
 			}
 
-			variable.size=PX_atoi(analysis->lexer.CurLexeme.buffer);
+			variable.size=PX_atoi(PX_StringGetText(&analysis->lexer.CurLexeme));
 
 			if (variable.size==0)
 			{
@@ -8055,10 +8055,10 @@ static px_bool PX_ScriptParseVar(PX_ScriptInterpreter *analysis)
 					PX_StringFree(&variable.GlobalInitializeValue);
 					goto _ERROR;
 				}	
-				PX_StringCat(&variable.GlobalInitializeValue,analysis->lexer.CurLexeme.buffer);
+				PX_StringCat(&variable.GlobalInitializeValue,PX_StringGetText(&analysis->lexer.CurLexeme));
 			}
 
-			if (PX_strlen(variable.GlobalInitializeValue.buffer)==0)
+			if (PX_strlen(PX_StringGetText(&variable.GlobalInitializeValue))==0)
 			{
 				PX_ScriptTranslatorError(analysis,"Error Expression.");
 				PX_StringFree(&variable.Mnemonic);
@@ -8078,7 +8078,7 @@ static px_bool PX_ScriptParseVar(PX_ScriptInterpreter *analysis)
 
 			for (i=0;i<analysis->v_variablesStackTable.size;i++)
 			{
-				if (PX_strequ(variable.Mnemonic.buffer,PX_VECTORAT(PX_SCRIPT_VARIABLES,&analysis->v_variablesStackTable,i)->Mnemonic.buffer))
+				if (PX_strequ(PX_StringGetText(&variable.Mnemonic),PX_StringGetText(&PX_VECTORAT(PX_SCRIPT_VARIABLES,&analysis->v_variablesStackTable,i)->Mnemonic)))
 				{
 					PX_ScriptTranslatorError(analysis,"variable redefined.");
 					PX_StringFree(&variable.Mnemonic);
@@ -8105,14 +8105,14 @@ static px_bool PX_ScriptParseVar(PX_ScriptInterpreter *analysis)
 				PX_SCRIPT_AST_OPERAND retOperand;
 				PX_StringInitialize(analysis->mp,&code);
 				PX_StringInitialize(analysis->mp,&exprgen);
-				PX_StringFormat2(&code,"%1=%2",PX_STRINGFORMAT_STRING(variable.Mnemonic.buffer),PX_STRINGFORMAT_STRING(variable.GlobalInitializeValue.buffer));
+				PX_StringFormat2(&code,"%1=%2",PX_STRINGFORMAT_STRING(PX_StringGetText(&variable.Mnemonic)),PX_STRINGFORMAT_STRING(PX_StringGetText(&variable.GlobalInitializeValue)));
 				if (!PX_ScriptParseExpression(analysis,code.buffer,&exprgen,&retOperand))
 				{
 					PX_StringFree(&code);
 					PX_StringFree(&exprgen);
 					return PX_FALSE;
 				}
-				PX_StringCat(&analysis->code,exprgen.buffer);
+				PX_StringCat(&analysis->code,PX_StringGetText(&exprgen));
 				PX_StringFree(&exprgen);
 				PX_StringFree(&code);
 
@@ -8126,14 +8126,14 @@ static px_bool PX_ScriptParseVar(PX_ScriptInterpreter *analysis)
 					PX_SCRIPT_AST_OPERAND retOperand;
 					PX_StringInitialize(analysis->mp, &code);
 					PX_StringInitialize(analysis->mp, &exprgen);
-					PX_StringFormat1(&code, "%1=0", PX_STRINGFORMAT_STRING(variable.Mnemonic.buffer));
+					PX_StringFormat1(&code, "%1=0", PX_STRINGFORMAT_STRING(PX_StringGetText(&variable.Mnemonic)));
 					if (!PX_ScriptParseExpression(analysis, code.buffer, &exprgen, &retOperand))
 					{
 						PX_StringFree(&code);
 						PX_StringFree(&exprgen);
 						return PX_FALSE;
 					}
-					PX_StringCat(&analysis->code, exprgen.buffer);
+					PX_StringCat(&analysis->code, PX_StringGetText(&exprgen));
 					PX_StringFree(&exprgen);
 					PX_StringFree(&code);
 				}
@@ -8145,14 +8145,14 @@ static px_bool PX_ScriptParseVar(PX_ScriptInterpreter *analysis)
 					PX_SCRIPT_AST_OPERAND retOperand;
 					PX_StringInitialize(analysis->mp,&code);
 					PX_StringInitialize(analysis->mp,&exprgen);
-					PX_StringFormat1(&code,"%1=\"\"",PX_STRINGFORMAT_STRING(variable.Mnemonic.buffer));
+					PX_StringFormat1(&code,"%1=\"\"",PX_STRINGFORMAT_STRING(PX_StringGetText(&variable.Mnemonic)));
 					if (!PX_ScriptParseExpression(analysis,code.buffer,&exprgen,&retOperand))
 					{
 						PX_StringFree(&code);
 						PX_StringFree(&exprgen);
 						return PX_FALSE;
 					}
-					PX_StringCat(&analysis->code,exprgen.buffer);
+					PX_StringCat(&analysis->code,PX_StringGetText(&exprgen));
 					PX_StringFree(&exprgen);
 					PX_StringFree(&code);
 				}
@@ -8164,14 +8164,14 @@ static px_bool PX_ScriptParseVar(PX_ScriptInterpreter *analysis)
 					PX_SCRIPT_AST_OPERAND retOperand;
 					PX_StringInitialize(analysis->mp,&code);
 					PX_StringInitialize(analysis->mp,&exprgen);
-					PX_StringFormat1(&code,"%1=@@",PX_STRINGFORMAT_STRING(variable.Mnemonic.buffer));
+					PX_StringFormat1(&code,"%1=@@",PX_STRINGFORMAT_STRING(PX_StringGetText(&variable.Mnemonic)));
 					if (!PX_ScriptParseExpression(analysis,code.buffer,&exprgen,&retOperand))
 					{
 						PX_StringFree(&code);
 						PX_StringFree(&exprgen);
 						return PX_FALSE;
 					}
-					PX_StringCat(&analysis->code,exprgen.buffer);
+					PX_StringCat(&analysis->code,PX_StringGetText(&exprgen));
 					PX_StringFree(&exprgen);
 					PX_StringFree(&code);
 				}
@@ -8191,12 +8191,12 @@ static px_bool PX_ScriptParseVar(PX_ScriptInterpreter *analysis)
 							if (!pvar->bParam&&pvar->type==PX_SCRIPT_PARSER_VAR_TYPE_STRING)
 							{
 								PX_StringFormat1(&code,"MOV LOCAL[%1],\"\"\n",PX_STRINGFORMAT_INT(pvar->BeginIndex));
-								PX_StringCat(&analysis->code,code.buffer);
+								PX_StringCat(&analysis->code,PX_StringGetText(&code));
 							}
 							if (!pvar->bParam&&pvar->type==PX_SCRIPT_PARSER_VAR_TYPE_MEMORY)
 							{
 								PX_StringFormat1(&code,"MOV LOCAL[%1],@@\n",PX_STRINGFORMAT_INT(pvar->BeginIndex));
-								PX_StringCat(&analysis->code,code.buffer);
+								PX_StringCat(&analysis->code,PX_StringGetText(&code));
 							}
 						}
 					}
@@ -8209,7 +8209,7 @@ static px_bool PX_ScriptParseVar(PX_ScriptInterpreter *analysis)
 		{
 			for (i=0;i<analysis->v_variablesGlobalTable.size;i++)
 			{
-				if (PX_strequ(variable.Mnemonic.buffer,PX_VECTORAT(PX_SCRIPT_VARIABLES,&analysis->v_variablesGlobalTable,i)->Mnemonic.buffer))
+				if (PX_strequ(PX_StringGetText(&variable.Mnemonic),PX_StringGetText(&PX_VECTORAT(PX_SCRIPT_VARIABLES,&analysis->v_variablesGlobalTable,i)->Mnemonic)))
 				{
 					PX_ScriptTranslatorError(analysis,"variable redefined.");
 					PX_StringFree(&variable.Mnemonic);
@@ -8312,7 +8312,7 @@ static px_bool PX_ScriptParseStruct(PX_ScriptInterpreter *analysis)
 		}
 
 		PX_StringInitialize(analysis->mp,&variable.Mnemonic);
-		PX_StringCat(&variable.Mnemonic,analysis->lexer.CurLexeme.buffer);
+		PX_StringCat(&variable.Mnemonic,PX_StringGetText(&analysis->lexer.CurLexeme));
 
 
 		state=PX_LexerGetState(&analysis->lexer);
@@ -8345,16 +8345,16 @@ static px_bool PX_ScriptParseStruct(PX_ScriptInterpreter *analysis)
 				goto _ERROR;
 			}
 
-			if(!PX_strIsNumeric(analysis->lexer.CurLexeme.buffer))
+			if(!PX_strIsNumeric(PX_StringGetText(&analysis->lexer.CurLexeme)))
 			{
 				PX_ScriptTranslatorError(analysis,"Invalid var token");
 			}
 
 
 			if(variable.type==PX_SCRIPT_PARSER_VAR_TYPE_STRUCT_PTR)
-				variable.size=PX_atoi(analysis->lexer.CurLexeme.buffer);
+				variable.size=PX_atoi(PX_StringGetText(&analysis->lexer.CurLexeme));
 			else
-				variable.size=PX_atoi(analysis->lexer.CurLexeme.buffer)*pset->size;
+				variable.size=PX_atoi(PX_StringGetText(&analysis->lexer.CurLexeme))*pset->size;
 
 			if (variable.size==0)
 			{
@@ -8387,7 +8387,7 @@ static px_bool PX_ScriptParseStruct(PX_ScriptInterpreter *analysis)
 		{
 			for (i=0;i<analysis->v_variablesStackTable.size;i++)
 			{
-				if (PX_strequ(variable.Mnemonic.buffer,PX_VECTORAT(PX_SCRIPT_VARIABLES,&analysis->v_variablesStackTable,i)->Mnemonic.buffer))
+				if (PX_strequ(PX_StringGetText(&variable.Mnemonic),PX_StringGetText(&PX_VECTORAT(PX_SCRIPT_VARIABLES,&analysis->v_variablesStackTable,i)->Mnemonic)))
 				{
 					PX_ScriptTranslatorError(analysis,"variable redefined.");
 					PX_StringFree(&variable.Mnemonic);
@@ -8410,7 +8410,7 @@ static px_bool PX_ScriptParseStruct(PX_ScriptInterpreter *analysis)
 		{
 			for (i=0;i<analysis->v_variablesGlobalTable.size;i++)
 			{
-				if (PX_strequ(variable.Mnemonic.buffer,PX_VECTORAT(PX_SCRIPT_VARIABLES,&analysis->v_variablesGlobalTable,i)->Mnemonic.buffer))
+				if (PX_strequ(PX_StringGetText(&variable.Mnemonic),PX_StringGetText(&PX_VECTORAT(PX_SCRIPT_VARIABLES,&analysis->v_variablesGlobalTable,i)->Mnemonic)))
 				{
 					PX_ScriptTranslatorError(analysis,"variable redefined.");
 					PX_StringFree(&variable.Mnemonic);
@@ -8484,7 +8484,7 @@ px_bool PX_ScriptParseStructDefine(PX_ScriptInterpreter *analysis)
 	}
 	
 	PX_StringInitialize(analysis->mp,&vSet.Name);
-	PX_StringCat(&vSet.Name,analysis->lexer.CurLexeme.buffer);
+	PX_StringCat(&vSet.Name,PX_StringGetText(&analysis->lexer.CurLexeme));
 	PX_VectorInitialize(analysis->mp,&vSet.members,sizeof(PX_SCRIPT_SETMEMBER),1);
 
 	if ((PX_ScriptTranslatorNextTokenSN(&analysis->lexer))!=PX_LEXER_LEXEME_TYPE_DELIMITER)
@@ -8552,7 +8552,7 @@ px_bool PX_ScriptParseStructDefine(PX_ScriptInterpreter *analysis)
 					}
 
 					PX_StringInitialize(analysis->mp,&member.defvar.Mnemonic);
-					PX_StringCat(&member.defvar.Mnemonic,analysis->lexer.CurLexeme.buffer);
+					PX_StringCat(&member.defvar.Mnemonic,PX_StringGetText(&analysis->lexer.CurLexeme));
 					
 					type=PX_ScriptTranslatorNextToken(&analysis->lexer);
 
@@ -8582,7 +8582,7 @@ px_bool PX_ScriptParseStructDefine(PX_ScriptInterpreter *analysis)
 							goto _ERROR;
 						}
 
-						if(!PX_strIsNumeric(analysis->lexer.CurLexeme.buffer))
+						if(!PX_strIsNumeric(PX_StringGetText(&analysis->lexer.CurLexeme)))
 						{
 							PX_ScriptTranslatorError(analysis,"Invalid var token");
 							PX_StringFree(&member.defvar.Mnemonic);
@@ -8590,7 +8590,7 @@ px_bool PX_ScriptParseStructDefine(PX_ScriptInterpreter *analysis)
 						}
 
 						member.offset=vSet.size;
-						vSet.size+=PX_atoi(analysis->lexer.CurLexeme.buffer)*pSet->size;
+						vSet.size+=PX_atoi(PX_StringGetText(&analysis->lexer.CurLexeme))*pSet->size;
 
 						if (vSet.size==0)
 						{
@@ -8668,23 +8668,23 @@ px_bool PX_ScriptParseStructDefine(PX_ScriptInterpreter *analysis)
 				return PX_FALSE;
 			}
 
-			if (PX_strequ(analysis->lexer.CurLexeme.buffer,PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_INT))
+			if (PX_strequ(PX_StringGetText(&analysis->lexer.CurLexeme),PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_INT))
 			{
 				member.defvar.type=PX_SCRIPT_PARSER_VAR_TYPE_INT;
 			}
-			else if (PX_strequ(analysis->lexer.CurLexeme.buffer, PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_HANDLE))
+			else if (PX_strequ(PX_StringGetText(&analysis->lexer.CurLexeme), PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_HANDLE))
 			{
 				member.defvar.type = PX_SCRIPT_PARSER_VAR_TYPE_HANDLE;
 			}
-			else if (PX_strequ(analysis->lexer.CurLexeme.buffer,PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_FLOAT))
+			else if (PX_strequ(PX_StringGetText(&analysis->lexer.CurLexeme),PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_FLOAT))
 			{
 				member.defvar.type=PX_SCRIPT_PARSER_VAR_TYPE_FLOAT;
 			}
-			else if (PX_strequ(analysis->lexer.CurLexeme.buffer,PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_STRING))
+			else if (PX_strequ(PX_StringGetText(&analysis->lexer.CurLexeme),PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_STRING))
 			{
 				member.defvar.type=PX_SCRIPT_PARSER_VAR_TYPE_STRING;
 			}
-			else if (PX_strequ(analysis->lexer.CurLexeme.buffer,PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_MEMORY))
+			else if (PX_strequ(PX_StringGetText(&analysis->lexer.CurLexeme),PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_MEMORY))
 			{
 				member.defvar.type=PX_SCRIPT_PARSER_VAR_TYPE_MEMORY;
 			}
@@ -8746,7 +8746,7 @@ px_bool PX_ScriptParseStructDefine(PX_ScriptInterpreter *analysis)
 				}
 
 				PX_StringInitialize(analysis->mp,&member.defvar.Mnemonic);
-				PX_StringCat(&member.defvar.Mnemonic,analysis->lexer.CurLexeme.buffer);
+				PX_StringCat(&member.defvar.Mnemonic,PX_StringGetText(&analysis->lexer.CurLexeme));
 				member.defvar.bInitialized=PX_FALSE;
 			
 				type=PX_ScriptTranslatorNextToken(&analysis->lexer);
@@ -8800,7 +8800,7 @@ px_bool PX_ScriptParseStructDefine(PX_ScriptInterpreter *analysis)
 					goto _ERROR;
 				}
 
-				if(!PX_strIsNumeric(analysis->lexer.CurLexeme.buffer))
+				if(!PX_strIsNumeric(PX_StringGetText(&analysis->lexer.CurLexeme)))
 				{
 					PX_ScriptTranslatorError(analysis,"Invalid var token");
 					PX_StringFree(&member.defvar.Mnemonic);
@@ -8808,8 +8808,8 @@ px_bool PX_ScriptParseStructDefine(PX_ScriptInterpreter *analysis)
 				}
 
 				member.offset=vSet.size;
-				member.defvar.size=PX_atoi(analysis->lexer.CurLexeme.buffer);
-				vSet.size+=PX_atoi(analysis->lexer.CurLexeme.buffer);
+				member.defvar.size=PX_atoi(PX_StringGetText(&analysis->lexer.CurLexeme));
+				vSet.size+=PX_atoi(PX_StringGetText(&analysis->lexer.CurLexeme));
 
 				if (member.defvar.size==0)
 				{
@@ -8927,27 +8927,27 @@ px_bool PX_ScriptParseFunctionDefined(PX_ScriptInterpreter *analysis,PX_SCRIPT_T
 		return PX_FALSE;
 	}
 
-	if (PX_strequ(analysis->lexer.CurLexeme.buffer,PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_INT))
+	if (PX_strequ(PX_StringGetText(&analysis->lexer.CurLexeme),PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_INT))
 	{
 		func.retType=PX_SCRIPT_PARSER_VAR_TYPE_INT;
 	}
-	else if (PX_strequ(analysis->lexer.CurLexeme.buffer, PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_HANDLE))
+	else if (PX_strequ(PX_StringGetText(&analysis->lexer.CurLexeme), PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_HANDLE))
 	{
 		func.retType = PX_SCRIPT_PARSER_VAR_TYPE_HANDLE;
 	}
-	else if (PX_strequ(analysis->lexer.CurLexeme.buffer,PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_FLOAT))
+	else if (PX_strequ(PX_StringGetText(&analysis->lexer.CurLexeme),PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_FLOAT))
 	{
 		func.retType=PX_SCRIPT_PARSER_VAR_TYPE_FLOAT;
 	}
-	else if (PX_strequ(analysis->lexer.CurLexeme.buffer,PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_STRING))
+	else if (PX_strequ(PX_StringGetText(&analysis->lexer.CurLexeme),PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_STRING))
 	{
 		func.retType=PX_SCRIPT_PARSER_VAR_TYPE_STRING;
 	}
-	else if (PX_strequ(analysis->lexer.CurLexeme.buffer,PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_MEMORY))
+	else if (PX_strequ(PX_StringGetText(&analysis->lexer.CurLexeme),PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_MEMORY))
 	{
 		func.retType=PX_SCRIPT_PARSER_VAR_TYPE_MEMORY;
 	}
-	else if (PX_strequ(analysis->lexer.CurLexeme.buffer,PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_VOID))
+	else if (PX_strequ(PX_StringGetText(&analysis->lexer.CurLexeme),PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_VOID))
 	{
 		func.retType=PX_SCRIPT_PARSER_VAR_TYPE_VOID;
 	}
@@ -9014,7 +9014,7 @@ px_bool PX_ScriptParseFunctionDefined(PX_ScriptInterpreter *analysis,PX_SCRIPT_T
 		PX_ScriptTranslatorError(analysis, "Token too long");
 		return PX_FALSE;
 	}
-	PX_strcpy(func.name,analysis->lexer.CurLexeme.buffer,PX_SCRIPT_FUNCTION_NAME_MAX_LEN);
+	PX_strcpy(func.name,PX_StringGetText(&analysis->lexer.CurLexeme),PX_SCRIPT_FUNCTION_NAME_MAX_LEN);
 	if ((PX_ScriptTranslatorNextToken(&analysis->lexer))!=PX_LEXER_LEXEME_TYPE_DELIMITER||analysis->lexer.Symbol!='(')
 	{
 		PX_ScriptTranslatorError(analysis, "Unexpected Lexeme.");
@@ -9037,23 +9037,23 @@ px_bool PX_ScriptParseFunctionDefined(PX_ScriptInterpreter *analysis,PX_SCRIPT_T
 		fvar.layer=analysis->v_astStructure.size;
 		fvar.size=1;
 		//////////////////////////////////////////////////////////////////////////
-		if (PX_strequ(analysis->lexer.CurLexeme.buffer,PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_INT))
+		if (PX_strequ(PX_StringGetText(&analysis->lexer.CurLexeme),PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_INT))
 		{
 			fvar.type=PX_SCRIPT_PARSER_VAR_TYPE_INT;
 		}
-		else if (PX_strequ(analysis->lexer.CurLexeme.buffer, PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_HANDLE))
+		else if (PX_strequ(PX_StringGetText(&analysis->lexer.CurLexeme), PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_HANDLE))
 		{
 			fvar.type = PX_SCRIPT_PARSER_VAR_TYPE_HANDLE;
 		}
-		else if (PX_strequ(analysis->lexer.CurLexeme.buffer,PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_FLOAT))
+		else if (PX_strequ(PX_StringGetText(&analysis->lexer.CurLexeme),PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_FLOAT))
 		{
 			fvar.type=PX_SCRIPT_PARSER_VAR_TYPE_FLOAT;
 		}
-		else if (PX_strequ(analysis->lexer.CurLexeme.buffer,PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_STRING))
+		else if (PX_strequ(PX_StringGetText(&analysis->lexer.CurLexeme),PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_STRING))
 		{
 			fvar.type=PX_SCRIPT_PARSER_VAR_TYPE_STRING;
 		}
-		else if (PX_strequ(analysis->lexer.CurLexeme.buffer,PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_MEMORY))
+		else if (PX_strequ(PX_StringGetText(&analysis->lexer.CurLexeme),PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_MEMORY))
 		{
 			fvar.type=PX_SCRIPT_PARSER_VAR_TYPE_MEMORY;
 		}
@@ -9132,7 +9132,7 @@ px_bool PX_ScriptParseFunctionDefined(PX_ScriptInterpreter *analysis,PX_SCRIPT_T
 		
 
 		PX_StringInitialize(analysis->mp,&fvar.Mnemonic);
-		PX_StringCat(&fvar.Mnemonic,analysis->lexer.CurLexeme.buffer);
+		PX_StringCat(&fvar.Mnemonic,PX_StringGetText(&analysis->lexer.CurLexeme));
 	
 		
 		if (count>=PX_SCRIPT_FUNCTION_MAX_PARAM)
@@ -9231,7 +9231,7 @@ px_bool PX_ScriptParseFunctionGuiderCode(PX_ScriptInterpreter *analysis)
 	if(stacksize!=0)
 	{
 	PX_StringFormat1(&code,"SUB SP,%1\n",PX_STRINGFORMAT_INT(stacksize));
-	PX_StringCat(&guiderCode,code.buffer);
+	PX_StringCat(&guiderCode,PX_StringGetText(&code));
 	}
 	
 	PX_StringFree(&code);
@@ -9239,7 +9239,7 @@ px_bool PX_ScriptParseFunctionGuiderCode(PX_ScriptInterpreter *analysis)
 
 	if (analysis->functionguider!=-1)
 	{
-		if(!PX_StringInsert(&analysis->code,analysis->functionguider,guiderCode.buffer))return PX_FALSE;
+		if(!PX_StringInsert(&analysis->code,analysis->functionguider,PX_StringGetText(&guiderCode)))return PX_FALSE;
 	}
 	else
 	{
@@ -9266,14 +9266,14 @@ px_bool PX_ScriptParseBootCode(PX_ScriptInterpreter *analysis)
 		{
 			PX_StringInitialize(analysis->mp,&code);
 			PX_StringInitialize(analysis->mp,&exprgen);
-			PX_StringFormat2(&code,"%1=%2\n",PX_STRINGFORMAT_STRING(pvar->Mnemonic.buffer),PX_STRINGFORMAT_STRING(pvar->GlobalInitializeValue.buffer));
+			PX_StringFormat2(&code,"%1=%2\n",PX_STRINGFORMAT_STRING(PX_StringGetText(&pvar->Mnemonic)),PX_STRINGFORMAT_STRING(PX_StringGetText(&pvar->GlobalInitializeValue)));
 			if (!PX_ScriptParseExpression(analysis,code.buffer,&exprgen,&retOperand))
 			{
 				PX_StringFree(&code);
 				PX_StringFree(&exprgen);
 				return PX_FALSE;
 			}
-			PX_StringCat(&analysis->bootCode,exprgen.buffer);
+			PX_StringCat(&analysis->bootCode,PX_StringGetText(&exprgen));
 			PX_StringFree(&exprgen);
 			PX_StringFree(&code);
 		}
@@ -9295,7 +9295,7 @@ px_bool PX_ScriptParseFunctionReturn(PX_ScriptInterpreter *analysis)
 	if(stacksize!=0)
 	{
 		PX_StringFormat1(&code,"POPN %1\n",PX_STRINGFORMAT_INT(stacksize));
-		PX_StringCat(&analysis->code,code.buffer);
+		PX_StringCat(&analysis->code,PX_StringGetText(&code));
 	}
 	PX_StringCat(&analysis->code,"POP BP\nRET\n");
 	PX_StringFree(&code);
@@ -9421,12 +9421,12 @@ px_bool PX_ScriptParseLastCodeblockEnd(PX_ScriptInterpreter *analysis)
 			//else
 			state=PX_LexerGetState(&analysis->lexer);
 			type=PX_ScriptTranslatorNextTokenSN(&analysis->lexer);
-			if (type==PX_LEXER_LEXEME_TYPE_TOKEN&&PX_strequ(analysis->lexer.CurLexeme.buffer,PX_SCRIPT_TRANSLATOR_KEYWORD_ELSE))
+			if (type==PX_LEXER_LEXEME_TYPE_TOKEN&&PX_strequ(PX_StringGetText(&analysis->lexer.CurLexeme),PX_SCRIPT_TRANSLATOR_KEYWORD_ELSE))
 			{
 				//generate code
 				PX_StringInitialize(analysis->mp,&fmrString);
 				PX_StringFormat1(&fmrString,"JMP _ELSE_%1\n",PX_STRINGFORMAT_INT(astStruct._if.elseflag));
-				PX_StringCat(&analysis->code,fmrString.buffer);
+				PX_StringCat(&analysis->code,PX_StringGetText(&fmrString));
 				PX_StringFree(&fmrString);
 
 				buildastStruct.type=PX_SCRIPT_AST_STRUCTURE_TYPE_ELSE;
@@ -9447,7 +9447,7 @@ px_bool PX_ScriptParseLastCodeblockEnd(PX_ScriptInterpreter *analysis)
 
 				PX_StringInitialize(analysis->mp,&fmrString);
 				PX_StringFormat1(&fmrString,"_IF_%1:\n",PX_STRINGFORMAT_INT(astStruct._if.ifflag));
-				PX_StringCat(&analysis->code,fmrString.buffer);
+				PX_StringCat(&analysis->code,PX_StringGetText(&fmrString));
 				PX_StringFree(&fmrString);
 			}
 			else
@@ -9456,7 +9456,7 @@ px_bool PX_ScriptParseLastCodeblockEnd(PX_ScriptInterpreter *analysis)
 
 				PX_StringInitialize(analysis->mp,&fmrString);
 				PX_StringFormat1(&fmrString,"_IF_%1:\n",PX_STRINGFORMAT_INT(astStruct._if.ifflag));
-				PX_StringCat(&analysis->code,fmrString.buffer);
+				PX_StringCat(&analysis->code,PX_StringGetText(&fmrString));
 				PX_StringFree(&fmrString);
 
 				if (!PX_ScriptParseLastBlockEnd(analysis))
@@ -9474,7 +9474,7 @@ px_bool PX_ScriptParseLastCodeblockEnd(PX_ScriptInterpreter *analysis)
 			//
 			PX_StringInitialize(analysis->mp,&fmrString);
 			PX_StringFormat1(&fmrString,"_ELSE_%1:\n",PX_STRINGFORMAT_INT(astStruct._else.elseflag));
-			PX_StringCat(&analysis->code,fmrString.buffer);
+			PX_StringCat(&analysis->code,PX_StringGetText(&fmrString));
 			PX_StringFree(&fmrString);
 
 			if (!PX_ScriptParseLastBlockEnd(analysis))
@@ -9488,9 +9488,9 @@ px_bool PX_ScriptParseLastCodeblockEnd(PX_ScriptInterpreter *analysis)
 		{
 			PX_StringInitialize(analysis->mp,&fmrString);
 			PX_StringFormat1(&fmrString,"JMP _WHILE_%1\n",PX_STRINGFORMAT_INT(astStruct._while.loopflag));
-			PX_StringCat(&analysis->code,fmrString.buffer);
+			PX_StringCat(&analysis->code,PX_StringGetText(&fmrString));
 			PX_StringFormat1(&fmrString,"_WHILE_%1:\n",PX_STRINGFORMAT_INT(astStruct._while.endflag));
-			PX_StringCat(&analysis->code,fmrString.buffer);
+			PX_StringCat(&analysis->code,PX_StringGetText(&fmrString));
 			PX_StringFree(&fmrString);
 
 			if (!PX_ScriptParseLastBlockEnd(analysis))
@@ -9504,10 +9504,10 @@ px_bool PX_ScriptParseLastCodeblockEnd(PX_ScriptInterpreter *analysis)
 		{
 			PX_StringInitialize(analysis->mp,&fmrString);
 			PX_StringFormat1(&fmrString,"JMP _FOR_%1\n",PX_STRINGFORMAT_INT(astStruct._for.additionFlag));
-			PX_StringCat(&analysis->code,fmrString.buffer);
+			PX_StringCat(&analysis->code,PX_StringGetText(&fmrString));
 			//endflag
 			PX_StringFormat1(&fmrString,"_FOR_%1:\n",PX_STRINGFORMAT_INT(astStruct._for.endFlag));
-			PX_StringCat(&analysis->code,fmrString.buffer);
+			PX_StringCat(&analysis->code,PX_StringGetText(&fmrString));
 			PX_StringFree(&fmrString);
 
 			if (!PX_ScriptParseLastBlockEnd(analysis))
@@ -9523,10 +9523,10 @@ px_bool PX_ScriptParseLastCodeblockEnd(PX_ScriptInterpreter *analysis)
 			PX_StringInitialize(analysis->mp,&fmrString);
 			//endflag
 			PX_StringFormat1(&fmrString,"_COMPARE_%1:\n",PX_STRINGFORMAT_INT(astStruct._compare.endFlag));
-			PX_StringCat(&analysis->code,fmrString.buffer);
+			PX_StringCat(&analysis->code,PX_StringGetText(&fmrString));
 			//pop 
 			PX_StringSet(&fmrString,"POP R1\n");
-			PX_StringCat(&analysis->code,fmrString.buffer);
+			PX_StringCat(&analysis->code,PX_StringGetText(&fmrString));
 			
 			PX_StringFree(&fmrString);
 
@@ -9543,7 +9543,7 @@ px_bool PX_ScriptParseLastCodeblockEnd(PX_ScriptInterpreter *analysis)
 			PX_StringInitialize(analysis->mp,&fmrString);
 			//endflag
 			PX_StringFormat1(&fmrString,"_WITH_%1:\n",PX_STRINGFORMAT_INT(astStruct._compare.endFlag));
-			PX_StringCat(&analysis->code,fmrString.buffer);
+			PX_StringCat(&analysis->code,PX_StringGetText(&fmrString));
 
 			PX_StringFree(&fmrString);
 
@@ -9698,7 +9698,7 @@ px_bool PX_ScriptParseGetExpression(PX_ScriptInterpreter *analysis,px_string *ex
 			continue;
 		}
 
-		PX_StringCat(expr,analysis->lexer.CurLexeme.buffer);
+		PX_StringCat(expr,PX_StringGetText(&analysis->lexer.CurLexeme));
 	}
 	return PX_TRUE;
 }
@@ -9734,7 +9734,7 @@ px_bool PX_ScriptCompilerCompile(PX_SCRIPT_LIBRARY *lib,const px_char *name,px_s
 
 	for (i=0;i<lib->codeLibraries.size;i++)
 	{
-		if (PX_strequ(name,PX_VECTORAT(PX_SCRIPT_CODE,&lib->codeLibraries,i)->name.buffer))
+		if (PX_strequ(name,PX_StringGetText(&PX_VECTORAT(PX_SCRIPT_CODE,&lib->codeLibraries,i)->name)))
 		{
 			PX_VECTORAT(PX_SCRIPT_CODE,&lib->codeLibraries,i)->bInclude=PX_TRUE;
 			PX_StringCopy(&codes,&PX_VECTORAT(PX_SCRIPT_CODE,&lib->codeLibraries,i)->code);
@@ -9790,7 +9790,7 @@ px_bool PX_ScriptCompilerCompile(PX_SCRIPT_LIBRARY *lib,const px_char *name,px_s
 	PX_LexerSetTokenCase(&analysis.lexer,PX_LEXER_LEXEME_CASE_UPPER);
 
 
-	PX_LexerLoadSourceWithPresort(&analysis.lexer,codes.buffer);
+	PX_LexerLoadSourceWithPresort(&analysis.lexer,PX_StringGetText(&codes));
 	PX_StringFree(&codes);
 
 	PX_VectorInitialize(lib->mp,&analysis.v_variablesGlobalTable,sizeof(PX_SCRIPT_VARIABLES),1);
@@ -9827,7 +9827,7 @@ px_bool PX_ScriptCompilerCompile(PX_SCRIPT_LIBRARY *lib,const px_char *name,px_s
 		//////////////////////////////////////////////////////////////////////////
 		///Runtime
 		//////////////////////////////////////////////////////////////////////////
-		if (PX_strequ(analysis.lexer.CurLexeme.buffer,PX_SCRIPT_TRANSLATOR_KEYWORD_RUNTIME))
+		if (PX_strequ(PX_StringGetText(&analysis.lexer.CurLexeme),PX_SCRIPT_TRANSLATOR_KEYWORD_RUNTIME))
 		{
 			type=PX_ScriptTranslatorNextToken(&analysis.lexer);
 			if (type!=PX_LEXER_LEXEME_TYPE_TOKEN)
@@ -9835,7 +9835,7 @@ px_bool PX_ScriptCompilerCompile(PX_SCRIPT_LIBRARY *lib,const px_char *name,px_s
 				PX_ScriptTranslatorError(&analysis, "unexpected lexeme.");
 				goto _ERROR;
 			}
-			if (PX_strequ(analysis.lexer.CurLexeme.buffer,PX_SCRIPT_TRANSLATOR_KEYWORD_STACK))
+			if (PX_strequ(PX_StringGetText(&analysis.lexer.CurLexeme),PX_SCRIPT_TRANSLATOR_KEYWORD_STACK))
 			{
 				type=PX_ScriptTranslatorNextToken(&analysis.lexer);
 				if (type!=PX_LEXER_LEXEME_TYPE_TOKEN)
@@ -9843,12 +9843,12 @@ px_bool PX_ScriptCompilerCompile(PX_SCRIPT_LIBRARY *lib,const px_char *name,px_s
 					PX_ScriptTranslatorError(&analysis, "unexpected lexeme.");
 					goto _ERROR;
 				}
-				if (!PX_strIsInt(analysis.lexer.CurLexeme.buffer))
+				if (!PX_strIsInt(PX_StringGetText(&analysis.lexer.CurLexeme)))
 				{
 					PX_ScriptTranslatorError(&analysis, "unexpected lexeme.");
 					goto _ERROR;
 				}
-				LocalStackSize=PX_atoi(analysis.lexer.CurLexeme.buffer);
+				LocalStackSize=PX_atoi(PX_StringGetText(&analysis.lexer.CurLexeme));
 				type=PX_ScriptTranslatorNextToken(&analysis.lexer);
 				if (type!=PX_LEXER_LEXEME_TYPE_NEWLINE)
 				{
@@ -9856,7 +9856,7 @@ px_bool PX_ScriptCompilerCompile(PX_SCRIPT_LIBRARY *lib,const px_char *name,px_s
 					goto _ERROR;
 				}
 			}
-			if (PX_strequ(analysis.lexer.CurLexeme.buffer,PX_SCRIPT_TRANSLATOR_KEYWORD_THREAD))
+			if (PX_strequ(PX_StringGetText(&analysis.lexer.CurLexeme),PX_SCRIPT_TRANSLATOR_KEYWORD_THREAD))
 			{
 				type=PX_ScriptTranslatorNextToken(&analysis.lexer);
 				if (type!=PX_LEXER_LEXEME_TYPE_TOKEN)
@@ -9864,12 +9864,12 @@ px_bool PX_ScriptCompilerCompile(PX_SCRIPT_LIBRARY *lib,const px_char *name,px_s
 					PX_ScriptTranslatorError(&analysis, "unexpected lexeme.");
 					goto _ERROR;
 				}
-				if (!PX_strIsInt(analysis.lexer.CurLexeme.buffer))
+				if (!PX_strIsInt(PX_StringGetText(&analysis.lexer.CurLexeme)))
 				{
 					PX_ScriptTranslatorError(&analysis, "unexpected lexeme.");
 					goto _ERROR;
 				}
-				thread=PX_atoi(analysis.lexer.CurLexeme.buffer);
+				thread=PX_atoi(PX_StringGetText(&analysis.lexer.CurLexeme));
 				type=PX_ScriptTranslatorNextToken(&analysis.lexer);
 				if (type!=PX_LEXER_LEXEME_TYPE_NEWLINE)
 				{
@@ -9885,12 +9885,12 @@ px_bool PX_ScriptCompilerCompile(PX_SCRIPT_LIBRARY *lib,const px_char *name,px_s
 		///VAR
 		//////////////////////////////////////////////////////////////////////////
 		if ((pset=PX_ScriptParseGetStructInfo(&analysis,analysis.lexer.CurLexeme.buffer))!=PX_NULL||\
-			PX_strequ(analysis.lexer.CurLexeme.buffer,PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_INT)||\
-			PX_strequ(analysis.lexer.CurLexeme.buffer, PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_HANDLE) || \
-			PX_strequ(analysis.lexer.CurLexeme.buffer,PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_FLOAT)||\
-			PX_strequ(analysis.lexer.CurLexeme.buffer,PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_STRING)||\
-			PX_strequ(analysis.lexer.CurLexeme.buffer,PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_VOID)||\
-			PX_strequ(analysis.lexer.CurLexeme.buffer,PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_MEMORY)
+			PX_strequ(PX_StringGetText(&analysis.lexer.CurLexeme),PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_INT)||\
+			PX_strequ(PX_StringGetText(&analysis.lexer.CurLexeme), PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_HANDLE) || \
+			PX_strequ(PX_StringGetText(&analysis.lexer.CurLexeme),PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_FLOAT)||\
+			PX_strequ(PX_StringGetText(&analysis.lexer.CurLexeme),PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_STRING)||\
+			PX_strequ(PX_StringGetText(&analysis.lexer.CurLexeme),PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_VOID)||\
+			PX_strequ(PX_StringGetText(&analysis.lexer.CurLexeme),PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_MEMORY)
 			)
 		{	
 			
@@ -9996,7 +9996,7 @@ px_bool PX_ScriptCompilerCompile(PX_SCRIPT_LIBRARY *lib,const px_char *name,px_s
 		//////////////////////////////////////////////////////////////////////////
 		///STRUCT DEFINE
 		//////////////////////////////////////////////////////////////////////////
-		if (PX_strequ(analysis.lexer.CurLexeme.buffer,PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_STRUCT))
+		if (PX_strequ(PX_StringGetText(&analysis.lexer.CurLexeme),PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_STRUCT))
 		{	
 			if (analysis.functionInside)
 			{
@@ -10028,7 +10028,7 @@ px_bool PX_ScriptCompilerCompile(PX_SCRIPT_LIBRARY *lib,const px_char *name,px_s
 
 		//////////////////////////////////////////////////////////////////////////
 		// Host function define
-		if (PX_strequ(analysis.lexer.CurLexeme.buffer,PX_SCRIPT_TRANSLATOR_KEYWORD_HOST))
+		if (PX_strequ(PX_StringGetText(&analysis.lexer.CurLexeme),PX_SCRIPT_TRANSLATOR_KEYWORD_HOST))
 		{
 			if (analysis.functionInside)
 			{
@@ -10041,12 +10041,12 @@ px_bool PX_ScriptCompilerCompile(PX_SCRIPT_LIBRARY *lib,const px_char *name,px_s
 				PX_ScriptTranslatorError(&analysis, "unexpected lexeme.");
 				goto _ERROR;
 			}
-			if (PX_strequ(analysis.lexer.CurLexeme.buffer,PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_INT)||\
-				PX_strequ(analysis.lexer.CurLexeme.buffer, PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_HANDLE) || \
-				PX_strequ(analysis.lexer.CurLexeme.buffer,PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_FLOAT)||\
-				PX_strequ(analysis.lexer.CurLexeme.buffer,PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_STRING)||\
-				PX_strequ(analysis.lexer.CurLexeme.buffer,PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_MEMORY)||\
-				PX_strequ(analysis.lexer.CurLexeme.buffer,PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_VOID)||\
+			if (PX_strequ(PX_StringGetText(&analysis.lexer.CurLexeme),PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_INT)||\
+				PX_strequ(PX_StringGetText(&analysis.lexer.CurLexeme), PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_HANDLE) || \
+				PX_strequ(PX_StringGetText(&analysis.lexer.CurLexeme),PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_FLOAT)||\
+				PX_strequ(PX_StringGetText(&analysis.lexer.CurLexeme),PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_STRING)||\
+				PX_strequ(PX_StringGetText(&analysis.lexer.CurLexeme),PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_MEMORY)||\
+				PX_strequ(PX_StringGetText(&analysis.lexer.CurLexeme),PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_VOID)||\
 				PX_ScriptParseGetStructInfo(&analysis,analysis.lexer.CurLexeme.buffer)!=PX_NULL
 				)
 			{
@@ -10085,11 +10085,11 @@ px_bool PX_ScriptCompilerCompile(PX_SCRIPT_LIBRARY *lib,const px_char *name,px_s
 
 		//////////////////////////////////////////////////////////////////////////
 		// Export function define
-		if (PX_strequ(analysis.lexer.CurLexeme.buffer,PX_SCRIPT_TRANSLATOR_KEYWORD_EXPORT)|| PX_strequ(analysis.lexer.CurLexeme.buffer, PX_SCRIPT_TRANSLATOR_KEYWORD_INLINE))
+		if (PX_strequ(PX_StringGetText(&analysis.lexer.CurLexeme),PX_SCRIPT_TRANSLATOR_KEYWORD_EXPORT)|| PX_strequ(PX_StringGetText(&analysis.lexer.CurLexeme), PX_SCRIPT_TRANSLATOR_KEYWORD_INLINE))
 		{
 			px_bool fun_export,fun_inline;
-			fun_export=PX_strequ(analysis.lexer.CurLexeme.buffer,PX_SCRIPT_TRANSLATOR_KEYWORD_EXPORT);
-			fun_inline=PX_strequ(analysis.lexer.CurLexeme.buffer,PX_SCRIPT_TRANSLATOR_KEYWORD_INLINE);
+			fun_export=PX_strequ(PX_StringGetText(&analysis.lexer.CurLexeme),PX_SCRIPT_TRANSLATOR_KEYWORD_EXPORT);
+			fun_inline=PX_strequ(PX_StringGetText(&analysis.lexer.CurLexeme),PX_SCRIPT_TRANSLATOR_KEYWORD_INLINE);
 			
 			state=PX_LexerGetState(&analysis.lexer);
 
@@ -10104,12 +10104,12 @@ px_bool PX_ScriptCompilerCompile(PX_SCRIPT_LIBRARY *lib,const px_char *name,px_s
 				goto _ERROR;
 			}
 
-			if (PX_strequ(analysis.lexer.CurLexeme.buffer,PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_INT)||\
-				PX_strequ(analysis.lexer.CurLexeme.buffer, PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_HANDLE) || \
-				PX_strequ(analysis.lexer.CurLexeme.buffer,PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_FLOAT)||\
-				PX_strequ(analysis.lexer.CurLexeme.buffer,PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_STRING)||\
-				PX_strequ(analysis.lexer.CurLexeme.buffer,PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_MEMORY)||\
-				PX_strequ(analysis.lexer.CurLexeme.buffer,PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_VOID)||\
+			if (PX_strequ(PX_StringGetText(&analysis.lexer.CurLexeme),PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_INT)||\
+				PX_strequ(PX_StringGetText(&analysis.lexer.CurLexeme), PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_HANDLE) || \
+				PX_strequ(PX_StringGetText(&analysis.lexer.CurLexeme),PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_FLOAT)||\
+				PX_strequ(PX_StringGetText(&analysis.lexer.CurLexeme),PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_STRING)||\
+				PX_strequ(PX_StringGetText(&analysis.lexer.CurLexeme),PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_MEMORY)||\
+				PX_strequ(PX_StringGetText(&analysis.lexer.CurLexeme),PX_SCRIPT_TRANSLATOR_KEYWORD_VAR_VOID)||\
 				PX_ScriptParseGetStructInfo(&analysis,analysis.lexer.CurLexeme.buffer)!=PX_NULL
 				)
 			{
@@ -10166,7 +10166,7 @@ px_bool PX_ScriptCompilerCompile(PX_SCRIPT_LIBRARY *lib,const px_char *name,px_s
 		//////////////////////////////////////////////////////////////////////////
 		//IF
 		//////////////////////////////////////////////////////////////////////////
-		if (PX_strequ(analysis.lexer.CurLexeme.buffer,PX_SCRIPT_TRANSLATOR_KEYWORD_IF))
+		if (PX_strequ(PX_StringGetText(&analysis.lexer.CurLexeme),PX_SCRIPT_TRANSLATOR_KEYWORD_IF))
 		{
 			if (!analysis.functionInside)
 			{
@@ -10199,7 +10199,7 @@ px_bool PX_ScriptCompilerCompile(PX_SCRIPT_LIBRARY *lib,const px_char *name,px_s
 				PX_ScriptTranslatorError(&analysis, "unexpected lexeme.");
 				goto _ERROR;
 			}
-			PX_StringCat(&analysis.code,expCode.buffer);
+			PX_StringCat(&analysis.code,PX_StringGetText(&expCode));
 			PX_StringFree(&expression);
 			PX_StringFree(&expCode);
 			//////////////////////////////////////////////////////////////////////////
@@ -10230,7 +10230,7 @@ px_bool PX_ScriptCompilerCompile(PX_SCRIPT_LIBRARY *lib,const px_char *name,px_s
 
 			PX_StringInitialize(analysis.mp,&expression);
 			PX_StringFormat1(&expression,"JE R1,0,_IF_%1\n",PX_STRINGFORMAT_INT(buildAstStruct._if.ifflag));
-			PX_StringCat(&analysis.code,expression.buffer);
+			PX_StringCat(&analysis.code,PX_StringGetText(&expression));
 			PX_StringFree(&expression);
 			continue;
 		}
@@ -10239,7 +10239,7 @@ px_bool PX_ScriptCompilerCompile(PX_SCRIPT_LIBRARY *lib,const px_char *name,px_s
 		//WHILE
 		//////////////////////////////////////////////////////////////////////////
 
-		if (PX_strequ(analysis.lexer.CurLexeme.buffer,PX_SCRIPT_TRANSLATOR_KEYWORD_WHILE))
+		if (PX_strequ(PX_StringGetText(&analysis.lexer.CurLexeme),PX_SCRIPT_TRANSLATOR_KEYWORD_WHILE))
 		{
 			if (!analysis.functionInside)
 			{
@@ -10272,7 +10272,7 @@ px_bool PX_ScriptCompilerCompile(PX_SCRIPT_LIBRARY *lib,const px_char *name,px_s
 
 			PX_StringInitialize(analysis.mp,&fmrString);
 			PX_StringFormat1(&fmrString,"_WHILE_%1:\n",PX_STRINGFORMAT_INT(buildAstStruct._while.loopflag));
-			PX_StringCat(&analysis.code,fmrString.buffer);
+			PX_StringCat(&analysis.code,PX_StringGetText(&fmrString));
 			PX_StringFree(&fmrString);
 
 			if(!PX_ScriptParseExpression(&analysis,expression.buffer,&expCode,&retOperand))
@@ -10282,7 +10282,7 @@ px_bool PX_ScriptCompilerCompile(PX_SCRIPT_LIBRARY *lib,const px_char *name,px_s
 				PX_ScriptTranslatorError(&analysis, "expression error.");
 				goto _ERROR;
 			}
-			PX_StringCat(&analysis.code,expCode.buffer);
+			PX_StringCat(&analysis.code,PX_StringGetText(&expCode));
 			PX_StringFree(&expression);
 			PX_StringFree(&expCode);
 			//////////////////////////////////////////////////////////////////////////
@@ -10311,7 +10311,7 @@ px_bool PX_ScriptCompilerCompile(PX_SCRIPT_LIBRARY *lib,const px_char *name,px_s
 
 			PX_StringInitialize(analysis.mp,&expression);
 			PX_StringFormat1(&expression,"JE R1,0,_WHILE_%1\n",PX_STRINGFORMAT_INT(buildAstStruct._while.endflag));
-			PX_StringCat(&analysis.code,expression.buffer);
+			PX_StringCat(&analysis.code,PX_StringGetText(&expression));
 			PX_StringFree(&expression);
 			continue;
 		}
@@ -10319,7 +10319,7 @@ px_bool PX_ScriptCompilerCompile(PX_SCRIPT_LIBRARY *lib,const px_char *name,px_s
 		//_ASM
 		//////////////////////////////////////////////////////////////////////////
 		
-		if (PX_strequ(analysis.lexer.CurLexeme.buffer,PX_SCRIPT_TRANSLATOR_KEYWORD_ASM))
+		if (PX_strequ(PX_StringGetText(&analysis.lexer.CurLexeme),PX_SCRIPT_TRANSLATOR_KEYWORD_ASM))
 		{
 			if (!analysis.functionInside)
 			{
@@ -10349,10 +10349,10 @@ px_bool PX_ScriptCompilerCompile(PX_SCRIPT_LIBRARY *lib,const px_char *name,px_s
 				{
 					pvar=PX_VECTORAT(PX_SCRIPT_VARIABLES,&analysis.v_variablesStackTable,i);
 					if(pvar->type==PX_SCRIPT_PARSER_VAR_TYPE_INT||pvar->type==PX_SCRIPT_PARSER_VAR_TYPE_FLOAT||pvar->type==PX_SCRIPT_PARSER_VAR_TYPE_STRING||pvar->type==PX_SCRIPT_PARSER_VAR_TYPE_MEMORY)
-					if (PX_strequ(pvar->Mnemonic.buffer,analysis.lexer.CurLexeme.buffer))
+					if (PX_strequ(PX_StringGetText(&pvar->Mnemonic),PX_StringGetText(&analysis.lexer.CurLexeme)))
 					{
 						PX_StringFormat1(&fmrString,"LOCAL[%1]",PX_STRINGFORMAT_INT(pvar->BeginIndex));
-						PX_StringCat(&codes,fmrString.buffer);
+						PX_StringCat(&codes,PX_StringGetText(&fmrString));
 						goto _CONTINUE;
 					}
 				}
@@ -10361,19 +10361,19 @@ px_bool PX_ScriptCompilerCompile(PX_SCRIPT_LIBRARY *lib,const px_char *name,px_s
 				{
 					pvar=PX_VECTORAT(PX_SCRIPT_VARIABLES,&analysis.v_variablesGlobalTable,i);
 					if(pvar->type==PX_SCRIPT_PARSER_VAR_TYPE_INT||pvar->type==PX_SCRIPT_PARSER_VAR_TYPE_FLOAT||pvar->type==PX_SCRIPT_PARSER_VAR_TYPE_STRING||pvar->type==PX_SCRIPT_PARSER_VAR_TYPE_MEMORY)
-					if (PX_strequ(pvar->Mnemonic.buffer,analysis.lexer.CurLexeme.buffer))
+					if (PX_strequ(PX_StringGetText(&pvar->Mnemonic),PX_StringGetText(&analysis.lexer.CurLexeme)))
 					{
 						PX_StringFormat1(&fmrString,"GLOBAL[%1]",PX_STRINGFORMAT_INT(pvar->BeginIndex));
-						PX_StringCat(&codes,fmrString.buffer);
+						PX_StringCat(&codes,PX_StringGetText(&fmrString));
 						goto _CONTINUE;
 					}
 				}
 
-				PX_StringCat(&codes,analysis.lexer.CurLexeme.buffer);
+				PX_StringCat(&codes,PX_StringGetText(&analysis.lexer.CurLexeme));
 _CONTINUE:
 				PX_StringClear(&fmrString);
 			}
-			PX_StringCat(&analysis.code,codes.buffer);
+			PX_StringCat(&analysis.code,PX_StringGetText(&codes));
 			PX_StringFree(&codes);
 			PX_StringFree(&fmrString);
 			continue;
@@ -10384,7 +10384,7 @@ _CONTINUE:
 		//FOR
 		//////////////////////////////////////////////////////////////////////////
 
-		if (PX_strequ(analysis.lexer.CurLexeme.buffer,PX_SCRIPT_TRANSLATOR_KEYWORD_FOR))
+		if (PX_strequ(PX_StringGetText(&analysis.lexer.CurLexeme),PX_SCRIPT_TRANSLATOR_KEYWORD_FOR))
 		{
 			if (!analysis.functionInside)
 			{
@@ -10431,12 +10431,12 @@ _CONTINUE:
 				PX_ScriptTranslatorError(&analysis, "unexpected lexeme.");
 				goto _ERROR;
 			}
-			PX_StringCat(&analysis.code,expCode.buffer);
+			PX_StringCat(&analysis.code,PX_StringGetText(&expCode));
 
 			//Jump to condition
 			
 			PX_StringFormat1(&fmrString,"JMP _FOR_%1\n",PX_STRINGFORMAT_INT(buildAstStruct._for.conditionFlag));
-			PX_StringCat(&analysis.code,fmrString.buffer);
+			PX_StringCat(&analysis.code,PX_StringGetText(&fmrString));
 
 
 			//Condition
@@ -10459,13 +10459,13 @@ _CONTINUE:
 				PX_ScriptTranslatorError(&analysis, "unexpected lexeme.");
 				goto _ERROR;
 			}
-			PX_StringCat(&condCodes,expCode.buffer);
+			PX_StringCat(&condCodes,PX_StringGetText(&expCode));
 
 
 			//Addition
 			//Addition flag
 			PX_StringFormat1(&fmrString,"_FOR_%1:\n",PX_STRINGFORMAT_INT(buildAstStruct._for.additionFlag));
-			PX_StringCat(&analysis.code,fmrString.buffer);
+			PX_StringCat(&analysis.code,PX_StringGetText(&fmrString));
 
 			if(!PX_ScriptParseGetExpression(&analysis,&expression,')'))
 			{
@@ -10486,17 +10486,17 @@ _CONTINUE:
 				PX_ScriptTranslatorError(&analysis, "unexpected lexeme.");
 				goto _ERROR;
 			}
-			PX_StringCat(&analysis.code,expCode.buffer);
+			PX_StringCat(&analysis.code,PX_StringGetText(&expCode));
 
 			//condition
 			//condition flag
 			PX_StringFormat1(&fmrString,"_FOR_%1:\n",PX_STRINGFORMAT_INT(buildAstStruct._for.conditionFlag));
-			PX_StringCat(&analysis.code,fmrString.buffer);
-			PX_StringCat(&analysis.code,condCodes.buffer);
+			PX_StringCat(&analysis.code,PX_StringGetText(&fmrString));
+			PX_StringCat(&analysis.code,PX_StringGetText(&condCodes));
 
 			//jump to end
 			PX_StringFormat1(&fmrString,"JE R1,0,_FOR_%1\n",PX_STRINGFORMAT_INT(buildAstStruct._for.endFlag));
-			PX_StringCat(&analysis.code,fmrString.buffer);
+			PX_StringCat(&analysis.code,PX_StringGetText(&fmrString));
 
 			PX_StringFree(&expression);
 			PX_StringFree(&expCode);
@@ -10532,7 +10532,7 @@ _CONTINUE:
 		//////////////////////////////////////////////////////////////////////////
 		//SWITCH
 		//////////////////////////////////////////////////////////////////////////
-		if (PX_strequ(analysis.lexer.CurLexeme.buffer,PX_SCRIPT_TRANSLATOR_KEYWORD_SWITCH))
+		if (PX_strequ(PX_StringGetText(&analysis.lexer.CurLexeme),PX_SCRIPT_TRANSLATOR_KEYWORD_SWITCH))
 		{
 			if (!analysis.functionInside)
 			{
@@ -10575,7 +10575,7 @@ _CONTINUE:
 			
 			buildAstStruct._compare.OriginOperand=retOperand;
 
-			PX_StringCat(&analysis.code,expCode.buffer);
+			PX_StringCat(&analysis.code,PX_StringGetText(&expCode));
 			PX_StringCat(&analysis.code,"PUSH R1\n");
 			PX_StringFree(&expression);
 			PX_StringFree(&expCode);
@@ -10602,7 +10602,7 @@ _CONTINUE:
 		//////////////////////////////////////////////////////////////////////////
 		//CASE
 		//////////////////////////////////////////////////////////////////////////
-		if (PX_strequ(analysis.lexer.CurLexeme.buffer,PX_SCRIPT_TRANSLATOR_KEYWORD_CASE))
+		if (PX_strequ(PX_StringGetText(&analysis.lexer.CurLexeme),PX_SCRIPT_TRANSLATOR_KEYWORD_CASE))
 		{
 			if (!analysis.functionInside)
 			{
@@ -10717,7 +10717,7 @@ _CONTINUE:
 						continue;
 					}
 
-					PX_StringCat(&expression,analysis.lexer.CurLexeme.buffer);
+					PX_StringCat(&expression,PX_StringGetText(&analysis.lexer.CurLexeme));
 				}
 				//////////////////////////////////////////////////////////////////////////
 
@@ -10736,7 +10736,7 @@ _CONTINUE:
 					goto _ERROR;
 				}
 
-				PX_StringCat(&analysis.code,expCode.buffer);			
+				PX_StringCat(&analysis.code,PX_StringGetText(&expCode));			
 			    PX_StringCat(&analysis.code,"LGE R1,R1,R2\n");
 				PX_StringCat(&analysis.code,"OR R3,R1\n");
 				state=PX_LexerGetState(&analysis.lexer);
@@ -10748,7 +10748,7 @@ _CONTINUE:
 				
 			}
 			PX_StringFormat1(&expCode,"JE R3,0,_WITH_%1\n",PX_STRINGFORMAT_INT(buildAstStruct._with.endFlag));
-			PX_StringCat(&analysis.code,expCode.buffer);
+			PX_StringCat(&analysis.code,PX_StringGetText(&expCode));
 
 			PX_StringFree(&expression);
 			PX_StringFree(&expCode);
@@ -10775,7 +10775,7 @@ _CONTINUE:
 		//break
 		//////////////////////////////////////////////////////////////////////////
 		
-		if (PX_strequ(analysis.lexer.CurLexeme.buffer,PX_SCRIPT_TRANSLATOR_KEYWORD_BREAK))
+		if (PX_strequ(PX_StringGetText(&analysis.lexer.CurLexeme),PX_SCRIPT_TRANSLATOR_KEYWORD_BREAK))
 		{
 			type=PX_ScriptTranslatorNextToken(&analysis.lexer);
 			
@@ -10792,7 +10792,7 @@ _CONTINUE:
 					{
 						PX_StringInitialize(analysis.mp,&fmrString);
 						PX_StringFormat1(&fmrString,"JMP _WHILE_%1\n",PX_STRINGFORMAT_INT(astStruct._while.endflag));
-						PX_StringCat(&analysis.code,fmrString.buffer);
+						PX_StringCat(&analysis.code,PX_StringGetText(&fmrString));
 						PX_StringFree(&fmrString);
 						goto _BREAKOUT;
 					}
@@ -10801,7 +10801,7 @@ _CONTINUE:
 					{
 						PX_StringInitialize(analysis.mp,&fmrString);
 						PX_StringFormat1(&fmrString,"JMP _FOR_%1\n",PX_STRINGFORMAT_INT(astStruct._for.endFlag));
-						PX_StringCat(&analysis.code,fmrString.buffer);
+						PX_StringCat(&analysis.code,PX_StringGetText(&fmrString));
 						PX_StringFree(&fmrString);
 						goto _BREAKOUT;
 					}
@@ -10810,7 +10810,7 @@ _CONTINUE:
 					{
 						PX_StringInitialize(analysis.mp,&fmrString);
 						PX_StringFormat1(&fmrString,"JMP _COMPARE_%1\n",PX_STRINGFORMAT_INT(astStruct._compare.endFlag));
-						PX_StringCat(&analysis.code,fmrString.buffer);
+						PX_StringCat(&analysis.code,PX_StringGetText(&fmrString));
 						PX_StringFree(&fmrString);
 						goto _BREAKOUT;
 					}
@@ -10834,7 +10834,7 @@ _CONTINUE:
 		//continue
 		//////////////////////////////////////////////////////////////////////////
 
-		if (PX_strequ(analysis.lexer.CurLexeme.buffer,PX_SCRIPT_TRANSLATOR_KEYWORD_CONTINUE))
+		if (PX_strequ(PX_StringGetText(&analysis.lexer.CurLexeme),PX_SCRIPT_TRANSLATOR_KEYWORD_CONTINUE))
 		{
 			type=PX_ScriptTranslatorNextToken(&analysis.lexer);
 
@@ -10851,7 +10851,7 @@ _CONTINUE:
 					{
 						PX_StringInitialize(analysis.mp,&fmrString);
 						PX_StringFormat1(&fmrString,"JMP _WHILE_%1\n",PX_STRINGFORMAT_INT(astStruct._while.loopflag));
-						PX_StringCat(&analysis.code,fmrString.buffer);
+						PX_StringCat(&analysis.code,PX_StringGetText(&fmrString));
 						PX_StringFree(&fmrString);
 						goto _CONTINUEOUT;
 					}
@@ -10860,7 +10860,7 @@ _CONTINUE:
 					{
 						PX_StringInitialize(analysis.mp,&fmrString);
 						PX_StringFormat1(&fmrString,"JMP _FOR_%1\n",PX_STRINGFORMAT_INT(astStruct._for.additionFlag));
-						PX_StringCat(&analysis.code,fmrString.buffer);
+						PX_StringCat(&analysis.code,PX_StringGetText(&fmrString));
 						PX_StringFree(&fmrString);
 						goto _CONTINUEOUT;
 					}
@@ -10882,7 +10882,7 @@ _CONTINUEOUT:
 		///////////////////////////////////////////////////////////////////////////
 		//Return
 		//////////////////////////////////////////////////////////////////////////
-		if (PX_strequ(analysis.lexer.CurLexeme.buffer,PX_SCRIPT_TRANSLATOR_KEYWORD_RETURN))
+		if (PX_strequ(PX_StringGetText(&analysis.lexer.CurLexeme),PX_SCRIPT_TRANSLATOR_KEYWORD_RETURN))
 		{
 			if (!analysis.functionInside)
 			{
@@ -10910,7 +10910,7 @@ _CONTINUEOUT:
 			}
 			
 			
-			PX_StringCat(&analysis.code,expCode.buffer);
+			PX_StringCat(&analysis.code,PX_StringGetText(&expCode));
 			PX_StringFree(&expression);
 			PX_StringFree(&expCode);
 
@@ -11016,7 +11016,7 @@ _CONTINUEOUT:
 
 			PX_StringInitialize(analysis.mp,&fmrString);
 			PX_StringFormat1(&fmrString,"JMP _%1_RET\n",PX_STRINGFORMAT_STRING(analysis.currentFunc.name));
-			PX_StringCat(&analysis.code,fmrString.buffer);
+			PX_StringCat(&analysis.code,PX_StringGetText(&fmrString));
 			PX_StringFree(&fmrString);
 
 
@@ -11066,7 +11066,7 @@ _CONTINUEOUT:
 					goto _ERROR;
 				}
 				
-				PX_StringCat(&analysis.code,expCode.buffer);
+				PX_StringCat(&analysis.code,PX_StringGetText(&expCode));
 				
 				PX_StringFree(&expression);
 				PX_StringFree(&expCode);
@@ -11103,7 +11103,7 @@ _CONTINUEOUT:
 
 	PX_StringInitialize(analysis.mp,&fmrString);
 	PX_StringFormat3(&fmrString,".GLOBAL %1\n.STACK %2\n.THREAD %3\n",PX_STRINGFORMAT_INT(globalSize),PX_STRINGFORMAT_INT(LocalStackSize),PX_STRINGFORMAT_INT(thread));
-	PX_StringCat(ASM,fmrString.buffer);
+	PX_StringCat(ASM,PX_StringGetText(&fmrString));
 	PX_StringFree(&fmrString);
 
 	PX_StringCat(ASM,"EXPORT FUNCTION _BOOT:\n");
@@ -11115,7 +11115,7 @@ _CONTINUEOUT:
 		if (!pvar->bParam&&pvar->type==PX_SCRIPT_PARSER_VAR_TYPE_STRING)
 		{
 			PX_StringFormat1(&fmrString,"MOV GLOBAL[%1],\"\"\n",PX_STRINGFORMAT_INT(pvar->BeginIndex));
-			PX_StringCat(ASM,fmrString.buffer);
+			PX_StringCat(ASM,PX_StringGetText(&fmrString));
 		}
 
 		if (!pvar->bParam && pvar->type == PX_SCRIPT_PARSER_VAR_TYPE_STRING_ARRAY)
@@ -11123,13 +11123,13 @@ _CONTINUEOUT:
 			px_int i;
 			for(i=0;i<pvar->size;i++)
 				PX_StringFormat1(&fmrString, "MOV GLOBAL[%1],\"\"\n", PX_STRINGFORMAT_INT(pvar->BeginIndex+i));
-			PX_StringCat(ASM, fmrString.buffer);
+			PX_StringCat(ASM, PX_StringGetText(&fmrString));
 		}
 
 		if (!pvar->bParam&&pvar->type==PX_SCRIPT_PARSER_VAR_TYPE_MEMORY)
 		{
 			PX_StringFormat1(&fmrString,"MOV GLOBAL[%1],@@\n",PX_STRINGFORMAT_INT(pvar->BeginIndex));
-			PX_StringCat(ASM,fmrString.buffer);
+			PX_StringCat(ASM,PX_StringGetText(&fmrString));
 		}
 
 		if (!pvar->bParam && pvar->type == PX_SCRIPT_PARSER_VAR_TYPE_MEMORY_ARRAY)
@@ -11137,13 +11137,13 @@ _CONTINUEOUT:
 			px_int i;
 			for (i = 0; i < pvar->size; i++)
 				PX_StringFormat1(&fmrString, "MOV GLOBAL[%1],@@\n", PX_STRINGFORMAT_INT(pvar->BeginIndex + i));
-			PX_StringCat(ASM, fmrString.buffer);
+			PX_StringCat(ASM, PX_StringGetText(&fmrString));
 		}
 
 		if (!pvar->bParam && pvar->type == PX_SCRIPT_PARSER_VAR_TYPE_FLOAT)
 		{
 			PX_StringFormat1(&fmrString, "FLT GLOBAL[%1]\n", PX_STRINGFORMAT_INT(pvar->BeginIndex));
-			PX_StringCat(ASM, fmrString.buffer);
+			PX_StringCat(ASM, PX_StringGetText(&fmrString));
 		}
 
 		if (!pvar->bParam && pvar->type == PX_SCRIPT_PARSER_VAR_TYPE_FLOAT_ARRAY)
@@ -11151,15 +11151,15 @@ _CONTINUEOUT:
 			px_int i;
 			for (i = 0; i < pvar->size; i++)
 				PX_StringFormat1(&fmrString, "FLT GLOBAL[%1]\n", PX_STRINGFORMAT_INT(pvar->BeginIndex+i));
-			PX_StringCat(ASM, fmrString.buffer);
+			PX_StringCat(ASM, PX_StringGetText(&fmrString));
 		}
 	}
 	PX_StringFree(&fmrString);
 
-	PX_StringCat(ASM,analysis.bootCode.buffer);
+	PX_StringCat(ASM,PX_StringGetText(&analysis.bootCode));
 	PX_StringCat(ASM,"RET\n");
 
-	PX_StringCat(ASM,analysis.code.buffer);
+	PX_StringCat(ASM,PX_StringGetText(&analysis.code));
 
 	if (analysis.v_astStructure.size)
 	{

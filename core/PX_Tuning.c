@@ -245,8 +245,6 @@ px_int PX_TuningFilter(PX_Tuning *tuning,_IN px_double frame_unit[],px_int Size,
 	{
 		px_double d1=0,d2=0,dm,fraction=0;
 		px_int index;
-		px_double unitMaxAmp=0;
-
 		if (tuning->spectrumInterpolationOffset>=blockCount-1)
 		{
 			PX_memcpy(tuning->previous_frame,resampledFrame+(blockCount-3)*blocksize,blocksize*3*sizeof(px_double));

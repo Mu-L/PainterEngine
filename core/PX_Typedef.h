@@ -671,12 +671,15 @@ px_bool PX_strIsNumeric(const px_char *str);
 px_bool PX_strIsFloat(const px_char *str);
 px_bool PX_strIsInt(const px_char *str);
 px_bool PX_charIsNumeric(px_char ch);
+px_bool PX_charIsHexadecimal(px_char chr);
+px_bool PX_charIsCommonlyCharacter(px_char ch);
 
 typedef enum
 {
 	PX_STRINGFORMAT_TYPE_INT,
 	PX_STRINGFORMAT_TYPE_FLOAT,
 	PX_STRINGFORMAT_TYPE_STRING,
+	PX_STRINGFORMAT_TYPE_HEX,
 }PX_STRINGFORMAT_TYPE;
 
 typedef struct
@@ -698,8 +701,8 @@ px_stringformat PX_STRINGFORMAT_FLOAT(px_float _f);
 px_stringformat PX_STRINGFORMAT_FLOAT_ALIGN(px_float _f, px_int align);
 px_stringformat PX_STRINGFORMAT_STRING(const px_char *_s);
 px_stringformat PX_STRINGFORMAT_STRING_ALIGN(const px_char *_s, px_int align);
-
-
+px_stringformat PX_STRINGFORMAT_HEX(px_dword _i);
+px_stringformat PX_STRINGFORMAT_HEX_ALIGN(px_dword _i, px_int align);
 px_int PX_sprintf8(px_char *str,px_int str_size,const px_char fmt[],\
 	px_stringformat _1,\
 	px_stringformat _2,\

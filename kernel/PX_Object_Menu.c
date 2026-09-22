@@ -126,13 +126,16 @@ typedef enum
 static px_void PX_MenuClearParent(PX_Object_Menu *pMenu,PX_Object_Menu_Item *pItem)
 {
 	px_list_node *pNode=PX_NULL;
-
-	for (pNode=PX_ListNodeAt(&pItem->pParent->Items,0);pNode;pNode=PX_ListNodeNext(pNode))
+	if (pItem->pParent)
 	{
-		PX_Object_Menu_Item *pSubItem=PX_LIST_NODETDATA(PX_Object_Menu_Item,pNode);
-		pSubItem->onCursor=PX_FALSE;
-		pSubItem->Activated=PX_FALSE;
+		for (pNode = PX_ListNodeAt(&pItem->pParent->Items, 0); pNode; pNode = PX_ListNodeNext(pNode))
+		{
+			PX_Object_Menu_Item* pSubItem = PX_LIST_NODETDATA(PX_Object_Menu_Item, pNode);
+			pSubItem->onCursor = PX_FALSE;
+			pSubItem->Activated = PX_FALSE;
+		}
 	}
+	
 }
 static px_void PX_MenuClearChild(PX_Object_Menu *pMenu,PX_Object_Menu_Item *pItem)
 {
@@ -166,7 +169,6 @@ px_bool PX_Menu_CursorAction(PX_Object *pObject,PX_Object_Menu_Item *pItem,px_fl
 
 	if (PX_isPointXYInRect(x,y,(px_float)pItem->x,(px_float)pItem->y,(px_float)pItem->width,(px_float)pItem->height))
 	{
-		
 		PX_MenuClearParent(pMenu,pItem);
 		switch (action)
 		{

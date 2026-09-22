@@ -625,8 +625,6 @@ px_void PX_GeoDrawLine(px_surface *psurface, px_int x0, px_int y0, px_int x1, px
 		y=PX_TRUNC(p2y)+1;
 		temp1=PX_TRUNC(p3x);
 
-		//while()
-
 		while (y<PX_TRUNC(p3y))
 		{  
 			//Draw full color
@@ -1762,11 +1760,11 @@ px_void PX_GeoDrawPenCircleEraser(px_surface* psurface, px_float x, px_float y, 
 					px_float a = ((px_float)Radius - d) / 2;
 					clr._argb.a= (px_uchar)(clr._argb.a*(1-a));
 					r=clr._argb.r*(1+a);
-					r>255?r=255:r;
+					if(r>255) r=255;
 					g=clr._argb.g*(1+a);
-					g>255?g=255:g;
+					if(g>255) g=255;
 					b=clr._argb.b*(1+a);
-					b>255?b=255:b;
+					if(b>255) b=255;
 					clr._argb.r=(px_uchar)r;
 					clr._argb.g=(px_uchar)g;
 					clr._argb.b=(px_uchar)b;
@@ -2890,11 +2888,6 @@ px_void PX_GeoDrawSolidRoundRect(px_surface *psurface, px_int left, px_int top, 
 				}
 			}
 
-			if (x>Width/2)
-			{
-				break;
-			}
-
 			dis=PX_sqrt((x-r_x)*(x-r_x)+(y-r_y)*(y-r_y));
 			if (dis<roundRaduis+1.414f)
 			{
@@ -3128,7 +3121,7 @@ px_void PX_GeoDrawBresenhamLine(px_surface *psurface,px_int x0, px_int y0, px_in
 	px_int lm;
 	px_int trimLX,trimRX,trimTY,trimBY;
 	px_float ftemp,fconst;
-	px_float k,recK;
+	px_float k;
 	
 
 	if (PX_ABS(x0-x1)+PX_ABS(y0-y1)==0)
@@ -3192,8 +3185,6 @@ px_void PX_GeoDrawBresenhamLine(px_surface *psurface,px_int x0, px_int y0, px_in
 	} 
 
 	k=((px_float)(y1-y0))/(x1-x0);
-	recK=1/k;
-
 	//trim
 	trimLX=0-1;
 	trimRX=psurface->width+1;
@@ -3318,10 +3309,9 @@ px_void PX_GeoDrawTriangle(px_surface *psurface,px_point2D p0,px_point2D p1,px_p
 	px_int ix,iy;
 	px_bool  k01infinite=PX_FALSE;
 	px_bool  k02infinite=PX_FALSE;
-	px_bool  k12infinite=PX_FALSE;
-	px_float k01,b01,k02,b02,k12,b12;
+	px_float k01,b01,k02,b02;
 
-	px_float lAlpha=1,rAlpha=1;
+	px_float lAlpha=1;
 
 	px_float x0;
 	px_float y0;
@@ -3413,7 +3403,6 @@ px_void PX_GeoDrawTriangle(px_surface *psurface,px_point2D p0,px_point2D p1,px_p
 
 	k01infinite=PX_FALSE;
 	k02infinite=PX_FALSE;
-	k12infinite=PX_FALSE;
 	if (x0==x1)
 	{
 		k01infinite=PX_TRUE;
@@ -3436,18 +3425,6 @@ px_void PX_GeoDrawTriangle(px_surface *psurface,px_point2D p0,px_point2D p1,px_p
 		b02=y0-k02*x0;
 	}
 
-	if (x1==x2)
-	{
-		k12infinite=PX_TRUE;
-		b12=x1;
-	}
-	else
-	{
-		k12=(y1-y2)/(x1-x2);
-		b12=y1-k12*x1;
-	}
-
-
 	for(y = (px_int)(y0+0.5f)+0.5f; y <=midy; y++)
 	{
 		if (k01infinite)
@@ -3464,12 +3441,10 @@ px_void PX_GeoDrawTriangle(px_surface *psurface,px_point2D p0,px_point2D p1,px_p
 		if (k02infinite)
 		{
 			xright=b02;
-			rAlpha=1;
 		}
 		else
 		{
 			xright = (y-b02)/k02;
-			rAlpha=PX_ABS_FRAC(xright);
 		}
 
 		ix = (px_int)xleft;
@@ -3485,13 +3460,6 @@ px_void PX_GeoDrawTriangle(px_surface *psurface,px_point2D p0,px_point2D p1,px_p
 		{
 			PX_SurfaceDrawPixel(psurface,ix,iy,color);
 		}
-
-// 		do
-// 		{
-// 			px_color aClr=color;
-// 			aClr._argb.a=(px_byte)(aClr._argb.a*rAlpha);
-// 			PX_SurfaceDrawPixel(psurface,ix,iy,aClr);
-// 		} while (0);
 	}
 
 	// p1   p2
@@ -3568,7 +3536,6 @@ px_void PX_GeoDrawTriangle(px_surface *psurface,px_point2D p0,px_point2D p1,px_p
 
 	k01infinite=PX_FALSE;
 	k02infinite=PX_FALSE;
-	k12infinite=PX_FALSE;
 	if (x0==x1)
 	{
 		k01infinite=PX_TRUE;
@@ -3591,18 +3558,6 @@ px_void PX_GeoDrawTriangle(px_surface *psurface,px_point2D p0,px_point2D p1,px_p
 		b02=y0-k02*x0;
 	}
 
-	if (x1==x2)
-	{
-		k12infinite=PX_TRUE;
-		b12=x1;
-	}
-	else
-	{
-		k12=(y1-y2)/(x1-x2);
-		b12=y1-k12*x1;
-	}
-
-
 	for(y = (px_int)(midy+0.5f)+0.5f; y < y0; y++)
 	{
 		if (k01infinite)
@@ -3619,12 +3574,10 @@ px_void PX_GeoDrawTriangle(px_surface *psurface,px_point2D p0,px_point2D p1,px_p
 		if (k02infinite)
 		{
 			xright=b02;
-			rAlpha=1;
 		}
 		else
 		{
 			xright = (y-b02)/k02;
-			rAlpha=PX_ABS_FRAC(xright);
 		}
 
 		ix = (px_int)xleft;

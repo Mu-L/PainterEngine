@@ -119,7 +119,7 @@ px_int PX_Object_TreeForward(PX_Object* pObject, px_abi* prootabi, const px_char
 					}
 					PX_strcat_s(current_payload, sizeof(current_payload), pname);
 
-					newnode.width = PX_FontModuleGetWidth(pDesc->fm, newnode.content.buffer);
+					newnode.width = PX_FontModuleGetWidth(pDesc->fm, PX_StringGetText(&newnode.content));
 					PX_VectorPushback(&pDesc->nodes, &newnode);
 					y++;
 					y = PX_Object_TreeForward(pObject, prootabi, current_payload, y, deep + 1);
@@ -127,7 +127,7 @@ px_int PX_Object_TreeForward(PX_Object* pObject, px_abi* prootabi, const px_char
 				else
 				{
 					PX_StringCat(&newnode.content, pname);
-					newnode.width = PX_FontModuleGetWidth(pDesc->fm, newnode.content.buffer);
+					newnode.width = PX_FontModuleGetWidth(pDesc->fm, PX_StringGetText(&newnode.content));
 					y++;
 					PX_VectorPushback(&pDesc->nodes, &newnode);
 				}
@@ -184,16 +184,16 @@ px_int PX_Object_TreeForward(PX_Object* pObject, px_abi* prootabi, const px_char
 						PX_StringFormat1(&newnode.content, "%1", PX_STRINGFORMAT_INT(value));
 					}
 				}
-				else if (type == PX_ABI_TYPE_DWORD)
+				else if (type == PX_ABI_TYPE_DWORD|| type == PX_ABI_TYPE_PTR)
 				{
 					px_dword value = *(px_dword*)PX_AbiPointer_GetDataPointer(pabi_byte_pointer);
 					if (pDesc->display_name)
 					{
-						PX_StringFormat2(&newnode.content, "%1:%2", PX_STRINGFORMAT_STRING(pname), PX_STRINGFORMAT_INT(value));
+						PX_StringFormat2(&newnode.content, "%1:%2", PX_STRINGFORMAT_STRING(pname), PX_STRINGFORMAT_HEX(value));
 					}
 					else
 					{
-						PX_StringFormat1(&newnode.content, "%1", PX_STRINGFORMAT_INT(value));
+						PX_StringFormat1(&newnode.content, "%1", PX_STRINGFORMAT_HEX(value));
 					}
 				}
 				else if (type == PX_ABI_TYPE_WORD)
@@ -249,7 +249,7 @@ px_int PX_Object_TreeForward(PX_Object* pObject, px_abi* prootabi, const px_char
 					PX_StringCat(&newnode.payload, ".");
 				}
 				PX_StringCat(&newnode.payload, pname);
-				newnode.width = PX_FontModuleGetWidth(pDesc->fm, newnode.content.buffer);
+				newnode.width = PX_FontModuleGetWidth(pDesc->fm, PX_StringGetText(&newnode.content));
 				PX_VectorPushback(&pDesc->nodes, &newnode);
 				y++;
 			}
@@ -290,11 +290,15 @@ px_bool PX_Object_TreeReRender(PX_Object* pObject)
 		}
 	}
 	PX_Object_TreeClearNodes(pObject);
-	PX_Object_TreeForward(pObject, &pDesc->tree_root_abi, "", pDesc->yoffset, 0);
-	if (pDesc->nodes.size<=pDesc->ycount)
+	PX_Object_TreeForward(pObject, &pDesc->ui_tree, "", pDesc->yoffset, 0);
+	if (pDesc->nodes.size<pDesc->ycount)
 	{
-		PX_ObjectSetEnabled(pDesc->vslider, PX_FALSE);
-		PX_Object_SliderBarSetRange(pDesc->vslider, 0, 0);
+		if (pDesc->yoffset == 0)
+		{
+			PX_ObjectSetEnabled(pDesc->vslider, PX_FALSE);
+			PX_Object_SliderBarSetRange(pDesc->vslider, 0, 0);
+		}
+		
 	}
 	else
 	{
@@ -304,7 +308,7 @@ px_bool PX_Object_TreeReRender(PX_Object* pObject)
 			buttonlength = 32;
 		}
 		PX_ObjectSetEnabled(pDesc->vslider, PX_TRUE);
-		PX_Object_SliderBarSetRange(pDesc->vslider, 0, pDesc->nodes.size - pDesc->ycount+2);
+		PX_Object_SliderBarSetRange(pDesc->vslider, 0, pDesc->nodes.size - pDesc->ycount+3);
 		PX_Object_SliderBarSetSliderButtonLength(pDesc->vslider, buttonlength);
 	}
 
@@ -390,18 +394,18 @@ PX_OBJECT_EVENT_FUNCTION(PX_Object_TreeOnCursorDown)
 			pDesc->pcurrent_select_node = pNode;
 			if (pNode->babi)
 			{
-				PX_sprintf1(payload, sizeof(payload), "%1.+-", PX_STRINGFORMAT_STRING(pNode->payload.buffer));
-				px_bool* pexpand = PX_AbiGet_bool(&pDesc->tree_root_abi, payload);
+				PX_sprintf1(payload, sizeof(payload), "%1.+-", PX_STRINGFORMAT_STRING(PX_StringGetText(&pNode->payload)));
+				px_bool* pexpand = PX_AbiGet_bool(&pDesc->ui_tree, payload);
 				if (pexpand)
 				{
-					if (!PX_AbiSet_bool(&pDesc->tree_root_abi, payload, !(*pexpand)))
+					if (!PX_AbiSet_bool(&pDesc->ui_tree, payload, !(*pexpand)))
 					{
 						return;
 					}
 				}
 				else
 				{
-					if (!PX_AbiSet_bool(&pDesc->tree_root_abi, payload, PX_TRUE))
+					if (!PX_AbiSet_bool(&pDesc->ui_tree, payload, PX_TRUE))
 					{
 						return;
 					}
@@ -471,7 +475,7 @@ PX_OBJECT_RENDER_FUNCTION(PX_Object_TreeRender)
 		else
 		{
 			PX_Object_TreeNode* pNode = PX_VECTORAT(PX_Object_TreeNode, &pDesc->nodes, i);
-			px_float x = pNode->deep * 20.f + 10-pDesc->xoffset;
+			px_float x = pNode->deep * 12.f + 12-pDesc->xoffset;
 			px_float y = (i- pDesc->yoffset) * pDesc->item_height * 1.f;
 			px_int len, woffset = 0;
 			px_char build_content[96] = { 0 };
@@ -488,7 +492,7 @@ PX_OBJECT_RENDER_FUNCTION(PX_Object_TreeRender)
 
 			}
 
-			pcontent = pNode->content.buffer;
+			pcontent = PX_StringGetText(&pNode->content);
 			for (len = 0; len < 32; len++)
 			{
 				if (pcontent[len] == '\0')
@@ -519,9 +523,9 @@ PX_OBJECT_RENDER_FUNCTION(PX_Object_TreeRender)
 				
 
 
-				PX_strcat_s(payload, sizeof(payload), pNode->payload.buffer);
+				PX_strcat_s(payload, sizeof(payload), PX_StringGetText(&pNode->payload));
 				PX_strcat_s(payload, sizeof(payload), ".+-");
-				pexpand = PX_AbiGet_bool(&pDesc->tree_root_abi, payload);
+				pexpand = PX_AbiGet_bool(&pDesc->ui_tree, payload);
 				if (pexpand && *pexpand)
 					PX_GeoDrawDownTriangle(&pDesc->render_target, x + 4, y + pDesc->item_height / 2 - 4, \
 						x + 12, y + pDesc->item_height / 2 + 4,
@@ -540,7 +544,7 @@ PX_OBJECT_RENDER_FUNCTION(PX_Object_TreeRender)
 					build_content,
 					pDesc->text_color
 				);
-				if (current_font_width+ pNode->deep * 20.f  + 64 > max_font_width)
+				if (current_font_width+ pNode->deep * 12.f  + 64 > max_font_width)
 				{
 					max_font_width = current_font_width+ pNode->deep * 20  + 64;
 				}
@@ -554,7 +558,7 @@ PX_OBJECT_RENDER_FUNCTION(PX_Object_TreeRender)
 					build_content,
 					pDesc->text_color
 				);
-				if (current_font_width + pNode->deep * 20.f  + 64 > max_font_width)
+				if (current_font_width + pNode->deep * 12.f  + 64 > max_font_width)
 				{
 					max_font_width = current_font_width + pNode->deep * 20  + 64;
 				}
@@ -562,10 +566,12 @@ PX_OBJECT_RENDER_FUNCTION(PX_Object_TreeRender)
 		}
 	}
 
-	if (max_font_width<objWidth)
+	if (max_font_width<=objWidth)
 	{
-		PX_ObjectSetEnabled(pDesc->hslider, PX_FALSE);
+		pDesc->xoffset = 0;
 		PX_Object_SliderBarSetRange(pDesc->hslider, 0, 0);
+		PX_Object_SliderBarSetValue(pDesc->hslider, 0);
+		PX_ObjectSetEnabled(pDesc->hslider, PX_FALSE);
 
 	}else if (PX_Object_SliderBarGetMax(pDesc->hslider)!= max_font_width- (px_int)objWidth)
 	{
@@ -591,8 +597,8 @@ PX_OBJECT_FREE_FUNCTION(PX_Object_TreeFree)
 		PX_TextureFree(&pDesc->render_target);
 		pDesc->render_target.mp = PX_NULL;
 	}
-	if(pDesc->tree_root_abi.dynamic.mp)
-		PX_AbiFree(&pDesc->tree_root_abi);
+	if(pDesc->ui_tree.dynamic.mp)
+		PX_AbiFree(&pDesc->ui_tree);
 	PX_Object_TreeClearNodes(pObject);
 	PX_VectorFree(&pDesc->nodes);
 
@@ -623,7 +629,7 @@ PX_Object* PX_Object_TreeCreate(px_memorypool* mp, PX_Object* Parent, px_int x, 
 	{
 		return PX_NULL;
 	}
-	PX_AbiCreate_DynamicWriter(&pDesc->tree_root_abi, mp);
+	PX_AbiCreate_DynamicWriter(&pDesc->ui_tree, mp);
 	PX_ObjectRegisterEvent(pObject, PX_OBJECT_EVENT_CURSORMOVE, PX_Object_TreeOnCursorMove, pObject);
 	PX_ObjectRegisterEvent(pObject, PX_OBJECT_EVENT_CURSORDOWN, PX_Object_TreeOnCursorDown, pObject);
 	PX_ObjectRegisterEvent(pObject, PX_OBJECT_EVENT_CURSORWHEEL, PX_Object_TreeOnCursorWhell, pObject);
@@ -636,7 +642,7 @@ PX_Object* PX_Object_TreeCreate(px_memorypool* mp, PX_Object* Parent, px_int x, 
 px_bool PX_Object_TreeSetAbi(PX_Object* pObject, px_abi* pAbi)
 {
 	PX_Object_Tree* pDesc = PX_ObjectGetDescIndex(PX_Object_Tree, pObject, 0);
-	if (PX_AbiCopy_FromAbi(&pDesc->tree_root_abi,pAbi))
+	if (PX_AbiCopy_FromAbi(&pDesc->ui_tree,pAbi))
 	{
 		PX_Object_TreeReRender(pObject);
 		return PX_TRUE;
@@ -652,13 +658,20 @@ px_void PX_Object_TreeClear(PX_Object* pObject)
 {
 	PX_Object_Tree* pDesc = PX_ObjectGetDescIndex(PX_Object_Tree, pObject, 0);
 	PX_Object_TreeClearNodes(pObject);
-	PX_AbiClear(&pDesc->tree_root_abi);
+	PX_AbiClear(&pDesc->ui_tree);
 	pDesc->yoffset = 0;
 	pDesc->xoffset = 0;
+	PX_Object_SliderBarSetValue(pDesc->vslider, 0);
+	PX_Object_SliderBarSetValue(pDesc->hslider, 0);
 	pDesc->display_name = PX_TRUE;
 	pDesc->need_rerender = PX_TRUE;
-	PX_Object_TreeReRender(pObject);
 	
+}
+
+px_abi* PX_Object_TreeGetRootAbi(PX_Object* pObject)
+{
+	PX_Object_Tree* pDesc = PX_ObjectGetDescIndex(PX_Object_Tree, pObject, 0);
+	return &pDesc->ui_tree;
 }
 
 PX_Object_TreeNode* PX_Object_TreeGetCurrentSelectNode(PX_Object* pObject)
@@ -671,7 +684,7 @@ PX_Object_TreeNode* PX_Object_TreeGetCurrentSelectNode(PX_Object* pObject)
 px_bool PX_Object_TreeAddAbi(PX_Object* pObject,const px_char name[], px_abi* pAbi)
 {
 	PX_Object_Tree* pDesc = PX_ObjectGetDescIndex(PX_Object_Tree, pObject, 0);
-	if (PX_AbiSet_Abi(&pDesc->tree_root_abi, name, pAbi))
+	if (PX_AbiSet_Abi(&pDesc->ui_tree, name, pAbi))
 	{
 		pDesc->need_rerender = PX_TRUE;
 		return PX_TRUE;

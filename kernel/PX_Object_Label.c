@@ -235,7 +235,7 @@ PX_OBJECT_RENDER_FUNCTION(PX_Object_SliderTextOnRender)
 		PX_ObjectDelayDelete(pObject);
 		return;
 	}
-	PX_FontModuleDrawText(psurface, pDesc->fm, (px_int)x, (px_int)y, PX_ALIGN_LEFTMID, pDesc->text.buffer, pDesc->color);
+	PX_FontModuleDrawText(psurface, pDesc->fm, (px_int)x, (px_int)y, PX_ALIGN_LEFTMID, PX_StringGetText(&pDesc->text), pDesc->color);
 }
 
 PX_OBJECT_FREE_FUNCTION(PX_Object_SliderTextOnFree)

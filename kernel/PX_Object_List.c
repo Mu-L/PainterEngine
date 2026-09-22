@@ -357,6 +357,11 @@ PX_OBJECT_RENDER_FUNCTION(PX_Object_ListRender)
 	}
 
 	PX_SurfaceClear(&pList->renderSurface,0,0,pList->renderSurface.width-1,pList->renderSurface.height-1,pList->BackgroundColor);
+	if (pList->currentSelectedIndex>= pList->pData.size)
+	{
+		pList->currentSelectedIndex = -1;
+	}
+
 	for (i=0;i<pList->Items.size;i++)
 	{
 		px_int index=i+pList->offsety/pList->ItemHeight;
